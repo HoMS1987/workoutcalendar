@@ -460,4 +460,89 @@ final class SyncServiceTest extends TestCase
         $this->sync();
         self::assertSame('2026-09-15', $this->state->oldestActivityDate);
     }
+
+    private function service(): SyncService
+    {
+        $client = new GarminClient(
+            $this->http,
+            new Authenticator([], $this->logger),
+            new DiTokenService($this->http),
+            new MemoryTokenStore(new GarminTokens(Jwt::make(['exp' => $this->now->getTimestamp() + 3600]), 'r', 'C')),
+            new Credentials('a@b.de', 'pw'),
+            $this->logger,
+            fn (): int => $this->now->getTimestamp(),
+        );
+
+        return new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger);
+    }
+
+    private function importedNinetyDays(): void
+    {
+        $this->initialized();
+        $this->state->backfillBefore = '2026-09-20';
+        $this->state->backfillUntil = '2026-07-22';
+        $this->state->nextRunAt = $this->now->getTimestamp() + 99999;
+    }
+
+    public function testLongerHistoryContinuesBackfill(): void
+    {
+        $this->importedNinetyDays();
+
+        $this->service()->changeHistory($this->state, 365, $this->now);
+
+        self::assertSame('2025-10-20', $this->state->backfillUntil);
+        self::assertFalse($this->state->backfillDone);
+        self::assertSame($this->now->getTimestamp() + SyncSettings::BACKFILL_NEXT_RUN_SECONDS, $this->state->nextRunAt);
+
+        $this->http->queue(self::page([]), self::page([]));
+        $this->sync(new SyncSettings(historyDays: 365));
+
+        $backfillUrl = $this->urls()[1];
+        self::assertStringContainsString('startDate=2025-10-20', $backfillUrl);
+        self::assertStringContainsString('endDate=2026-09-20', $backfillUrl);
+    }
+
+    public function testFullHistoryClearsLowerBound(): void
+    {
+        $this->importedNinetyDays();
+
+        $this->service()->changeHistory($this->state, null, $this->now);
+
+        self::assertNull($this->state->backfillUntil);
+        self::assertFalse($this->state->backfillDone);
+    }
+
+    public function testShorterHistoryChangesNothing(): void
+    {
+        $this->importedNinetyDays();
+        $this->state->backfillUntil = '2025-10-20';
+        $this->storeEvent(1, '2026-01-01 07:00:00');
+        $before = clone $this->state;
+
+        $this->service()->changeHistory($this->state, 30, $this->now);
+        $this->service()->changeHistory($this->state, 365, $this->now);
+
+        self::assertEquals($before, $this->state);
+        self::assertNotNull($this->calendar->find(['1'])['1'] ?? null);
+    }
+
+    public function testHistoryChangeBeforeFirstRunIsIgnored(): void
+    {
+        $before = clone $this->state;
+
+        $this->service()->changeHistory($this->state, 365, $this->now);
+
+        self::assertEquals($before, $this->state);
+    }
+
+    public function testLongerHistoryReachingBeforeDateStaysDone(): void
+    {
+        $this->importedNinetyDays();
+        $this->state->backfillBefore = '2025-01-01';
+
+        $this->service()->changeHistory($this->state, 365, $this->now);
+
+        self::assertSame('2025-10-20', $this->state->backfillUntil);
+        self::assertTrue($this->state->backfillDone);
+    }
 }
