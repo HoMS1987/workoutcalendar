@@ -130,7 +130,7 @@ Von oben nach unten:
 4. **Erweitert** (eingeklappt): zufällige Streuung (F-16), Umgang mit in Garmin gelöschten
    Aktivitäten und Prüfzeitraum (F-13), letzter Fehler mit Zeitpunkt, Kategorie und Zahl der
    Fehlschläge.
-5. **Garmin-Konto** (eingeklappt): „Abmelden“.
+5. **Garmin-Konto** (eingeklappt): „Abmelden“ und „App zurücksetzen“.
 
 ### Abmelden
 
@@ -141,6 +141,16 @@ Von oben nach unten:
   - den ganzen Kalender löschen. Nur angeboten, wenn die App den Kalender selbst angelegt hat.
 - Bei erneuter Anmeldung geht es mit dem bisherigen Kalender und den bisherigen Einstellungen weiter,
   ohne Assistent.
+
+### Zurücksetzen
+
+- „App zurücksetzen“ geht weiter als Abmelden: Die App löscht alles, was sie für die Person
+  gespeichert hat, also Zugangsdaten, Tokens, Einstellungen, Sync-Zustand und die Zuordnung zum
+  Kalender. Beim nächsten Öffnen startet der Assistent bei Schritt 1.
+- Wie beim Abmelden werden nach Bestätigung zusätzlich angeboten: die Termine der App entfernen oder
+  den von der App angelegten Kalender löschen. Ohne diese Wahl bleiben die Termine stehen und werden
+  nicht mehr gepflegt.
+- Der Bestätigungsdialog sagt ausdrücklich, dass sich das nicht rückgängig machen lässt.
 
 ## Benachrichtigungen
 
@@ -215,6 +225,17 @@ Nach abgelehntem Passwort pausiert der Sync, bis die Person das Passwort neu ein
   wird dort durch einen Ersatz simuliert.
 - Der abschließende Test von Hand läuft auf der eigenen Instanz (Nextcloud 35.0.2) mit dem echten
   Garmin-Konto und einem eigenen Testkalender. Dazu wird die App dort von Hand installiert.
+
+## Abhängigkeiten aktuell halten
+
+- Renovate (die GitHub-App ist bereits im Einsatz) mit einer `renovate.json` im Repository, eingerichtet
+  zusammen mit dem CI-Aufbau.
+- Erfasst werden die Entwicklungs-Pakete von Composer, die npm-Pakete und die GitHub Actions.
+- `nextcloud/ocp` bleibt auf der kleinsten unterstützten Nextcloud-Version (33). Renovate hebt sie
+  nicht an, das geschieht nur mit einer Änderung der unterstützten Versionen.
+- Neue Hauptversionen von `@nextcloud/vue` und `vue` schlägt Renovate nur vor, sie werden nie
+  automatisch übernommen, weil sie zur Nextcloud-Version passen müssen.
+- Zur Laufzeit hat die App keine eigenen Composer-Pakete. Bibliotheken wie `psr/log` liefert Nextcloud.
 
 ## Festlegungen nach der Durchsicht
 
