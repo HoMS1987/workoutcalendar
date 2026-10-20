@@ -27,8 +27,11 @@ Cluster steht noch aus.
 
 ## Entscheidung
 
-- Die App ist eine klassische Nextcloud-App in PHP, App-ID `garmincalendar`, Namespace
-  `OCA\GarminCalendar`. Im App Store gab es am 2026-10-20 keine App mit dieser ID.
+- Die App ist eine klassische Nextcloud-App in PHP, Name „Workout Calendar“, App-ID
+  `workoutcalendar`, Namespace `OCA\WorkoutCalendar`. Im App Store gab es am 2026-10-20 keine App
+  mit dieser ID. Der Name ist bewusst neutral: Er enthält keine fremde Marke wie „Garmin“, lässt
+  sich nicht mit der Nextcloud-App „Activity“ verwechseln und passt auch zu weiteren Datenquellen.
+  „Garmin Connect“ steht in Untertitel und Beschreibung, damit die App auffindbar bleibt.
 - Der Garmin-Zugriff ist ein eigener PHP-Client, der die Abläufe von `python-garminconnect`
   nachbildet. Die Python-Bibliothek dient als Referenz, wenn Garmin etwas ändert.
 - Login-Reihenfolge: Mobile-Login, danach Widget-Login als Ausweichweg. Der Portal-Login entfällt.

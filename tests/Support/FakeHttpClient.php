@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Support;
+namespace OCA\WorkoutCalendar\Tests\Support;
 
-use OCA\GarminCalendar\Garmin\Http\HttpClient;
-use OCA\GarminCalendar\Garmin\Http\HttpRequest;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
 /** Liefert vorbereitete Antworten in Reihenfolge und merkt sich alle Anfragen. */
 final class FakeHttpClient implements HttpClient

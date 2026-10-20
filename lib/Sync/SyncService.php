@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Sync;
+namespace OCA\WorkoutCalendar\Sync;
 
-use OCA\GarminCalendar\Calendar\ActivityEventMapper;
-use OCA\GarminCalendar\Calendar\CalendarEvent;
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminClient;
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Garmin\Http\NetworkException;
+use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
+use OCA\WorkoutCalendar\Calendar\CalendarEvent;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**

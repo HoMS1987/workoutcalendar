@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Calendar;
+namespace OCA\WorkoutCalendar\Tests\Unit\Calendar;
 
-use OCA\GarminCalendar\Calendar\CalendarEvent;
-use OCA\GarminCalendar\Calendar\IcsSerializer;
+use OCA\WorkoutCalendar\Calendar\CalendarEvent;
+use OCA\WorkoutCalendar\Calendar\IcsSerializer;
 use PHPUnit\Framework\TestCase;
 
 final class IcsSerializerTest extends TestCase
@@ -42,7 +42,7 @@ final class IcsSerializerTest extends TestCase
         self::assertSame(
             "BEGIN:VCALENDAR\r\n"
             . "VERSION:2.0\r\n"
-            . "PRODID:-//HoMS1987//garmincalendar//DE\r\n"
+            . "PRODID:-//HoMS1987//workoutcalendar//DE\r\n"
             . "BEGIN:VEVENT\r\n"
             . "UID:garmin-42\r\n"
             . "DTSTAMP:20261020T080000Z\r\n"

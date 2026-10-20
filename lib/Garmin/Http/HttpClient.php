@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Http;
+namespace OCA\WorkoutCalendar\Garmin\Http;
 
 /**
  * Cookies bleiben über alle Anfragen einer Instanz erhalten (nötig für den Widget-Login).

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Auth;
 
-use OCA\GarminCalendar\Garmin\Auth\GarminTokens;
-use OCA\GarminCalendar\Tests\Support\Jwt;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Tests\Support\Jwt;
 use PHPUnit\Framework\TestCase;
 
 final class GarminTokensTest extends TestCase

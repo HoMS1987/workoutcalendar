@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Sync;
+namespace OCA\WorkoutCalendar\Tests\Unit\Sync;
 
-use OCA\GarminCalendar\Sync\DeletionMode;
-use OCA\GarminCalendar\Sync\SyncSettings;
+use OCA\WorkoutCalendar\Sync\DeletionMode;
+use OCA\WorkoutCalendar\Sync\SyncSettings;
 use PHPUnit\Framework\TestCase;
 
 final class SyncSettingsTest extends TestCase

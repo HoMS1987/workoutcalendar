@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Auth;
 
-use OCA\GarminCalendar\Garmin\Auth\Credentials;
-use OCA\GarminCalendar\Garmin\Auth\DiTokenService;
-use OCA\GarminCalendar\Garmin\Auth\WidgetLogin;
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
-use OCA\GarminCalendar\Tests\Support\FakeHttpClient;
-use OCA\GarminCalendar\Tests\Support\Jwt;
+use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
+use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
+use OCA\WorkoutCalendar\Garmin\Auth\WidgetLogin;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
+use OCA\WorkoutCalendar\Tests\Support\Jwt;
 use PHPUnit\Framework\TestCase;
 
 final class WidgetLoginTest extends TestCase

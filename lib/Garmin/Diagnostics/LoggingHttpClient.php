@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
-use OCA\GarminCalendar\Garmin\Http\HttpClient;
-use OCA\GarminCalendar\Garmin\Http\HttpRequest;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
-use OCA\GarminCalendar\Garmin\Http\NetworkException;
+use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**

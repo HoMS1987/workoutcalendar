@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Sync;
+namespace OCA\WorkoutCalendar\Tests\Unit\Sync;
 
-use OCA\GarminCalendar\Sync\SyncState;
+use OCA\WorkoutCalendar\Sync\SyncState;
 use PHPUnit\Framework\TestCase;
 
 final class SyncStateTest extends TestCase

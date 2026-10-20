@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin;
 
-use OCA\GarminCalendar\Garmin\Auth\Authenticator;
-use OCA\GarminCalendar\Garmin\Auth\Credentials;
-use OCA\GarminCalendar\Garmin\Auth\DiTokenService;
-use OCA\GarminCalendar\Garmin\Auth\GarminTokens;
-use OCA\GarminCalendar\Garmin\Auth\LoginStrategy;
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminClient;
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
-use OCA\GarminCalendar\Tests\Support\FakeHttpClient;
-use OCA\GarminCalendar\Tests\Support\Jwt;
-use OCA\GarminCalendar\Tests\Support\MemoryLogger;
-use OCA\GarminCalendar\Tests\Support\MemoryTokenStore;
+use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
+use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
+use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
+use OCA\WorkoutCalendar\Tests\Support\Jwt;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
+use OCA\WorkoutCalendar\Tests\Support\MemoryTokenStore;
 use PHPUnit\Framework\TestCase;
 
 final class GarminClientTest extends TestCase

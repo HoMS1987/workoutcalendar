@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Sync;
+namespace OCA\WorkoutCalendar\Tests\Unit\Sync;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Sync\FailureLog;
-use OCA\GarminCalendar\Sync\SyncState;
-use OCA\GarminCalendar\Tests\Support\MemoryLogger;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Sync\FailureLog;
+use OCA\WorkoutCalendar\Sync\SyncState;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use PHPUnit\Framework\TestCase;
 
 final class FailureLogTest extends TestCase

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Sync;
+namespace OCA\WorkoutCalendar\Sync;
 
 /** Einstellungen einer Person mit Standardwerten und Grenzen aus docs/anforderungen.md. */
 final class SyncSettings

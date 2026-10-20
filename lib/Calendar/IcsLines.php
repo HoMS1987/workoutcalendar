@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Calendar;
+namespace OCA\WorkoutCalendar\Calendar;
 
 /** Entfalten und Falten von iCalendar-Zeilen nach RFC 5545, UTF-8-sicher. */
 final class IcsLines

@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Sync;
+namespace OCA\WorkoutCalendar\Tests\Unit\Sync;
 
-use OCA\GarminCalendar\Calendar\ActivityEventMapper;
-use OCA\GarminCalendar\Garmin\Auth\Authenticator;
-use OCA\GarminCalendar\Garmin\Auth\Credentials;
-use OCA\GarminCalendar\Garmin\Auth\DiTokenService;
-use OCA\GarminCalendar\Garmin\Auth\GarminTokens;
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminClient;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
-use OCA\GarminCalendar\Garmin\Http\NetworkException;
-use OCA\GarminCalendar\Sync\DeletionMode;
-use OCA\GarminCalendar\Sync\SyncService;
-use OCA\GarminCalendar\Sync\SyncSettings;
-use OCA\GarminCalendar\Sync\SyncState;
-use OCA\GarminCalendar\Tests\Support\FakeHttpClient;
-use OCA\GarminCalendar\Tests\Support\Jwt;
-use OCA\GarminCalendar\Tests\Support\MemoryCalendarTarget;
-use OCA\GarminCalendar\Tests\Support\MemoryLogger;
-use OCA\GarminCalendar\Tests\Support\MemoryTokenStore;
+use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
+use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
+use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
+use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
+use OCA\WorkoutCalendar\Sync\DeletionMode;
+use OCA\WorkoutCalendar\Sync\SyncService;
+use OCA\WorkoutCalendar\Sync\SyncSettings;
+use OCA\WorkoutCalendar\Sync\SyncState;
+use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
+use OCA\WorkoutCalendar\Tests\Support\Jwt;
+use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarTarget;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
+use OCA\WorkoutCalendar\Tests\Support\MemoryTokenStore;
 use PHPUnit\Framework\TestCase;
 
 final class SyncServiceTest extends TestCase
@@ -44,7 +44,7 @@ final class SyncServiceTest extends TestCase
         $this->now = new \DateTimeImmutable(self::NOW, new \DateTimeZone('UTC'));
     }
 
-    private function sync(SyncSettings $settings = new SyncSettings()): \OCA\GarminCalendar\Sync\SyncResult
+    private function sync(SyncSettings $settings = new SyncSettings()): \OCA\WorkoutCalendar\Sync\SyncResult
     {
         $tokens = new MemoryTokenStore(new GarminTokens(Jwt::make(['exp' => $this->now->getTimestamp() + 3600]), 'r', 'C'));
         $client = new GarminClient(

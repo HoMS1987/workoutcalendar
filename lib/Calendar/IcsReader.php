@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Calendar;
+namespace OCA\WorkoutCalendar\Calendar;
 
 /** Liest die Garmin-Eigenschaften aus einem gespeicherten Termin. */
 final class IcsReader

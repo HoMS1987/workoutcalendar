@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Http;
+namespace OCA\WorkoutCalendar\Garmin\Http;
 
 final class HttpRequest
 {

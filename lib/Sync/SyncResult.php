@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Sync;
+namespace OCA\WorkoutCalendar\Sync;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
 final class SyncResult
 {

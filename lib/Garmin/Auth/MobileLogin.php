@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Garmin\Auth;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminConstants;
-use OCA\GarminCalendar\Garmin\Http\HttpClient;
-use OCA\GarminCalendar\Garmin\Http\HttpRequest;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminConstants;
+use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
 
 /** Login wie die iOS-App von Garmin Connect (python-garminconnect: Strategie "mobile"). */
 final class MobileLogin implements LoginStrategy

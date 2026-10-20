@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Calendar;
+namespace OCA\WorkoutCalendar\Tests\Unit\Calendar;
 
-use OCA\GarminCalendar\Calendar\CalendarEvent;
-use OCA\GarminCalendar\Calendar\IcsReader;
-use OCA\GarminCalendar\Calendar\IcsSerializer;
+use OCA\WorkoutCalendar\Calendar\CalendarEvent;
+use OCA\WorkoutCalendar\Calendar\IcsReader;
+use OCA\WorkoutCalendar\Calendar\IcsSerializer;
 use PHPUnit\Framework\TestCase;
 
 final class IcsReaderTest extends TestCase

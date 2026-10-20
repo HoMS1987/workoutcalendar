@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Sync;
+namespace OCA\WorkoutCalendar\Sync;
 
-use OCA\GarminCalendar\Calendar\CalendarEvent;
+use OCA\WorkoutCalendar\Calendar\CalendarEvent;
 
 /** Zielkalender einer Person. Die Nextcloud-Implementierung nutzt die interne Kalender-API (ADR 0003). */
 interface CalendarTarget

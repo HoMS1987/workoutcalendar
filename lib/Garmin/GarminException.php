@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin;
+namespace OCA\WorkoutCalendar\Garmin;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
 /** Garmin-Zugriff fehlgeschlagen. Kategorie und Schritt zeigen, wo und warum (ADR 0004). */
 final class GarminException extends \RuntimeException

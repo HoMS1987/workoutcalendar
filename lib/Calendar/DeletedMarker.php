@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Calendar;
+namespace OCA\WorkoutCalendar\Calendar;
 
 /** Markiert einen gespeicherten Termin als „in Garmin gelöscht“ (F-13, F-34). Mehrfaches Anwenden ändert nichts. */
 final class DeletedMarker

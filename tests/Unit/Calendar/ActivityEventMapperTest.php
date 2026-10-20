@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Calendar;
+namespace OCA\WorkoutCalendar\Tests\Unit\Calendar;
 
-use OCA\GarminCalendar\Calendar\ActivityEventMapper;
+use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

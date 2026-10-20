@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Garmin\Auth;
 
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Garmin\Http\NetworkException;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 
 interface LoginStrategy
 {
