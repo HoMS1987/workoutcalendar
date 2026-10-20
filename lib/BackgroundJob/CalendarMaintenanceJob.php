@@ -16,11 +16,16 @@ use Psr\Log\LoggerInterface;
  * Verschiebt oder entfernt die Termine der App in Etappen. Bleibt etwas übrig, reiht sich der
  * Job mit demselben Argument erneut ein.
  *
- * Argument: `['uid' => string, 'action' => 'move'|'remove', 'from' => int, 'to' => ?int]`
+ * Argument: `['uid' => string, 'action' => 'move'|'remove', 'from' => int, 'to' => ?int]`, optional
+ * `'attempt' => int` (fehlgeschlagene Läufe in Folge) und `'rest' => int` (Rest nach dem letzten Lauf).
+ * Nach einem Fehler oder ohne Fortschritt reiht sich der Job bis MAX_ATTEMPTS erneut ein, danach
+ * gibt er auf und löst die Sperre `maintenance`.
  */
 final class CalendarMaintenanceJob extends QueuedJob
 {
     public const BATCH = 200;
+    /** Fehlgeschlagene Läufe in Folge, nach denen der Job aufgibt. */
+    public const MAX_ATTEMPTS = 5;
 
     public function __construct(
         ITimeFactory $time,
@@ -46,25 +51,64 @@ final class CalendarMaintenanceJob extends QueuedJob
             return;
         }
 
+        $attempt = $this->count($argument['attempt'] ?? null) ?? 0;
+        $lastRest = $this->count($argument['rest'] ?? null);
+
         try {
             $rest = $action === 'move'
                 ? $this->calendars->moveAppEvents($from, $to, self::BATCH)
                 : $this->calendars->removeAppEvents($from, self::BATCH);
-            if ($rest > 0) {
-                $this->jobList->add(self::class, $argument);
-
-                return;
-            }
-            $this->finish($uid);
         } catch (\Throwable $e) {
-            // Kein erneutes Einreihen: die Person kann den Vorgang in den Einstellungen wiederholen.
             $this->logger->error('Wartungsjob fehlgeschlagen', [
                 'uid' => $uid,
                 'action' => $action,
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
             ]);
+            $this->retryOrGiveUp($argument, $uid, $action, $attempt, $lastRest);
+
+            return;
         }
+
+        if ($rest <= 0) {
+            $this->finish($uid);
+
+            return;
+        }
+        if ($lastRest !== null && $rest >= $lastRest) {
+            $this->retryOrGiveUp($argument, $uid, $action, $attempt, $lastRest);
+
+            return;
+        }
+        $this->jobList->add(self::class, [...$argument, 'attempt' => 0, 'rest' => $rest]);
+    }
+
+    /** Optionaler Zähler im Argument: nur ganze Zahlen ab 0 gelten, alles andere zählt als nicht vorhanden. */
+    private function count(mixed $value): ?int
+    {
+        return is_int($value) && $value >= 0 ? $value : null;
+    }
+
+    /** @param array<string, mixed> $argument */
+    private function retryOrGiveUp(array $argument, string $uid, string $action, int $attempt, ?int $lastRest): void
+    {
+        if ($attempt + 1 > self::MAX_ATTEMPTS) {
+            $this->logger->error('Wartungsjob gibt auf', [
+                'uid' => $uid,
+                'action' => $action,
+                'attempts' => $attempt + 1,
+            ]);
+            $this->finish($uid);
+
+            return;
+        }
+        $retry = [...$argument, 'attempt' => $attempt + 1];
+        if ($lastRest !== null) {
+            $retry['rest'] = $lastRest;
+        } else {
+            unset($retry['rest']);
+        }
+        $this->jobList->add(self::class, $retry);
     }
 
     private function finish(string $uid): void
