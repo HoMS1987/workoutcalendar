@@ -17,6 +17,11 @@ final class IcsReader
         return $this->property($ics, 'X-GARMIN-FINGERPRINT');
     }
 
+    public function accountKey(string $ics): ?string
+    {
+        return $this->property($ics, 'X-GARMIN-ACCOUNT');
+    }
+
     public function isMarkedDeleted(string $ics): bool
     {
         return strcasecmp((string)$this->property($ics, 'X-GARMIN-DELETED'), 'TRUE') === 0;

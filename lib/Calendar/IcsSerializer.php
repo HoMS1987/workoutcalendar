@@ -9,7 +9,7 @@ final class IcsSerializer
 {
     private const PRODID = '-//HoMS1987//workoutcalendar//DE';
 
-    public function serialize(CalendarEvent $event, \DateTimeImmutable $now): string
+    public function serialize(CalendarEvent $event, \DateTimeImmutable $now, ?string $accountKey = null): string
     {
         $lines = [
             'BEGIN:VCALENDAR',
@@ -26,6 +26,7 @@ final class IcsSerializer
             'CATEGORIES:' . implode(',', array_map(self::escape(...), $event->categories)),
             'X-GARMIN-ACTIVITY-ID:' . self::escape($event->activityId),
             'X-GARMIN-FINGERPRINT:' . $event->fingerprint(),
+            ...($accountKey === null ? [] : ['X-GARMIN-ACCOUNT:' . self::escape($accountKey)]),
             'END:VEVENT',
             'END:VCALENDAR',
         ];

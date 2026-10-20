@@ -68,4 +68,16 @@ final class IcsReaderTest extends TestCase
         self::assertTrue($reader->isMarkedDeleted("BEGIN:VEVENT\r\nx-garmin-deleted:true\r\nEND:VEVENT\r\n"));
         self::assertFalse($reader->isMarkedDeleted("BEGIN:VEVENT\r\nX-GARMIN-DELETED:FALSE\r\nEND:VEVENT\r\n"));
     }
+
+    public function testReaderReturnsAccountKey(): void
+    {
+        $ics = (new IcsSerializer())->serialize(self::event(), new \DateTimeImmutable('2026-10-20 08:00:00'), '0123456789abcdef');
+
+        self::assertSame('0123456789abcdef', (new IcsReader())->accountKey($ics));
+    }
+
+    public function testReaderWithoutAccountKey(): void
+    {
+        self::assertNull((new IcsReader())->accountKey(self::ics()));
+    }
 }
