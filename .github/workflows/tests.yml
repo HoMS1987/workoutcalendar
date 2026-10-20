@@ -13,7 +13,7 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -37,14 +37,14 @@ jobs:
             php: '8.5'
     steps:
       - name: Nextcloud Server auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: nextcloud/server
           ref: ${{ matrix.server }}
           submodules: true
           path: server
       - name: App auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: server/apps/workoutcalendar
       - uses: shivammathur/setup-php@v2
