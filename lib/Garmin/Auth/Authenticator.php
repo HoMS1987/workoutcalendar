@@ -10,7 +10,10 @@ use OCA\GarminCalendar\Garmin\GarminException;
 use OCA\GarminCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
-/** Probiert die Login-Strategien der Reihe nach und protokolliert jeden Versuch (ADR 0004). */
+/**
+ * Probiert die Login-Strategien der Reihe nach. Einzelversuche werden auf Stufe debug geloggt, die
+ * Zusammenfassung steckt in der geworfenen Exception und wird gedrosselt vom Sync-Ablauf geloggt (ADR 0004).
+ */
 final class Authenticator
 {
     /** Bei diesen Fehlern hilft ein anderer Login-Weg nicht, weitere Versuche könnten das Konto sperren. */
@@ -46,15 +49,14 @@ final class Authenticator
             }
 
             $attempts[$strategy->name()] = "{$last->category->value} @ {$last->step}";
-            $this->logger->warning('Garmin-Login fehlgeschlagen', ['strategy' => $strategy->name()] + self::redactedContext($last, $redactor));
+            $this->logger->debug('Garmin-Login-Versuch fehlgeschlagen', ['strategy' => $strategy->name()] + self::redactedContext($last, $redactor));
             if (in_array($last->category, self::FINAL_CATEGORIES, true)) {
-                throw $last;
+                throw $last->withAttempts($attempts);
             }
         }
 
-        $this->logger->error('Garmin-Login mit allen Strategien fehlgeschlagen', ['attempts' => $attempts]);
-
-        throw $last ?? new GarminException(FailureCategory::ProtocolChanged, 'login', 'Keine Login-Strategie konfiguriert');
+        throw $last?->withAttempts($attempts)
+            ?? new GarminException(FailureCategory::ProtocolChanged, 'login', 'Keine Login-Strategie konfiguriert');
     }
 
     /** @return array<string, mixed> */

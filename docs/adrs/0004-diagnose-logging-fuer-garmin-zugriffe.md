@@ -28,9 +28,11 @@ Service-Tickets nie im Log landen.
   - `TOKEN_REJECTED`: Access- oder Refresh-Token wird nicht mehr akzeptiert
   - `SERVER_ERROR`: 5xx von Garmin
   - `NETWORK`: keine Verbindung, Timeout, TLS-Fehler
-- Jeder Fehler wird auf Stufe `warning` mit Kategorie, Login-Strategie, Schritt, Status und einem
-  bereinigten Auszug der Antwort (höchstens 300 Zeichen) geloggt. Scheitern alle Login-Strategien,
-  folgt ein `error` mit der Zusammenfassung aller Versuche.
+- Einzelne fehlgeschlagene Login-Versuche und Netzwerkfehler werden auf Stufe `debug` geloggt. Der
+  Sync-Ablauf loggt den Fehler eines Laufs gedrosselt (siehe unten) mit Kategorie, Schritt, Status,
+  einem bereinigten Auszug der Antwort (höchstens 300 Zeichen) und der Zusammenfassung aller
+  Login-Versuche je Strategie. Stufe `error` gilt für Fehler, die ein Eingreifen brauchen
+  (`INVALID_CREDENTIALS`, `MFA_REQUIRED`, `PROTOCOL_CHANGED`), sonst `warning`.
 - Die erfolgreiche Login-Strategie wird auf Stufe `info` geloggt. So fällt auf, wenn plötzlich nur
   noch der Ausweichweg funktioniert.
 - Alles, was ins Log geht, läuft durch einen `Redactor`. Er entfernt Passwörter, Tokens, JWTs,

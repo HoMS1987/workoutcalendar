@@ -53,6 +53,7 @@ final class IcsSerializerTest extends TestCase
             . "URL:https://connect.garmin.com/modern/activity/42\r\n"
             . "CATEGORIES:Garmin,Laufen\r\n"
             . "X-GARMIN-ACTIVITY-ID:42\r\n"
+            . 'X-GARMIN-FINGERPRINT:' . self::event()->fingerprint() . "\r\n"
             . "END:VEVENT\r\n"
             . "END:VCALENDAR\r\n",
             self::serialize(self::event()),

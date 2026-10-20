@@ -57,10 +57,11 @@ final class AuthenticatorTest extends TestCase
 
         self::assertSame($tokens, $authenticator->login(new Credentials('a@b.de', 'geheim')));
 
-        $warning = $this->logger->byLevel('warning')[0];
-        self::assertSame('mobile', $warning['context']['strategy']);
-        self::assertSame('BLOCKED', $warning['context']['category']);
-        self::assertSame(429, $warning['context']['status']);
+        self::assertSame([], $this->logger->byLevel('warning'), 'Warnungen loggt gedrosselt erst der Sync-Ablauf');
+        $attempt = $this->logger->byLevel('debug')[0];
+        self::assertSame('mobile', $attempt['context']['strategy']);
+        self::assertSame('BLOCKED', $attempt['context']['category']);
+        self::assertSame(429, $attempt['context']['status']);
         $info = $this->logger->byLevel('info')[0];
         self::assertSame('widget', $info['context']['strategy']);
         self::assertSame(['mobile'], $info['context']['failedBefore']);
@@ -84,7 +85,7 @@ final class AuthenticatorTest extends TestCase
         self::assertSame(0, $widgetCalls, 'Weitere Versuche könnten das Garmin-Konto sperren');
     }
 
-    public function testAllStrategiesFailingLogsSummaryAsError(): void
+    public function testAllStrategiesFailingThrowsSummaryOfAttempts(): void
     {
         $authenticator = new Authenticator([
             self::strategy('mobile', new GarminException(FailureCategory::Blocked, 'mobile.login', 'x', 429)),
@@ -96,13 +97,29 @@ final class AuthenticatorTest extends TestCase
             self::fail('GarminException erwartet');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::ProtocolChanged, $e->category);
+            self::assertSame('widget.signin-page', $e->step);
+            $expected = ['mobile' => 'BLOCKED @ mobile.login', 'widget' => 'PROTOCOL_CHANGED @ widget.signin-page'];
+            self::assertSame($expected, $e->attempts);
+            self::assertSame($expected, $e->logContext()['attempts']);
         }
+        self::assertSame([], $this->logger->byLevel('error'));
+        self::assertSame([], $this->logger->byLevel('warning'));
+    }
 
-        $error = $this->logger->byLevel('error')[0];
-        self::assertSame(
-            ['mobile' => 'BLOCKED @ mobile.login', 'widget' => 'PROTOCOL_CHANGED @ widget.signin-page'],
-            $error['context']['attempts'],
-        );
+    public function testFinalFailureAlsoCarriesAttempts(): void
+    {
+        $authenticator = new Authenticator([
+            self::strategy('mobile', new GarminException(FailureCategory::Blocked, 'mobile.login', 'x', 429)),
+            self::strategy('widget', new GarminException(FailureCategory::InvalidCredentials, 'widget.signin-post', 'abgelehnt')),
+        ], $this->logger);
+
+        try {
+            $authenticator->login(new Credentials('a@b.de', 'pw'));
+            self::fail('GarminException erwartet');
+        } catch (GarminException $e) {
+            self::assertSame(FailureCategory::InvalidCredentials, $e->category);
+            self::assertSame(['mobile' => 'BLOCKED @ mobile.login', 'widget' => 'INVALID_CREDENTIALS @ widget.signin-post'], $e->attempts);
+        }
     }
 
     public function testNetworkErrorBecomesGarminException(): void
