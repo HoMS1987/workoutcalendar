@@ -19,7 +19,7 @@ SyncService ──► FailureLog
 GarminClient           ActivityEventMapper ──► IcsSerializer
     │                                              │
     ▼                                              ▼
-Authenticator / DiTokenService            Nextcloud-Kalender-API  ── geplant
+Authenticator / DiTokenService            DavCalendarTarget ──► CalDavBackend (ADR 0005)
     │
     ▼
 LoggingHttpClient ──► CurlHttpClient ──► Garmin Connect           (CurlHttpClient geplant)
@@ -35,6 +35,7 @@ LoggingHttpClient ──► CurlHttpClient ──► Garmin Connect           (C
 | `lib/Garmin` | `GarminClient`: Aktivitäten abrufen, Tokens erneuern, bei Bedarf neu anmelden | ✅ |
 | `lib/Calendar` | `ActivityEventMapper`, `CalendarEvent` (mit Fingerabdruck), `IcsSerializer`, `IcsReader`, `DeletedMarker` | ✅ |
 | `lib/Sync` | `SyncService`, `SyncSettings`, `SyncState`, `FailureLog` (gedrosseltes Fehler-Log), `CalendarTarget` | ✅ |
+| `lib/CalDav` | `CalendarObjects` mit `DavCalendarObjects` (einzige Klasse mit `OCA\DAV`), `DavCalendarTarget`, `CalendarService` (ADR 0005) | ✅ |
 | `lib/BackgroundJob`, `lib/Settings`, `lib/Service` | Nextcloud-Anbindung: Hintergrundjob, Einstellungen, verschlüsselte Ablage | geplant |
 
 Der Kern (`lib/Garmin`, `lib/Calendar`, `lib/Sync`) nutzt keine Nextcloud-Klassen, nur PSR-3 für
