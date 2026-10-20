@@ -58,3 +58,5 @@ Cluster steht noch aus.
   aber nicht mit der App ausgeliefert.
 - Unterstützte Nextcloud-Versionen: vorerst 33 bis 35. Die Version der eigenen Instanz ist noch
   offen.
+- Nachtrag 2026-10-20: Die interne Kalender-API ist `CalDavBackend` der DAV-App, siehe
+  [ADR 0005](0005-calendar-ueber-caldavbackend.md).
