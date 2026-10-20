@@ -10,7 +10,7 @@
     },
     "require-dev": {
         "nextcloud/ocp": "^33.0",
-        "phpunit/phpunit": "^11.5",
+        "phpunit/phpunit": "^13.0",
         "psr/log": "^3.0"
     },
     "autoload": {
