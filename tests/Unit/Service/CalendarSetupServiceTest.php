@@ -203,6 +203,42 @@ final class CalendarSetupServiceTest extends TestCase
         self::assertSame([], $this->jobs);
     }
 
+    public function testChangeWhileMaintenanceRunsIsRejected(): void
+    {
+        $old = $this->objects->addCalendar(self::UID, 'x', 'Alt');
+        $target = $this->objects->addCalendar(self::UID, 'y', 'Ziel');
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', 'a***@b.de', $target, false, 'move'));
+        $other = $this->objects->addCalendar(self::UID, 'z', 'Dritter');
+        $before = $this->store;
+        $calendars = count($this->objects->ownCalendars(self::UID));
+
+        foreach ([[null, $other], ['Brandneu', null]] as [$name, $id]) {
+            try {
+                $this->service()->choose(self::UID, $name, $id, true, true);
+                self::fail('InvalidArgumentException erwartet');
+            } catch (\InvalidArgumentException) {
+                self::addToAssertionCount(1);
+            }
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->jobs);
+        self::assertCount($calendars, $this->objects->ownCalendars(self::UID));
+        self::assertNotNull($old);
+    }
+
+    public function testWizardChoiceAllowedDuringRemoval(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, 'abc', 'a***@b.de', null, false, 'remove'));
+
+        $choice = $this->service()->choose(self::UID, 'Neu', null, false, false);
+
+        $setup = $this->users->setup(self::UID);
+        self::assertSame($choice->calendar?->id, $setup->calendarId);
+        self::assertSame('remove', $setup->maintenance);
+        self::assertSame(SetupStep::History, $setup->step);
+    }
+
     public function testChangeArmsQueue(): void
     {
         $this->done();
