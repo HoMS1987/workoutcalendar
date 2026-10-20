@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Tests\Unit\BackgroundJob;
 
 use OCA\WorkoutCalendar\BackgroundJob\CalendarMaintenanceJob;
+use OCA\WorkoutCalendar\CalDav\CalendarObjects;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -45,15 +46,23 @@ final class CalendarMaintenanceJobTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'move'));
         $argument = ['uid' => self::UID, 'action' => 'move', 'from' => $this->from, 'to' => $this->to];
         $jobList = $this->createMock(IJobList::class);
-        $jobList->expects(self::exactly(2))->method('add')->with(CalendarMaintenanceJob::class, $argument);
+        $queued = [];
+        $jobList->expects(self::exactly(2))->method('add')->willReturnCallback(
+            static function (string $class, array $arg) use (&$queued): void {
+                self::assertSame(CalendarMaintenanceJob::class, $class);
+                $queued[] = $arg;
+            },
+        );
         $job = $this->job($jobList);
 
         $this->execute($job, $argument);
         self::assertCount(250, $this->objects->objects[$this->from]);
         self::assertSame('move', $this->users->setup(self::UID)->maintenance);
-        $this->execute($job, $argument);
+        self::assertSame($argument + ['attempt' => 0, 'rest' => 250], $queued[0]);
+        $this->execute($job, $queued[0]);
         self::assertSame('move', $this->users->setup(self::UID)->maintenance);
-        $this->execute($job, $argument);
+        self::assertSame($argument + ['attempt' => 0, 'rest' => 50], $queued[1]);
+        $this->execute($job, $queued[1]);
 
         self::assertCount(0, $this->objects->objects[$this->from]);
         self::assertCount(450, $this->objects->objects[$this->to]);
@@ -90,6 +99,100 @@ final class CalendarMaintenanceJobTest extends TestCase
         self::assertCount(4, $this->logger->byLevel('warning'));
     }
 
+    public function testExceptionRequeuesWithAttempt(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 2, 'rest' => 7];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::once())->method('add')
+            ->with(CalendarMaintenanceJob::class, ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 3, 'rest' => 7]);
+
+        $this->execute($this->job($jobList, $this->failingObjects()), $argument);
+
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenance);
+        self::assertCount(1, $this->logger->byLevel('error'));
+    }
+
+    public function testGivesUpAfterFiveAttemptsAndClearsMaintenance(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 5];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::never())->method('add');
+
+        $this->execute($this->job($jobList, $this->failingObjects('geheim-passwort')), $argument);
+
+        self::assertNull($this->users->setup(self::UID)->maintenance);
+        $errors = $this->logger->byLevel('error');
+        self::assertNotEmpty($errors);
+        $last = end($errors);
+        self::assertSame(['uid' => self::UID, 'action' => 'remove', 'attempts' => 6], $last['context']);
+        self::assertStringNotContainsString('geheim-passwort', $last['message'] . json_encode($last['context']));
+    }
+
+    public function testNoProgressCountsAsFailedAttempt(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 1, 'rest' => 50];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::once())->method('add')
+            ->with(CalendarMaintenanceJob::class, ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 2, 'rest' => 50]);
+
+        $this->execute($this->job($jobList, $this->stuckObjects()), $argument);
+
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenance);
+    }
+
+    public function testProgressResetsAttempt(): void
+    {
+        $this->fill($this->from, 450);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 4, 'rest' => 900];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::once())->method('add')
+            ->with(CalendarMaintenanceJob::class, ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 0, 'rest' => 250]);
+
+        $this->execute($this->job($jobList), $argument);
+
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenance);
+    }
+
+    public function testMalformedOptionalKeysAreTreatedAsAbsent(): void
+    {
+        $this->fill($this->from, 450);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 'x', 'rest' => -3];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::once())->method('add')
+            ->with(CalendarMaintenanceJob::class, ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 0, 'rest' => 250]);
+
+        $this->execute($this->job($jobList), $argument);
+    }
+
+    /** Wirft bei jedem Zugriff, wie ein fehlschlagender CalDAV-Aufruf. */
+    private function failingObjects(string $message = 'CalDAV nicht erreichbar'): CalendarObjects
+    {
+        $objects = $this->createStub(CalendarObjects::class);
+        $objects->method('uris')->willThrowException(new \RuntimeException($message));
+
+        return $objects;
+    }
+
+    /** 250 Termine der App, von denen nichts verschwindet: nach jedem Lauf bleiben 50 übrig. */
+    private function stuckObjects(): CalendarObjects
+    {
+        $objects = $this->createStub(CalendarObjects::class);
+        $uris = array_map(static fn (int $i): string => 'garmin-' . $i . '.ics', range(1, 250));
+        $objects->method('uris')->willReturn($uris);
+        $ics = array_map(
+            static fn (int $i): string => "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:garmin-$i\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+            range(1, 250),
+        );
+        $objects->method('get')->willReturn(array_combine($uris, $ics));
+
+        return $objects;
+    }
+
     private function fill(int $calendarId, int $count): void
     {
         for ($i = 1; $i <= $count; $i++) {
@@ -97,11 +200,11 @@ final class CalendarMaintenanceJobTest extends TestCase
         }
     }
 
-    private function job(IJobList $jobList): CalendarMaintenanceJob
+    private function job(IJobList $jobList, ?CalendarObjects $objects = null): CalendarMaintenanceJob
     {
         return new CalendarMaintenanceJob(
             $this->createStub(ITimeFactory::class),
-            new CalendarService($this->objects),
+            new CalendarService($objects ?? $this->objects),
             $this->users,
             $jobList,
             $this->logger,

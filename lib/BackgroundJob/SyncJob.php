@@ -34,7 +34,7 @@ final class SyncJob extends TimedJob
             try {
                 $this->runner->run($uid, $now);
             } catch (\Throwable $e) {
-                // Nur Klasse und Meldung: der SyncRunner hat Geheimnisse schon entfernt.
+                // Nur uid sowie Klasse und Meldung der Exception: Garmin-Meldungen sind in den unteren Schichten bereits bereinigt.
                 $this->logger->error('Sync-Lauf fehlgeschlagen', [
                     'uid' => $uid,
                     'exception' => $e::class,
