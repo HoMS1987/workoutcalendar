@@ -57,7 +57,8 @@ final class SyncRunner
 
     public function run(string $uid, \DateTimeImmutable $now): RunOutcome
     {
-        $lock = self::LOCK_PREFIX . $uid;
+        // WHY md5: oc_file_locks.key fasst 64 Zeichen, Benutzer-IDs können länger sein (z. B. OIDC).
+        $lock = self::LOCK_PREFIX . md5($uid);
         try {
             $this->locking->acquireLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
         } catch (LockedException) {
@@ -67,9 +68,38 @@ final class SyncRunner
         }
 
         try {
-            return $this->runLocked($uid, $now);
+            $outcome = $this->runLocked($uid, $now);
+            if ($outcome !== RunOutcome::Done) {
+                $this->leaveQueue($uid);
+            }
+
+            return $outcome;
+        } catch (\Throwable $e) {
+            $this->postpone($uid, $now);
+
+            throw $e;
         } finally {
             $this->locking->releaseLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
+        }
+    }
+
+    /** Ohne möglichen Lauf ist die Person nicht fällig. Anmeldung, Kalenderwahl und manueller Sync planen neu. */
+    private function leaveQueue(string $uid): void
+    {
+        $state = $this->users->state($uid);
+        $state->nextRunAt = null;
+        $this->users->saveState($uid, $state);
+    }
+
+    /** Unerwarteter Fehler: nächster Versuch nach dem normalen Intervall, damit die Person die Warteschlange nicht blockiert. */
+    private function postpone(string $uid, \DateTimeImmutable $now): void
+    {
+        try {
+            $state = $this->users->state($uid);
+            $state->nextRunAt = $this->users->settings($uid)->nextRunAt($now->getTimestamp());
+            $this->users->saveState($uid, $state);
+        } catch (\Throwable $e) {
+            $this->logger->error('Nächster Sync-Lauf ließ sich nicht planen', ['uid' => $uid, 'exception' => $e]);
         }
     }
 
