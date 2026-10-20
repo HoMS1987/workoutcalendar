@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\GarminCalendar\Garmin\Auth;
+
+use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\GarminCalendar\Garmin\GarminConstants;
+use OCA\GarminCalendar\Garmin\Http\HttpClient;
+use OCA\GarminCalendar\Garmin\Http\HttpRequest;
+
+/** Login wie die iOS-App von Garmin Connect (python-garminconnect: Strategie "mobile"). */
+final class MobileLogin implements LoginStrategy
+{
+    public const SSO_CLIENT_ID = 'GCM_IOS_DARK';
+    public const SERVICE_URL = 'https://mobile.integration.garmin.com/gcm/ios';
+
+    private const STEP = 'mobile.login';
+
+    private readonly ResponseFailures $failures;
+
+    public function __construct(
+        private readonly HttpClient $http,
+        private readonly DiTokenService $tokens,
+    ) {
+        $this->failures = new ResponseFailures();
+    }
+
+    public function name(): string
+    {
+        return 'mobile';
+    }
+
+    public function login(Credentials $credentials): GarminTokens
+    {
+        $query = http_build_query(['clientId' => self::SSO_CLIENT_ID, 'locale' => 'en-US', 'service' => self::SERVICE_URL]);
+        $response = $this->http->send(new HttpRequest(self::STEP, 'POST', GarminConstants::SSO . "/mobile/api/login?$query", [
+            'User-Agent' => GarminConstants::IOS_USER_AGENT,
+            'Accept' => 'application/json, text/plain, */*',
+            'Content-Type' => 'application/json',
+            'Origin' => GarminConstants::SSO,
+        ], json_encode([
+            'username' => $credentials->email,
+            'password' => $credentials->password,
+            'rememberMe' => true,
+            'captchaToken' => '',
+        ], JSON_THROW_ON_ERROR)));
+        $this->failures->assertOk($response, self::STEP);
+
+        $data = $response->json();
+        $type = $data['responseStatus']['type'] ?? null;
+        if (!is_string($type)) {
+            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Antwort ohne responseStatus.type', $response);
+        }
+
+        // ANNAHME: Die Status-Namen für falsches Passwort und MFA stammen aus python-garminconnect,
+        // sie sind nicht mit einem echten Fehlversuch geprüft.
+        $category = match (true) {
+            $type === 'SUCCESSFUL' => null,
+            str_contains($type, 'MFA') => FailureCategory::MfaRequired,
+            str_contains($type, 'INVALID') || str_contains($type, 'PASSWORD') => FailureCategory::InvalidCredentials,
+            default => FailureCategory::ProtocolChanged,
+        };
+        if ($category !== null) {
+            throw $this->failures->create($category, self::STEP, "responseStatus.type = $type", $response);
+        }
+
+        $ticket = $data['serviceTicketId'] ?? null;
+        if (!is_string($ticket) || $ticket === '') {
+            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Erfolg ohne serviceTicketId', $response);
+        }
+
+        return $this->tokens->exchangeTicket($ticket, self::SERVICE_URL, $this->name());
+    }
+}
