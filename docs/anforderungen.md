@@ -35,6 +35,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | F-04 | Der Zielkalender ist einstellbar: ein neuer, von der App angelegter Kalender oder ein vorhandener. Standard: neuer Kalender „Garmin-Aktivitäten“. | Muss |
 | F-05 | Jede Person der Instanz hinterlegt ihr eigenes Garmin-Konto und hat eigene Einstellungen. | Muss |
 | F-06 | Nach der Installation sind alle Einstellungen mit sinnvollen Standardwerten belegt (siehe Standardwerte). | Muss |
+| F-07 | Vorgemerkt: Garmin-Konten mit Two-Step Verification. Verlangt Garmin einen Code (`MFA_REQUIRED`), wird er einmalig in den Einstellungen eingegeben. Danach arbeitet der Sync nur mit dem Refresh-Token weiter. Scheitert der Refresh, zeigen die Einstellungen an, dass ein neuer Code nötig ist. Voraussetzung: Der Refresh funktioniert ohne zweiten Faktor (ungeprüft). | Kann |
 
 ### Synchronisation
 
@@ -107,7 +108,7 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 - Keine Rückrichtung: Termine in Nextcloud ändern nichts in Garmin.
 - Keine Gesundheitsdaten außer den Aktivitäten (Schlaf, Schritte, Gewicht).
 - Kein Import über Strava, solange Garmin direkt funktioniert.
-- Garmin-Konten mit Zwei-Faktor-Anmeldung werden vorerst nicht unterstützt.
+- Garmin-Konten mit Zwei-Faktor-Anmeldung werden vorerst nicht unterstützt (vorgemerkt als F-07).
 
 ## Offene Fragen
 
@@ -118,7 +119,7 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 | O-03 | Wie oft soll synchronisiert werden? | geklärt: einstellbar, mit optionaler Streuung (F-15, F-16) |
 | O-04 | Nur ein Garmin-Konto für die eigene Nutzung, oder jede Person der Instanz mit eigenem Konto? | geklärt: mehrere Personen (F-05) |
 | O-05 | Sprache der Oberfläche und Termine: nur Deutsch oder übersetzbar (App Store)? | geklärt: übersetzbar (NF-07) |
-| O-08 | Die Standardwerte der Einstellungen sind ein Vorschlag. Passen sie so? | Vorschlag |
-| O-09 | Garmin-Konten mit Two-Step Verification später unterstützen (z. B. Code einmalig in den Einstellungen eingeben)? Relevant, sobald EKG an einer Uhr aktiviert wird. | offen |
-| O-06 | Welche Nextcloud-Version läuft auf der Instanz? | offen |
+| O-08 | Die Standardwerte der Einstellungen sind ein Vorschlag. Passen sie so? | geklärt: bestätigt |
+| O-09 | Garmin-Konten mit Two-Step Verification später unterstützen? Relevant, sobald EKG an einer Uhr aktiviert wird. | geklärt: vorgemerkt als F-07 |
+| O-06 | Welche Nextcloud-Version läuft auf der Instanz? | geklärt: 35.0.2, liegt im unterstützten Bereich (NF-05) |
 | O-07 | Funktioniert der Garmin-Login aus dem Nextcloud-Container im Cluster? | Test steht aus |

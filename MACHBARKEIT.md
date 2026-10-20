@@ -320,7 +320,8 @@ Forenberichten manche Server-IPs blockiert.
 - Alle Anforderungen und Standardwerte stehen in [docs/anforderungen.md](docs/anforderungen.md).
 
 **Offen:**
-1. Welche Nextcloud-Version? (vorerst 33 bis 35 vorgesehen)
+1. ~~Welche Nextcloud-Version?~~ Geklärt: Die eigene Instanz läuft mit 35.0.2, die App
+   unterstützt 33 bis 35.
 2. Funktioniert der Garmin-Zugriff aus dem Nextcloud-Container im Talos-Cluster? (Garmin
    blockiert laut Forenberichten manche Server-IPs.)
 3. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Signierung und Upload
