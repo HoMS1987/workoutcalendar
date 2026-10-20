@@ -99,7 +99,7 @@ final class ApiControllerTest extends TestCase
         self::assertSame(422, $response->getStatus());
         self::assertSame(['error' => 'INVALID_CREDENTIALS'], $response->getData());
         self::assertGreaterThan(0, $this->calls->created, 'Der Ersatz-Client wurde nicht verwendet');
-        self::assertSame('garmin', $this->status()['setup']['step']);
+        self::assertSame('garmin', $this->currentStatus()['setup']['step']);
     }
 
     public function testWizardFlow(): void
@@ -175,7 +175,7 @@ final class ApiControllerTest extends TestCase
 
         self::assertSame(400, $response->getStatus());
         self::assertSame(['error' => 'invalidRequest'], $response->getData());
-        self::assertNull($this->status()['setup']['calendar']);
+        self::assertNull($this->currentStatus()['setup']['calendar']);
     }
 
     public function testInvalidRequestsAreRejected(): void
@@ -228,7 +228,7 @@ final class ApiControllerTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function status(): array
+    private function currentStatus(): array
     {
         $response = $this->controller()->status();
         self::assertInstanceOf(JSONResponse::class, $response);
