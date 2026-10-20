@@ -93,6 +93,24 @@ final class GarminClientTest extends TestCase
         self::assertSame('GCM-Android-5.23', $request->headers['User-Agent']);
     }
 
+    public function testFiltersByDateRange(): void
+    {
+        $this->store->tokens = self::validTokens();
+        $this->http->queue(FakeHttpClient::json(200, []), FakeHttpClient::json(200, []));
+
+        $this->client()->activities(0, 20, '2026-09-20', '2026-10-20');
+        $this->client()->activities(40, 20, null, '2026-01-31');
+
+        self::assertSame(
+            'https://connectapi.garmin.com/activitylist-service/activities/search/activities?startDate=2026-09-20&endDate=2026-10-20&start=0&limit=20',
+            $this->http->requests[0]->url,
+        );
+        self::assertSame(
+            'https://connectapi.garmin.com/activitylist-service/activities/search/activities?endDate=2026-01-31&start=40&limit=20',
+            $this->http->requests[1]->url,
+        );
+    }
+
     public function testLogsInAndStoresTokensWhenNoneStored(): void
     {
         $this->http->queue(FakeHttpClient::json(200, []));

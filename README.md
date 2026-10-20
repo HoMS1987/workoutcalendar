@@ -3,8 +3,9 @@
 Nextcloud-App `garmincalendar`: trägt Aktivitäten aus Garmin Connect automatisch als Termine in
 einen Nextcloud-Kalender ein.
 
-Status: **in Entwicklung.** Garmin-Zugriff, Diagnose-Logging und die Abbildung auf Kalendertermine
-sind umgesetzt und getestet. Sync-Ablauf, Hintergrundjob und Einstellungen folgen.
+Status: **in Entwicklung.** Garmin-Zugriff, Diagnose-Logging, die Abbildung auf Kalendertermine und
+der Sync-Ablauf sind umgesetzt und getestet. Die Nextcloud-Anbindung (Hintergrundjob, Kalender,
+Einstellungen) folgt.
 
 - Anforderungen: [docs/anforderungen.md](docs/anforderungen.md)
 - Architektur: [docs/architecture.md](docs/architecture.md)

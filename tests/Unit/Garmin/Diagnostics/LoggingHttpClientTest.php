@@ -55,7 +55,7 @@ final class LoggingHttpClientTest extends TestCase
         self::assertStringNotContainsString('"pw"', $this->logger->dump());
     }
 
-    public function testLogsNetworkErrorsAsWarningAndRethrows(): void
+    public function testLogsNetworkErrorsAsDebugAndRethrows(): void
     {
         $client = $this->client(new FakeHttpClient(new NetworkException('Could not resolve host: sso.garmin.com')));
 
@@ -65,10 +65,11 @@ final class LoggingHttpClientTest extends TestCase
         } catch (NetworkException) {
         }
 
-        $warnings = $this->logger->byLevel('warning');
-        self::assertCount(1, $warnings);
-        self::assertSame('NETWORK', $warnings[0]['context']['category']);
-        self::assertSame('api.activities', $warnings[0]['context']['step']);
-        self::assertStringContainsString('Could not resolve host', $warnings[0]['context']['error']);
+        self::assertSame([], $this->logger->byLevel('warning'), 'Warnungen loggt gedrosselt erst der Sync-Ablauf');
+        $debug = $this->logger->byLevel('debug');
+        self::assertCount(1, $debug);
+        self::assertSame('NETWORK', $debug[0]['context']['category']);
+        self::assertSame('api.activities', $debug[0]['context']['step']);
+        self::assertStringContainsString('Could not resolve host', $debug[0]['context']['error']);
     }
 }

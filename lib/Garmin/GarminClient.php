@@ -46,15 +46,19 @@ final class GarminClient
     }
 
     /**
-     * Aktivitäten, neueste zuerst.
+     * Aktivitäten, neueste zuerst (Garmin sortiert absteigend nach lokaler Startzeit).
      *
+     * @param ?string $startDate Lokales Datum YYYY-MM-DD, inklusive
+     * @param ?string $endDate Lokales Datum YYYY-MM-DD, inklusive
      * @return list<array<string, mixed>>
      * @throws GarminException
      */
-    public function activities(int $start, int $limit): array
+    public function activities(int $start, int $limit, ?string $startDate = null, ?string $endDate = null): array
     {
         $step = 'api.activities';
-        $url = GarminConstants::CONNECT_API . self::ACTIVITIES_PATH . '?' . http_build_query(['start' => $start, 'limit' => $limit]);
+        $query = array_filter(['startDate' => $startDate, 'endDate' => $endDate], static fn (?string $d): bool => $d !== null)
+            + ['start' => $start, 'limit' => $limit];
+        $url = GarminConstants::CONNECT_API . self::ACTIVITIES_PATH . '?' . http_build_query($query);
 
         $tokens = $this->validTokens();
         $response = $this->get($step, $url, $tokens);

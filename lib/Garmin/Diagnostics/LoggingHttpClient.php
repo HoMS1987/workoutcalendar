@@ -36,7 +36,8 @@ final class LoggingHttpClient implements HttpClient
         try {
             $response = $this->inner->send($request);
         } catch (NetworkException $e) {
-            $this->logger->warning('Garmin-Anfrage ohne Antwort', $context + [
+            // WHY: debug statt warning, die gedrosselte Warnung schreibt der Sync-Ablauf (ADR 0004, F-43).
+            $this->logger->debug('Garmin-Anfrage ohne Antwort', $context + [
                 'category' => FailureCategory::Network->value,
                 'error' => $this->redactor->redact($e->getMessage()),
                 'durationMs' => self::elapsedMs($started),
