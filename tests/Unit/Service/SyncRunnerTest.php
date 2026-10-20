@@ -16,6 +16,7 @@ use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
 use OCA\WorkoutCalendar\Storage\UserStore;
+use OCA\WorkoutCalendar\Sync\SyncState;
 use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\Jwt;
@@ -39,7 +40,8 @@ final class SyncRunnerTest extends TestCase
 
     private const UID = 'anna';
     private const ACCOUNT = '0123456789abcdef';
-    private const LOCK = 'workoutcalendar/sync/anna';
+    /** md5('anna'), die Spalte oc_file_locks.key fasst 64 Zeichen. */
+    private const LOCK = 'workoutcalendar/sync/a70f9e38ff015afaa9ab0aacabee2e13';
 
     /** @var array<string, array<string, string|int>> */
     private array $store = [];
@@ -202,6 +204,91 @@ final class SyncRunnerTest extends TestCase
         self::assertSame(['acquire:' . self::LOCK, 'release:' . self::LOCK], $this->lockCalls);
     }
 
+    public function testPausedPersonLeavesQueue(): void
+    {
+        $this->connect();
+        $state = $this->users->state(self::UID);
+        $state->pausedFor = 'MFA_REQUIRED';
+        $this->queued($state);
+
+        self::assertSame(RunOutcome::Paused, $this->runner()->run(self::UID, $this->now));
+
+        self::assertNotContains(self::UID, $this->users->dueUsers($this->now->getTimestamp(), 10));
+        self::assertNull($this->users->state(self::UID)->nextRunAt);
+    }
+
+    public function testNotConnectedPersonLeavesQueue(): void
+    {
+        $this->queued($this->users->state(self::UID));
+
+        self::assertSame(RunOutcome::NotConnected, $this->runner()->run(self::UID, $this->now));
+
+        self::assertNotContains(self::UID, $this->users->dueUsers($this->now->getTimestamp(), 10));
+    }
+
+    public function testMissingCalendarLeavesQueue(): void
+    {
+        $this->connect();
+        $this->objects->deleteCalendar($this->calendarId);
+        $this->queued($this->users->state(self::UID));
+
+        self::assertSame(RunOutcome::CalendarMissing, $this->runner()->run(self::UID, $this->now));
+
+        self::assertNotContains(self::UID, $this->users->dueUsers($this->now->getTimestamp(), 10));
+    }
+
+    public function testSkippedRunKeepsQueuePosition(): void
+    {
+        $this->connect();
+        $this->queued($this->users->state(self::UID));
+        $this->lockFailure = new LockedException(self::LOCK);
+
+        self::assertSame(RunOutcome::Skipped, $this->runner()->run(self::UID, $this->now));
+
+        self::assertSame([self::UID], $this->users->dueUsers($this->now->getTimestamp(), 10));
+    }
+
+    public function testUnexpectedExceptionPostponesNextRun(): void
+    {
+        $this->connect();
+        $this->queued($this->users->state(self::UID));
+        $this->http->queue(new \RuntimeException('kaputt'));
+
+        try {
+            $this->runner()->run(self::UID, $this->now);
+            self::fail('Exception erwartet');
+        } catch (\RuntimeException) {
+        }
+
+        // Standard: 30 Minuten ± 20 %.
+        $nextRunAt = $this->users->state(self::UID)->nextRunAt;
+        self::assertNotNull($nextRunAt);
+        self::assertGreaterThanOrEqual($this->now->getTimestamp() + 24 * 60, $nextRunAt);
+        self::assertLessThanOrEqual($this->now->getTimestamp() + 36 * 60, $nextRunAt);
+        self::assertNotContains(self::UID, $this->users->dueUsers($this->now->getTimestamp(), 10));
+        self::assertSame(['acquire:' . self::LOCK, 'release:' . self::LOCK], $this->lockCalls);
+    }
+
+    public function testLockKeyFitsDatabaseColumn(): void
+    {
+        $long = str_repeat('f', 64);
+        $runner = $this->runner();
+
+        $runner->run($long, $this->now);
+        $runner->run($long, $this->now);
+        $runner->run(self::UID, $this->now);
+
+        $keys = array_values(array_unique(array_map(
+            static fn (string $call): string => substr($call, strlen('acquire:')),
+            array_filter($this->lockCalls, static fn (string $call): bool => str_starts_with($call, 'acquire:')),
+        )));
+        self::assertCount(2, $keys);
+        foreach ($keys as $key) {
+            self::assertLessThanOrEqual(64, strlen($key));
+            self::assertStringStartsWith('workoutcalendar/sync/', $key);
+        }
+    }
+
     public function testUsesLanguageOfPerson(): void
     {
         $this->connect();
@@ -216,6 +303,14 @@ final class SyncRunnerTest extends TestCase
         self::assertStringContainsString('Laufen', $ics);
         // ICS maskiert das Komma.
         self::assertStringContainsString('Distanz: 5\,00 km', $ics);
+    }
+
+    /** Person steht mit fälligem Lauf in der Warteschlange. */
+    private function queued(SyncState $state): void
+    {
+        $state->nextRunAt = $this->now->getTimestamp() - 60;
+        $this->users->saveState(self::UID, $state);
+        self::assertSame([self::UID], $this->users->dueUsers($this->now->getTimestamp(), 10));
     }
 
     private function connect(bool $withTokens = true): void
