@@ -545,4 +545,14 @@ final class SyncServiceTest extends TestCase
         self::assertSame('2025-10-20', $this->state->backfillUntil);
         self::assertTrue($this->state->backfillDone);
     }
+
+    public function testHistoryChangeNeedsNoGarminClient(): void
+    {
+        $this->importedNinetyDays();
+
+        SyncService::changeHistory($this->state, 365, $this->now);
+
+        self::assertSame('2025-10-20', $this->state->backfillUntil);
+        self::assertSame([], $this->http->requests);
+    }
 }
