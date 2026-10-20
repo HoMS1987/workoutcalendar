@@ -133,7 +133,7 @@ Zwei Wege, Termine einzutragen:
 
 ### 2.3 Verteilung über den Nextcloud App Store
 
-Ziel des Nutzers: Die App soll über den integrierten App Store installierbar sein.
+Ziel: Die App soll über den integrierten App Store installierbar sein.
 
 **Klassische PHP-App:**
 - Sie lässt sich in jeder Nextcloud installieren und erreicht damit die meisten Nutzer.
@@ -194,12 +194,17 @@ Garmin-Schnittstellen nutzt und sich als Browser ausgibt, ist sichtbarer als ein
 Ob Garmin dagegen vorgeht, ist nicht abschätzbar. *(Spekulation.)*
 
 **Bewertung (aktualisiert nach dem PHP-Test):** Eine **klassische PHP-App** ist umsetzbar und
-lässt sich ohne AppAPI und Deploy-Daemon direkt aus dem App Store installieren. Auf der Instanz
-des Nutzers sind AppAPI und Daemon nicht aktiv, damit fällt die ExApp praktisch weg. Offen ist,
+lässt sich ohne AppAPI und Deploy-Daemon direkt aus dem App Store installieren. Auf der eigenen
+Instanz sind AppAPI und Daemon nicht aktiv, damit fällt die ExApp praktisch weg. Offen ist,
 ob die Garmin-Zugriffe auch vom Nextcloud-Container im Talos-Cluster funktionieren. Dort sind
 TLS-Fingerprint (Linux/OpenSSL im Container) und IP anders als beim Test auf Windows.
 
 ## 3. Empfohlene Architektur
+
+**Stand 2026-10-20: überholt.** Entschieden ist eine klassische PHP-Nextcloud-App
+([ADR 0003](docs/adrs/0003-klassische-php-nextcloud-app.md)), beschrieben in
+[docs/architecture.md](docs/architecture.md). Der folgende ursprüngliche Vorschlag bleibt zur
+Nachvollziehbarkeit stehen.
 
 **Phase 1 – Prototyp (Python-Skript, kein Nextcloud-App-Code):**
 
@@ -272,20 +277,20 @@ Forenberichten manche Server-IPs blockiert.
 
 ## 5. Entscheidungen und offene Fragen
 
-**Geklärt (2026-10-20, Angaben des Nutzers im Chat):**
+**Geklärt (2026-10-20, Rahmenbedingungen):**
 - Nextcloud läuft auf einem **eigenen Server**: Kubernetes auf **Talos Linux**, installiert per
   **Helm Chart**. Talos hat keine Shell und kein SSH auf dem Host. Ein regelmäßiger Sync läuft
   daher als Kubernetes-**CronJob** in einem eigenen Container, nicht als System-Cron.
 - Der Nextcloud-Account hat **2FA aktiv**. Für CalDAV wird daher ein **App-Passwort** benötigt.
-- Am Garmin-Konto ist nach Sicht des Nutzers in den Einstellungen **keine 2FA aktiv**. Der
+- Am Garmin-Konto ist laut Kontoeinstellungen **keine 2FA aktiv**. Der
   Login-Test am 2026-10-20 lief ohne MFA-Abfrage durch und bestätigt das.
 
 **Geklärt (2026-10-20, Vorgehen):**
 - Bis zur ersten Release-Version wird direkt auf `dev` gearbeitet, ohne Feature-Branches.
-- Der Test vom Cluster aus folgt später vom Hauptrechner des Nutzers, der Zugriff auf den
+- Der Test vom Cluster aus folgt später vom Hauptrechner, der Zugriff auf den
   Cluster hat.
 
-**Geklärt (2026-10-20, Anforderungen laut Nutzer):**
+**Geklärt (2026-10-20, Anforderungen):**
 - **Motivation:** Garmin synchronisiert Aktivitäten derzeit automatisch in den Kalender des
   Microsoft-Kontos. Outlook auf dem Hauptrechner gleicht diesen per CalDAV-Plugin mit Nextcloud
   ab. Ziel ist, von diesem Weg über Garmin und Outlook unabhängig zu werden.
@@ -298,15 +303,20 @@ Forenberichten manche Server-IPs blockiert.
 - Ein Strava-Konto ist vorhanden. **Der Strava-Fallback wird nur genutzt, wenn die API
   kostenlos ist.** Das ist noch offiziell zu prüfen.
 
+**Geklärt (2026-10-20, Entscheidung):**
+- Klassische PHP-App statt ExApp oder Python ([ADR 0003](docs/adrs/0003-klassische-php-nextcloud-app.md)).
+  Damit entfallen Container-Image, CronJob und HaRP. Termine werden über die interne Kalender-API
+  geschrieben, ein App-Passwort ist nicht nötig.
+- Diagnose-Logging für Sperren und Änderungen bei Garmin
+  ([ADR 0004](docs/adrs/0004-diagnose-logging-fuer-garmin-zugriffe.md)).
+- Alle Anforderungen und Standardwerte stehen in [docs/anforderungen.md](docs/anforderungen.md).
+
 **Offen:**
-1. Welche Nextcloud-Version?
-2. Entscheidung PHP-App oder ExApp (siehe 2.3).
-3. Funktioniert der Garmin-Zugriff aus einem Pod im Talos-Cluster? (Garmin blockiert laut
-   Forenberichten manche Server-IPs.)
-4. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Container-Image,
-   Signierung und Upload in den App Store, Merge von `dev` nach `main`. Muss vor der ersten
-   Release-Version stehen.
-5. Bei einer ExApp: HaRP mit Kubernetes-Backend im Talos-Cluster einrichten.
+1. Welche Nextcloud-Version? (vorerst 33 bis 35 vorgesehen)
+2. Funktioniert der Garmin-Zugriff aus dem Nextcloud-Container im Talos-Cluster? (Garmin
+   blockiert laut Forenberichten manche Server-IPs.)
+3. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Signierung und Upload
+   in den App Store, Merge von `dev` nach `main`. Muss vor der ersten Release-Version stehen.
 
 ## 6. Lokale Werkzeuge (Windows, keine Dienste/Autostarts)
 
@@ -316,8 +326,8 @@ Forenberichten manche Server-IPs blockiert.
 | Python 3.13 (python.org-Installer via winget, Benutzer-Scope) | Prototyp, `python-garminconnect`, `caldav` | ✅ installiert (3.13.15) |
 | GitHub CLI `gh` | Repo auf GitHub anlegen und pushen | ✅ installiert (2.102.0), Login noch offen |
 | Python-Pakete in `.venv` | `garminconnect` 0.3.19, `caldav` 3.5.0, `curl_cffi` 0.16.3 | ✅ installiert |
-| PHP 8.4 CLI (winget, ZIP ohne `php.ini`) | PHP-Tests, später die Nextcloud-App | ✅ installiert (8.4.25). Erweiterungen werden per `php-test/run.ps1` geladen |
-| Composer | Später für die Nextcloud-App | ❌ fehlt, noch nicht nötig |
+| PHP 8.4 CLI (winget) | PHP-Tests und die Nextcloud-App | ✅ installiert (8.4.25). Eine minimale `php.ini` im PHP-Ordner lädt curl, openssl, mbstring, intl, fileinfo, sodium, zip |
+| Composer | Abhängigkeiten der App (PHPUnit, OCP-Stubs) | ✅ installiert (2.10.3, `composer.phar` mit SHA-256-Prüfung in `%LOCALAPPDATA%\Programs\Composer`, im Benutzer-PATH) |
 | Node.js LTS | Erst in Phase 2 bei einem App-Frontend (Vue) | ❌ fehlt, noch nicht nötig |
 | ~~Docker Desktop~~ | Bewusst **nicht**: installiert Hintergrunddienst und Autostart | – |
 
