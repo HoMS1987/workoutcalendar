@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Sync;
+namespace OCA\WorkoutCalendar\Sync;
 
 /**
  * Sync-Zustand einer Person. Feste Größe, wird als JSON gespeichert.

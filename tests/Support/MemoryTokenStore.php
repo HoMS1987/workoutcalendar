@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Support;
+namespace OCA\WorkoutCalendar\Tests\Support;
 
-use OCA\GarminCalendar\Garmin\Auth\GarminTokens;
-use OCA\GarminCalendar\Garmin\Auth\TokenStore;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\TokenStore;
 
 final class MemoryTokenStore implements TokenStore
 {

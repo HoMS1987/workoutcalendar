@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Garmin\Auth;
 
 /** Ablage der Garmin-Tokens eines Nutzers. Die Nextcloud-Implementierung speichert verschlüsselt (ADR 0003). */
 interface TokenStore

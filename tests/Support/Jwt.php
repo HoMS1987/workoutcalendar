@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Support;
+namespace OCA\WorkoutCalendar\Tests\Support;
 
 /** Baut unsignierte JWTs mit beliebigem Payload für Tests. */
 final class Jwt

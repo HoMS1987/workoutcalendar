@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin;
+namespace OCA\WorkoutCalendar\Garmin;
 
-use OCA\GarminCalendar\Garmin\Auth\Authenticator;
-use OCA\GarminCalendar\Garmin\Auth\Credentials;
-use OCA\GarminCalendar\Garmin\Auth\DiTokenService;
-use OCA\GarminCalendar\Garmin\Auth\GarminTokens;
-use OCA\GarminCalendar\Garmin\Auth\TokenStore;
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\Diagnostics\Redactor;
-use OCA\GarminCalendar\Garmin\Diagnostics\ResponseClassifier;
-use OCA\GarminCalendar\Garmin\Http\HttpClient;
-use OCA\GarminCalendar\Garmin\Http\HttpRequest;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
+use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
+use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\TokenStore;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
+use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use Psr\Log\LoggerInterface;
 
 /**

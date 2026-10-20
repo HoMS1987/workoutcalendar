@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Calendar;
+namespace OCA\WorkoutCalendar\Calendar;
 
 /** Erzeugt ein iCalendar-Objekt (RFC 5545) mit genau einem VEVENT. */
 final class IcsSerializer
 {
-    private const PRODID = '-//HoMS1987//garmincalendar//DE';
+    private const PRODID = '-//HoMS1987//workoutcalendar//DE';
 
     public function serialize(CalendarEvent $event, \DateTimeImmutable $now): string
     {

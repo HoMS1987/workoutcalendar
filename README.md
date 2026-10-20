@@ -1,6 +1,6 @@
-# Garmin Calendar
+# Workout Calendar
 
-Nextcloud-App (`garmincalendar`), die Aktivitäten aus Garmin Connect automatisch als Termine in
+Nextcloud-App (`workoutcalendar`), die Aktivitäten aus Garmin Connect automatisch als Termine in
 einen Nextcloud-Kalender einträgt.
 
 Status: **in Entwicklung.** Garmin-Zugriff, Diagnose-Logging, die Abbildung auf Kalendertermine und

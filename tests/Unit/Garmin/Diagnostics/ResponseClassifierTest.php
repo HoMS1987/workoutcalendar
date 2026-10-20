@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Diagnostics;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\Diagnostics\ResponseClassifier;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use PHPUnit\Framework\TestCase;
 
 final class ResponseClassifierTest extends TestCase

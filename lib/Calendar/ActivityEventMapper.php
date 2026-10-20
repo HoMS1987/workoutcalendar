@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Calendar;
+namespace OCA\WorkoutCalendar\Calendar;
 
 /** Bildet eine Aktivität aus der Garmin-Aktivitätsliste auf einen Kalendertermin ab. */
 final class ActivityEventMapper

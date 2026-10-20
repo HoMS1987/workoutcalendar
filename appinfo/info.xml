@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
-    <id>garmincalendar</id>
-    <name>Garmin Calendar</name>
+    <id>workoutcalendar</id>
+    <name>Workout Calendar</name>
     <summary>Garmin Connect activities as calendar events</summary>
     <description><![CDATA[Imports your Garmin Connect activities into a Nextcloud calendar and keeps them in sync.
 
@@ -12,11 +12,11 @@ Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]><
     <version>0.1.0</version>
     <licence>agpl</licence>
     <author>HoMS1987</author>
-    <namespace>GarminCalendar</namespace>
+    <namespace>WorkoutCalendar</namespace>
     <category>organization</category>
-    <website>https://github.com/HoMS1987/garmincalendar</website>
-    <bugs>https://github.com/HoMS1987/garmincalendar/issues</bugs>
-    <repository type="git">https://github.com/HoMS1987/garmincalendar.git</repository>
+    <website>https://github.com/HoMS1987/workoutcalendar</website>
+    <bugs>https://github.com/HoMS1987/workoutcalendar/issues</bugs>
+    <repository type="git">https://github.com/HoMS1987/workoutcalendar.git</repository>
     <dependencies>
         <php min-version="8.2"/>
         <lib>curl</lib>

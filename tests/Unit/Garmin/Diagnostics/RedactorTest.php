@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Diagnostics;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\Redactor;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

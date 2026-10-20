@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Support;
+namespace OCA\WorkoutCalendar\Tests\Support;
 
-use OCA\GarminCalendar\Calendar\CalendarEvent;
-use OCA\GarminCalendar\Sync\CalendarTarget;
-use OCA\GarminCalendar\Sync\StoredEvent;
+use OCA\WorkoutCalendar\Calendar\CalendarEvent;
+use OCA\WorkoutCalendar\Sync\CalendarTarget;
+use OCA\WorkoutCalendar\Sync\StoredEvent;
 
 final class MemoryCalendarTarget implements CalendarTarget
 {

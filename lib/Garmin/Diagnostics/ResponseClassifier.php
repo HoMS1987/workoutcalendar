@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
 /** Ordnet HTTP-Antworten von Garmin einer Fehlerkategorie zu. */
 final class ResponseClassifier

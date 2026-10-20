@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
 /** Fehlerkategorien für das Diagnose-Log (ADR 0004). */
 enum FailureCategory: string

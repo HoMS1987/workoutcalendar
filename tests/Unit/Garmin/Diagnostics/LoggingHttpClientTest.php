@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Diagnostics;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\LoggingHttpClient;
-use OCA\GarminCalendar\Garmin\Diagnostics\Redactor;
-use OCA\GarminCalendar\Garmin\Diagnostics\ResponseClassifier;
-use OCA\GarminCalendar\Garmin\Http\HttpRequest;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
-use OCA\GarminCalendar\Garmin\Http\NetworkException;
-use OCA\GarminCalendar\Tests\Support\FakeHttpClient;
-use OCA\GarminCalendar\Tests\Support\MemoryLogger;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\LoggingHttpClient;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
+use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
+use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use PHPUnit\Framework\TestCase;
 
 final class LoggingHttpClientTest extends TestCase

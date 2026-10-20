@@ -1,5 +1,5 @@
 {
-    "name": "homs1987/garmincalendar",
+    "name": "homs1987/workoutcalendar",
     "description": "Trägt Garmin-Connect-Aktivitäten als Termine in einen Nextcloud-Kalender ein",
     "type": "project",
     "license": "AGPL-3.0-or-later",
@@ -15,12 +15,12 @@
     },
     "autoload": {
         "psr-4": {
-            "OCA\\GarminCalendar\\": "lib/"
+            "OCA\\WorkoutCalendar\\": "lib/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "OCA\\GarminCalendar\\Tests\\": "tests/"
+            "OCA\\WorkoutCalendar\\Tests\\": "tests/"
         }
     },
     "config": {

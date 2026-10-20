@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin;
+namespace OCA\WorkoutCalendar\Garmin;
 
 /** Endpunkte und Header der Garmin-Connect-Mobile-App, übernommen aus python-garminconnect 0.3.19. */
 final class GarminConstants

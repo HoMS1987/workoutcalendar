@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Diagnostics;
+namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
 /**
  * Entfernt Geheimnisse (Passwörter, Tokens, Tickets, E-Mail-Adressen) aus Texten, bevor sie geloggt werden.

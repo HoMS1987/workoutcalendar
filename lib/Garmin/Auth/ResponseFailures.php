@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Garmin\Auth;
 
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\Diagnostics\Redactor;
-use OCA\GarminCalendar\Garmin\Diagnostics\ResponseClassifier;
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
 /** Gemeinsame Fehlerbehandlung der Login-Strategien. */
 final class ResponseFailures

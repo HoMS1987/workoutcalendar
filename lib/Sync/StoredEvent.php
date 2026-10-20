@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Sync;
+namespace OCA\WorkoutCalendar\Sync;
 
 /** Ein bereits im Kalender gespeicherter Termin der App. */
 final class StoredEvent

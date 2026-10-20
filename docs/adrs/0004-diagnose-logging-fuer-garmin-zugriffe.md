@@ -39,7 +39,7 @@ Service-Tickets nie im Log landen.
   Service-Tickets, CSRF-Werte, `Authorization`-Header und E-Mail-Adressen. Die Bereinigung ist mit
   Unit-Tests abgesichert.
 - Geloggt wird über PSR-3 (`Psr\Log\LoggerInterface`), in Nextcloud also ins Nextcloud-Log mit der
-  App-ID `garmincalendar`.
+  App-ID `workoutcalendar`.
 - Später zeigt die App den letzten Sync-Status samt Kategorie in den persönlichen Einstellungen an.
 - Wiederholte Fehler werden gedrosselt: Der Sync-Ablauf merkt sich pro Person Kategorie, Schritt,
   Beginn und Anzahl des aktuellen Fehlers. Ausführlich (`warning`/`error`) geloggt wird nur ein

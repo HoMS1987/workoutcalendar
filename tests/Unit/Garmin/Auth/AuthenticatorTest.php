@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Tests\Unit\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Auth;
 
-use OCA\GarminCalendar\Garmin\Auth\Authenticator;
-use OCA\GarminCalendar\Garmin\Auth\Credentials;
-use OCA\GarminCalendar\Garmin\Auth\GarminTokens;
-use OCA\GarminCalendar\Garmin\Auth\LoginStrategy;
-use OCA\GarminCalendar\Garmin\Diagnostics\FailureCategory;
-use OCA\GarminCalendar\Garmin\GarminException;
-use OCA\GarminCalendar\Garmin\Http\NetworkException;
-use OCA\GarminCalendar\Tests\Support\MemoryLogger;
+use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
+use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\GarminException;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use PHPUnit\Framework\TestCase;
 
 final class AuthenticatorTest extends TestCase

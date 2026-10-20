@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\GarminCalendar\Garmin\Auth;
+namespace OCA\WorkoutCalendar\Garmin\Auth;
 
 /** DI-OAuth2-Tokens von Garmin. Array-Format wie bei python-garminconnect. */
 final class GarminTokens

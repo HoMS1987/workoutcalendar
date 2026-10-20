@@ -1,6 +1,6 @@
 # Architektur
 
-Klassische Nextcloud-App in PHP (App-ID `garmincalendar`), siehe
+Klassische Nextcloud-App in PHP (App-ID `workoutcalendar`), siehe
 [ADR 0003](adrs/0003-klassische-php-nextcloud-app.md). Anforderungen in
 [anforderungen.md](anforderungen.md).
 
