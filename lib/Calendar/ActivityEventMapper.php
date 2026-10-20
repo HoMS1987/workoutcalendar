@@ -18,31 +18,35 @@ final class ActivityEventMapper
      * die Liste ist nicht vollständig. Unbekannte Typen fallen auf den Aktivitätsnamen zurück.
      */
     private const TYPES = [
-        'running' => ['🏃', 'Laufen', self::PACE_PER_KM],
-        'trail_running' => ['🏃', 'Trailrunning', self::PACE_PER_KM],
-        'treadmill_running' => ['🏃', 'Laufband', self::PACE_PER_KM],
-        'track_running' => ['🏃', 'Bahnlauf', self::PACE_PER_KM],
-        'indoor_running' => ['🏃', 'Indoor-Laufen', self::PACE_PER_KM],
-        'walking' => ['🚶', 'Gehen', self::PACE_PER_KM],
-        'hiking' => ['🥾', 'Wandern', self::PACE_PER_KM],
-        'cycling' => ['🚴', 'Radfahren', self::SPEED],
-        'road_biking' => ['🚴', 'Rennrad', self::SPEED],
-        'gravel_cycling' => ['🚴', 'Gravel', self::SPEED],
-        'mountain_biking' => ['🚵', 'Mountainbike', self::SPEED],
-        'indoor_cycling' => ['🚴', 'Indoor-Radfahren', self::SPEED],
-        'virtual_ride' => ['🚴', 'Virtuelle Radfahrt', self::SPEED],
-        'e_bike_fitness' => ['🚴', 'E-Bike', self::SPEED],
-        'e_bike_mountain' => ['🚵', 'E-Mountainbike', self::SPEED],
-        'lap_swimming' => ['🏊', 'Schwimmen', self::PACE_PER_100M],
-        'open_water_swimming' => ['🏊', 'Freiwasserschwimmen', self::PACE_PER_100M],
-        'strength_training' => ['🏋️', 'Krafttraining', null],
+        'running' => ['🏃', 'Running', self::PACE_PER_KM],
+        'trail_running' => ['🏃', 'Trail running', self::PACE_PER_KM],
+        'treadmill_running' => ['🏃', 'Treadmill running', self::PACE_PER_KM],
+        'track_running' => ['🏃', 'Track running', self::PACE_PER_KM],
+        'indoor_running' => ['🏃', 'Indoor running', self::PACE_PER_KM],
+        'walking' => ['🚶', 'Walking', self::PACE_PER_KM],
+        'hiking' => ['🥾', 'Hiking', self::PACE_PER_KM],
+        'cycling' => ['🚴', 'Cycling', self::SPEED],
+        'road_biking' => ['🚴', 'Road cycling', self::SPEED],
+        'gravel_cycling' => ['🚴', 'Gravel cycling', self::SPEED],
+        'mountain_biking' => ['🚵', 'Mountain biking', self::SPEED],
+        'indoor_cycling' => ['🚴', 'Indoor cycling', self::SPEED],
+        'virtual_ride' => ['🚴', 'Virtual ride', self::SPEED],
+        'e_bike_fitness' => ['🚴', 'E-bike', self::SPEED],
+        'e_bike_mountain' => ['🚵', 'E-mountain bike', self::SPEED],
+        'lap_swimming' => ['🏊', 'Swimming', self::PACE_PER_100M],
+        'open_water_swimming' => ['🏊', 'Open water swimming', self::PACE_PER_100M],
+        'strength_training' => ['🏋️', 'Strength training', null],
         'yoga' => ['🧘', 'Yoga', null],
         'pilates' => ['🧘', 'Pilates', null],
         'indoor_cardio' => ['💪', 'Cardio', null],
-        'elliptical' => ['💪', 'Crosstrainer', null],
-        'indoor_rowing' => ['🚣', 'Rudergerät', null],
-        'rowing' => ['🚣', 'Rudern', self::SPEED],
+        'elliptical' => ['💪', 'Elliptical', null],
+        'indoor_rowing' => ['🚣', 'Indoor rowing', null],
+        'rowing' => ['🚣', 'Rowing', self::SPEED],
     ];
+
+    public function __construct(private readonly EventTexts $texts = new EnglishEventTexts())
+    {
+    }
 
     /** @param array<string, mixed> $activity */
     public function map(array $activity): CalendarEvent
@@ -56,7 +60,8 @@ final class ActivityEventMapper
 
         $typeKey = (string)($activity['activityType']['typeKey'] ?? '');
         $name = trim((string)($activity['activityName'] ?? ''));
-        [$emoji, $typeName, $metric] = self::TYPES[$typeKey] ?? ['🏅', null, null];
+        [$emoji, $typeSource, $metric] = self::TYPES[$typeKey] ?? ['🏅', null, null];
+        $typeName = $typeSource !== null ? $this->texts->translate($typeSource) : null;
 
         $duration = self::positive($activity['duration'] ?? null);
         $distance = self::positive($activity['distance'] ?? null);
@@ -64,7 +69,7 @@ final class ActivityEventMapper
 
         $summary = $emoji . ' ' . ($typeName ?? ($name !== '' ? $name : $typeKey));
         if ($distance !== null) {
-            $summary .= ' – ' . self::formatDistance($distance, $swim, 1);
+            $summary .= ' – ' . $this->formatDistance($distance, $swim, 1);
         }
 
         $url = self::ACTIVITY_URL . $id;
@@ -73,28 +78,29 @@ final class ActivityEventMapper
             $lines[] = $name;
         }
         if ($duration !== null) {
-            $lines[] = 'Dauer: ' . self::formatDuration($duration);
+            $lines[] = $this->texts->translate('Duration: %s', [self::formatDuration($duration)]);
         }
         if ($distance !== null) {
-            $lines[] = 'Distanz: ' . self::formatDistance($distance, $swim, 2);
+            $lines[] = $this->texts->translate('Distance: %s', [$this->formatDistance($distance, $swim, 2)]);
         }
         $speed = self::positive($activity['averageSpeed'] ?? null)
             ?? ($distance !== null && $duration !== null ? $distance / $duration : null);
         if ($speed !== null && $distance !== null && $metric !== null) {
             $lines[] = match ($metric) {
-                self::PACE_PER_KM => 'Pace: ' . self::formatPace(1000 / $speed) . ' min/km',
-                self::PACE_PER_100M => 'Pace: ' . self::formatPace(100 / $speed) . ' min/100 m',
-                self::SPEED => 'Geschwindigkeit: Ø ' . number_format($speed * 3.6, 1, ',', '.') . ' km/h',
+                self::PACE_PER_KM => $this->texts->translate('Pace: %s min/km', [self::formatPace(1000 / $speed)]),
+                self::PACE_PER_100M => $this->texts->translate('Pace: %s min/100 m', [self::formatPace(100 / $speed)]),
+                self::SPEED => $this->texts->translate('Speed: avg %s km/h', [$this->texts->number($speed * 3.6, 1)]),
             };
         }
         $avgHr = self::positive($activity['averageHR'] ?? null);
         if ($avgHr !== null) {
             $maxHr = self::positive($activity['maxHR'] ?? null);
-            $lines[] = 'Herzfrequenz: Ø ' . round($avgHr) . ' bpm' . ($maxHr !== null ? ', max ' . round($maxHr) . ' bpm' : '');
+            $lines[] = $this->texts->translate('Heart rate: avg %s bpm', [(string)round($avgHr)])
+                . ($maxHr !== null ? $this->texts->translate(', max %s bpm', [(string)round($maxHr)]) : '');
         }
         $elevation = self::positive($activity['elevationGain'] ?? null);
         if ($elevation !== null) {
-            $lines[] = 'Höhenmeter: ↑ ' . number_format($elevation, 0, ',', '.') . ' m';
+            $lines[] = $this->texts->translate('Elevation gain: ↑ %s m', [$this->texts->number($elevation, 0)]);
         }
         $lines[] = 'Garmin Connect: ' . $url;
 
@@ -129,11 +135,11 @@ final class ActivityEventMapper
         return (is_int($value) || is_float($value)) && $value > 0 ? (float)$value : null;
     }
 
-    private static function formatDistance(float $meters, bool $inMeters, int $decimals): string
+    private function formatDistance(float $meters, bool $inMeters, int $decimals): string
     {
         return $inMeters
-            ? number_format($meters, 0, ',', '.') . ' m'
-            : number_format($meters / 1000, $decimals, ',', '.') . ' km';
+            ? $this->texts->number($meters, 0) . ' m'
+            : $this->texts->number($meters / 1000, $decimals) . ' km';
     }
 
     private static function formatDuration(float $seconds): string

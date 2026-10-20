@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Tests\Unit\Calendar;
 
 use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
+use OCA\WorkoutCalendar\Tests\Support\GermanEventTexts;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -30,7 +31,7 @@ final class ActivityEventMapperTest extends TestCase
 
     private static function mapper(): ActivityEventMapper
     {
-        return new ActivityEventMapper();
+        return new ActivityEventMapper(new GermanEventTexts());
     }
 
     public function testRunTitleAndUid(): void
@@ -201,5 +202,13 @@ final class ActivityEventMapperTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         self::mapper()->map(self::activity(['startTimeGMT' => 'gestern']));
+    }
+
+    public function testEnglishTextsAreDefault(): void
+    {
+        $event = (new ActivityEventMapper())->map(self::activity());
+
+        self::assertSame('🏃 Running – 7.6 km', $event->summary);
+        self::assertStringContainsString('Duration: ', $event->description);
     }
 }
