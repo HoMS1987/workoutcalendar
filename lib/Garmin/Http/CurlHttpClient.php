@@ -34,8 +34,14 @@ final class CurlHttpClient implements HttpClient
         $method = strtoupper($request->method);
         curl_setopt($handle, CURLOPT_HTTPGET, true);
         curl_setopt($handle, CURLOPT_NOBODY, $method === 'HEAD');
-        curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $method);
-        if ($request->body !== null) {
+        // CUSTOMREQUEST gilt bei libcurl für jeden Redirect-Schritt; deshalb nur für Sonderfälle
+        // (PUT, DELETE ...). GET/POST/HEAD nutzen die eingebauten Optionen, damit ein 302
+        // nach POST wie im Browser als GET weiterläuft.
+        curl_setopt($handle, CURLOPT_CUSTOMREQUEST, in_array($method, ['GET', 'POST', 'HEAD'], true) ? null : $method);
+        if ($method === 'POST') {
+            curl_setopt($handle, CURLOPT_POST, true);
+            curl_setopt($handle, CURLOPT_POSTFIELDS, $request->body ?? '');
+        } elseif ($request->body !== null) {
             curl_setopt($handle, CURLOPT_POSTFIELDS, $request->body);
         }
         curl_setopt($handle, CURLOPT_URL, $request->url);
@@ -55,7 +61,8 @@ final class CurlHttpClient implements HttpClient
 
         $body = curl_exec($handle);
         if ($body === false) {
-            throw new NetworkException(curl_error($handle) !== '' ? curl_error($handle) : 'curl error ' . curl_errno($handle));
+            $error = curl_error($handle);
+            throw new NetworkException($error !== '' ? $error : 'curl error ' . curl_errno($handle));
         }
 
         return new HttpResponse(

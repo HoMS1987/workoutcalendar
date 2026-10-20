@@ -125,6 +125,16 @@ final class CurlHttpClientTest extends TestCase
         self::assertNull($response->header('location'));
     }
 
+    public function testPostRedirectIsFollowedAsGet(): void
+    {
+        $response = (new CurlHttpClient(5))->send(new HttpRequest('test.redirect', 'POST', self::url('/redirect'), [], 'a=1'));
+
+        $data = $response->json();
+        self::assertStringEndsWith('/echo', $response->effectiveUrl);
+        self::assertSame('GET', $data['method']);
+        self::assertSame('', $data['body']);
+    }
+
     public function testStatusIsReturnedNotThrown(): void
     {
         $response = (new CurlHttpClient(5))->send(new HttpRequest('test.status', 'GET', self::url('/status/503')));
