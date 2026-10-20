@@ -39,14 +39,20 @@ composer install
 composer test
 ```
 
-Die Tests brauchen weder Nextcloud noch einen Garmin-Zugang.
+Die Unit-Tests brauchen weder Nextcloud noch einen Garmin-Zugang.
+
+Die Integrationstests (`tests/Integration`) laufen in einem echten Nextcloud-Server. Lokal sind sie
+nicht vorgesehen, die GitHub-Action `tests.yml` führt sie gegen Nextcloud 33, 34 und 35 aus. Wer sie
+selbst starten will, legt die App nach `server/apps/workoutcalendar`, installiert den Server
+(`php occ maintenance:install`), aktiviert die App und ruft in der App `composer test:integration` auf.
 
 ## Beispiele
 
 ### Tests ausführen
 
 ```powershell
-composer test                                  # alle Tests
+composer test                                  # alle Unit-Tests
+composer test:integration                      # nur innerhalb eines Nextcloud-Servers
 vendor\bin\phpunit tests\Unit\Calendar         # nur die Termin-Abbildung
 ```
 
