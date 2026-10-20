@@ -13,6 +13,11 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "PHPUnit 12+ braucht PHP 8.3+, die App unterstützt ab PHP 8.2 (Nextcloud 33)",
+      "matchPackageNames": ["phpunit/phpunit"],
+      "allowedVersions": "<12"
+    },
+    {
       "matchManagers": ["github-actions"],
       "groupName": "github-actions"
     }
