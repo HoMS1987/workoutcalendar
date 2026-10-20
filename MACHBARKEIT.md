@@ -20,7 +20,7 @@ unproblematisch. Der Engpass ist der Datenzugriff auf Garmin Connect:
 | Garmin-Daten über inoffizielle Bibliotheken | ⚠️ Funktioniert, aber fragil (Garmin blockiert aktiv) |
 | Garmin-Daten über den Umweg Strava | ⚠️ Möglich, kostet aber eventuell Geld und hängt von Stravas API-Regeln ab |
 | Garmin-Daten über manuellen Export | ✅ Stabil, aber nicht automatisch |
-| Verteilung über den Nextcloud App Store | ⚠️ Realistisch als ExApp (Python), als PHP-App am Garmin-Login fraglich (siehe 2.3) |
+| Verteilung über den Nextcloud App Store | ✅ Als klassische PHP-App: Garmin-Login und Abruf aus PHP getestet (siehe 2.3 und 4.), Test aus dem Cluster offen |
 
 ## 1. Datenquelle Garmin Connect
 
@@ -149,9 +149,13 @@ Ziel des Nutzers: Die App soll über den integrierten App Store installierbar se
   - Die eigentlichen Datenabrufe (`connectapi`) laufen dagegen über normales `requests`, ohne
     Impersonation.
 - PHP nutzt die libcurl des Systems bzw. Containers und kann keinen Browser-TLS-Fingerprint
-  nachahmen. Dafür bräuchte es eine Sonderbuild wie curl-impersonate, die man in fremden
-  Nextcloud-Installationen nicht voraussetzen kann. **Vermutung, nicht getestet:** Login und
-  Token-Refresh scheitern aus PHP daher häufig. Datenabrufe würden wahrscheinlich funktionieren.
+  nachahmen. Ursprüngliche Vermutung: Login und Token-Refresh scheitern daran. **Der Test am
+  2026-10-20 hat das widerlegt** (siehe 4.): Widget-Login, Mobile-Login, Token-Refresh und
+  Datenabruf funktionieren aus reinem PHP. Nur der Portal-Login wird mit 403 geblockt.
+- **Python aus PHP aufrufen** (per `proc_open`/`exec`) ist technisch möglich, für eine App aus
+  dem App Store aber nicht praktikabel. Das offizielle Nextcloud-Image enthält kein Python, eine
+  App kann keine Systempakete nachinstallieren, und `exec` ist auf manchen Servern deaktiviert.
+  Durch das PHP-Testergebnis ist dieser Umweg auch nicht mehr nötig.
 
 **ExApp (Python, über AppAPI):**
 - ExApps werden laut Nextcloud-Doku genauso im App Store veröffentlicht wie normale Apps.
@@ -189,8 +193,11 @@ Lizenzvorgaben habe ich nicht geprüft.
 Garmin-Schnittstellen nutzt und sich als Browser ausgibt, ist sichtbarer als ein privates Skript.
 Ob Garmin dagegen vorgeht, ist nicht abschätzbar. *(Spekulation.)*
 
-**Bewertung:** Über den App Store umsetzbar ist die App realistisch **als ExApp**. Eine reine
-PHP-App bleibt am Garmin-Login hängen, solange es keine offizielle API gibt.
+**Bewertung (aktualisiert nach dem PHP-Test):** Eine **klassische PHP-App** ist umsetzbar und
+lässt sich ohne AppAPI und Deploy-Daemon direkt aus dem App Store installieren. Auf der Instanz
+des Nutzers sind AppAPI und Daemon nicht aktiv, damit fällt die ExApp praktisch weg. Offen ist,
+ob die Garmin-Zugriffe auch vom Nextcloud-Container im Talos-Cluster funktionieren. Dort sind
+TLS-Fingerprint (Linux/OpenSSL im Container) und IP anders als beim Test auf Windows.
 
 ## 3. Empfohlene Architektur
 
@@ -238,8 +245,30 @@ Dann entweder:
   korrekt. Entscheidung: `test_garmin.py` bleibt unverändert, weil es ein Wegwerf-Skript ist.
   Der eigentliche Sync-Code legt das Encoding von Anfang an fest und bekommt dafür einen Test.
 
-**Noch offen:** derselbe Test vom Nextcloud-Server aus, weil Garmin laut Forenberichten manche
-Server-IPs blockiert.
+### 2026-10-20: Garmin-Zugriff mit reinem PHP vom Windows-Rechner
+
+`php-test/garmin_test.php` bildet die Abläufe von `python-garminconnect` 0.3.19 mit `ext-curl`
+nach, **ohne Browser-TLS-Impersonation**. Umgebung: PHP 8.4.25, curl 8.21.0, OpenSSL 3.0.21,
+privater Anschluss. Je ein Versuch pro Ablauf:
+
+| Ablauf | Ergebnis |
+|---|---|
+| Datenabruf (`activitylist-service`) mit vorhandenem Token | ✅ HTTP 200, Umlaute korrekt |
+| Token-Refresh (`diauth.garmin.com`) | ✅ HTTP 200, neuer Token liefert Daten |
+| Login über SSO-Embed-Widget | ✅ Titel „Success“, Ticket-Tausch HTTP 200, Token liefert Daten |
+| Login wie iOS-App (`/mobile/api/login`) | ✅ `SUCCESSFUL`, Ticket-Tausch HTTP 200 |
+| Login über Web-Portal (`/portal/api/login`) | ❌ HTTP 403 schon beim GET (Cloudflare) |
+
+Auffällig: Der Mobile-Login, der aus Python vorher mit 429 abgelehnt wurde, klappte aus PHP. Das
+spricht eher für ein zeitweises Rate-Limit als für eine feste Sperre. *(Interpretation, nicht
+belegt.)*
+
+Einschränkungen: Es gab nur einen Versuch pro Ablauf, vom privaten Anschluss aus. Ein
+Nextcloud-Container unter Linux hat einen anderen TLS-Fingerprint und eine andere IP. Garmin kann
+das Verhalten jederzeit ändern.
+
+**Noch offen:** derselbe Test aus dem Nextcloud-Container im Talos-Cluster, weil Garmin laut
+Forenberichten manche Server-IPs blockiert.
 
 ## 5. Entscheidungen und offene Fragen
 
@@ -287,7 +316,8 @@ Server-IPs blockiert.
 | Python 3.13 (python.org-Installer via winget, Benutzer-Scope) | Prototyp, `python-garminconnect`, `caldav` | ✅ installiert (3.13.15) |
 | GitHub CLI `gh` | Repo auf GitHub anlegen und pushen | ✅ installiert (2.102.0), Login noch offen |
 | Python-Pakete in `.venv` | `garminconnect` 0.3.19, `caldav` 3.5.0, `curl_cffi` 0.16.3 | ✅ installiert |
-| PHP 8.3+ CLI + Composer | Erst in Phase 2 bei einer PHP-App | ❌ fehlt, noch nicht nötig |
+| PHP 8.4 CLI (winget, ZIP ohne `php.ini`) | PHP-Tests, später die Nextcloud-App | ✅ installiert (8.4.25). Erweiterungen werden per `php-test/run.ps1` geladen |
+| Composer | Später für die Nextcloud-App | ❌ fehlt, noch nicht nötig |
 | Node.js LTS | Erst in Phase 2 bei einem App-Frontend (Vue) | ❌ fehlt, noch nicht nötig |
 | ~~Docker Desktop~~ | Bewusst **nicht**: installiert Hintergrunddienst und Autostart | – |
 

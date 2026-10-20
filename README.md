@@ -33,6 +33,19 @@ Bei Erfolg erscheinen die letzten fünf Aktivitäten mit Startzeit, Typ, Dauer, 
 ID. Nach dem ersten Login liegen Tokens in `.garminconnect/`. Das Passwort in `.env` ist danach
 nicht mehr nötig.
 
+### PHP-Test
+
+`php-test/garmin_test.php` prüft dieselben Garmin-Zugriffe mit reinem PHP (`ext-curl`). Es nutzt
+dieselbe `.env`. `run.ps1` lädt die PHP-Erweiterungen, die der winget-Installation ohne
+`php.ini` fehlen.
+
+```powershell
+php-test\run.ps1 -Mode api             # Aktivitäten mit dem Python-Token abrufen
+php-test\run.ps1 -Mode refresh         # Token erneuern, Ergebnis in .garminconnect/php_tokens.json
+php-test\run.ps1 -Mode login-widget    # Login, ebenso login-mobile und login-portal
+php-test\run.ps1 -Mode api -PhpToken   # Aktivitäten mit dem PHP-Token abrufen
+```
+
 ## Limitationen
 
 - Der Zugriff auf Garmin Connect läuft über inoffizielle Schnittstellen
