@@ -69,7 +69,7 @@ final class SyncRunner
 
         try {
             $outcome = $this->runLocked($uid, $now);
-            if ($outcome !== RunOutcome::Done) {
+            if ($outcome !== RunOutcome::Done && $outcome !== RunOutcome::Skipped) {
                 $this->leaveQueue($uid);
             }
 
@@ -116,6 +116,13 @@ final class SyncRunner
         $setup = $this->users->setup($uid);
         if ($setup->accountKey === null) {
             return RunOutcome::NotConnected;
+        }
+        if ($setup->maintenance === 'remove') {
+            // Das Entfernen liest die Termine der App in jeder Etappe neu ein und würde frisch importierte mitlöschen.
+            $state->nextRunAt = $this->users->settings($uid)->nextRunAt($now->getTimestamp());
+            $this->users->saveState($uid, $state);
+
+            return RunOutcome::Skipped;
         }
         if ($setup->calendarId === null) {
             return RunOutcome::CalendarMissing;

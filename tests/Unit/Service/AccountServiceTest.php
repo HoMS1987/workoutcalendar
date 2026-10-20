@@ -82,6 +82,17 @@ final class AccountServiceTest extends TestCase
         self::assertSame('C', $this->secrets->tokens(self::UID)?->clientId);
     }
 
+    public function testLoginTrimsEmailEverywhere(): void
+    {
+        $this->queueSuccessfulLogin();
+
+        $setup = $this->service()->login(self::UID, '  Anna@Example.de ', 'geheim');
+
+        self::assertSame('Anna@Example.de', $this->secrets->credentials(self::UID)?->email);
+        self::assertSame('A***@Example.de', $setup->maskedEmail);
+        self::assertSame(substr(hash('sha256', 'anna@example.de'), 0, 16), $setup->accountKey);
+    }
+
     public function testLoginInWizardDoesNotArmQueue(): void
     {
         $this->queueSuccessfulLogin();
@@ -123,6 +134,7 @@ final class AccountServiceTest extends TestCase
         $this->service()->login(self::UID, 'a@b.de', 'neu');
 
         self::assertNull($this->users->state(self::UID)->pausedFor);
+        self::assertNull($this->users->state(self::UID)->notifiedCategory);
         self::assertSame(['markProcessed:' . self::UID], $this->notificationCalls);
     }
 
@@ -295,7 +307,7 @@ final class AccountServiceTest extends TestCase
 
         $this->service()->reset(self::UID, Cleanup::Events);
 
-        self::assertSame([], $this->store[self::UID] ?? []);
+        self::assertSame(['setup'], array_keys($this->store[self::UID] ?? []), 'nur die Entfernen-Markierung bleibt');
         self::assertSame(SetupStep::Garmin, $this->users->setup(self::UID)->step);
         self::assertFalse($this->users->setup(self::UID)->connected);
         self::assertNull($this->secrets->credentials(self::UID));
@@ -304,6 +316,21 @@ final class AccountServiceTest extends TestCase
             [[CalendarMaintenanceJob::class, ['uid' => self::UID, 'action' => 'remove', 'from' => $this->calendarId, 'to' => null]]],
             $this->jobs,
         );
+    }
+
+    public function testResetWithEventsKeepsRemovalMarker(): void
+    {
+        $this->connected(createdByApp: true);
+
+        $this->service()->reset(self::UID, Cleanup::Events);
+
+        $setup = $this->users->setup(self::UID);
+        self::assertSame('remove', $setup->maintenance);
+        self::assertSame(SetupStep::Garmin, $setup->step);
+        self::assertFalse($setup->connected);
+        self::assertNull($setup->calendarId);
+        self::assertNull($this->users->state(self::UID)->nextRunAt);
+        self::assertNull($this->secrets->credentials(self::UID));
     }
 
     public function testResetCalendarOnForeignCalendarChangesNothing(): void
@@ -326,7 +353,12 @@ final class AccountServiceTest extends TestCase
     {
         $this->connected();
 
+        $state = new SyncState();
+        $state->notifiedCategory = 'SERVER_ERROR';
+        $this->users->saveState(self::UID, $state);
+
         $this->service()->logout(self::UID, Cleanup::None);
+        self::assertNull($this->users->state(self::UID)->notifiedCategory);
         $this->service()->reset(self::UID, Cleanup::None);
 
         self::assertSame(['markProcessed:' . self::UID, 'markProcessed:' . self::UID], $this->notificationCalls);

@@ -38,6 +38,7 @@ final class AccountService
      */
     public function login(string $uid, string $email, string $password): SetupState
     {
+        $email = trim($email);
         $credentials = new Credentials($email, $password);
         $tokens = $this->garmin->authenticator()->login($credentials);
 
@@ -45,11 +46,12 @@ final class AccountService
         $this->secrets->saveTokens($uid, $tokens);
 
         $previous = $this->users->setup($uid);
-        $accountKey = substr(hash('sha256', strtolower(trim($email))), 0, 16);
+        $accountKey = substr(hash('sha256', strtolower($email)), 0, 16);
         $state = $previous->accountKey !== null && $previous->accountKey !== $accountKey
             ? new SyncState()
             : $this->users->state($uid);
         $state->pausedFor = null;
+        $state->notifiedCategory = null;
 
         $step = match (true) {
             $previous->calendarId === null => SetupStep::Calendar,
@@ -86,6 +88,7 @@ final class AccountService
         $this->notifications->dismiss($uid);
 
         $state = $this->users->state($uid);
+        $state->notifiedCategory = null;
         $calendarId = $setup->calendarId;
         $maintenance = $setup->maintenance;
         $createdByApp = $setup->calendarCreatedByApp;
@@ -131,8 +134,13 @@ final class AccountService
     /** Wie {@see logout()}, danach beginnt die Einrichtung mit Schritt Garmin von vorn. */
     public function reset(string $uid, Cleanup $cleanup): void
     {
+        $removalQueued = $cleanup === Cleanup::Events && $this->users->setup($uid)->calendarId !== null;
         $this->logout($uid, $cleanup);
         $this->users->clear($uid);
         $this->secrets->clear($uid);
+        if ($removalQueued) {
+            // Der Wartungsjob löscht die Markierung am Ende; bis dahin darf kein Sync neue Termine anlegen.
+            $this->users->saveSetup($uid, new SetupState(maintenance: 'remove'));
+        }
     }
 }
