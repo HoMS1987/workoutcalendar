@@ -1,0 +1,29 @@
+# Zugangsdaten / Tokens – niemals committen
+.env
+*.env
+garmin_tokens.json
+.garminconnect/
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# PHP / Composer
+vendor/
+
+# Node
+node_modules/
+
+# Exportierte Daten
+*.fit
+*.ics
+exports/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
