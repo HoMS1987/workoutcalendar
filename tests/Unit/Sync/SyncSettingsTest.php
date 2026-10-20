@@ -48,6 +48,14 @@ final class SyncSettingsTest extends TestCase
         self::assertSame(DeletionMode::Keep, SyncSettings::fromArray(['deletionMode' => 'keep'])->deletionMode);
     }
 
+    public function testToArrayRoundTrips(): void
+    {
+        foreach ([new SyncSettings(), new SyncSettings(null, 60, 10, DeletionMode::Delete, 14)] as $settings) {
+            self::assertEquals($settings, SyncSettings::fromArray($settings->toArray()));
+        }
+        self::assertSame('keep', (new SyncSettings(30, 15, 0, DeletionMode::Keep, 7))->toArray()['deletionMode']);
+    }
+
     public function testNextRunWithoutJitterIsExactlyOneInterval(): void
     {
         $settings = SyncSettings::fromArray(['jitterPercent' => 0]);

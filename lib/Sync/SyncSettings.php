@@ -51,6 +51,22 @@ final class SyncSettings
     }
 
     /**
+     * Die Schlüssel, die fromArray() liest.
+     *
+     * @return array{historyDays: ?int, intervalMinutes: int, jitterPercent: int, deletionMode: string, deletionCheckDays: int}
+     */
+    public function toArray(): array
+    {
+        return [
+            'historyDays' => $this->historyDays,
+            'intervalMinutes' => $this->intervalMinutes,
+            'jitterPercent' => $this->jitterPercent,
+            'deletionMode' => $this->deletionMode->value,
+            'deletionCheckDays' => $this->deletionCheckDays,
+        ];
+    }
+
+    /**
      * Zeitpunkt des nächsten Laufs: Intervall, zufällig um ±jitterPercent gestreut (F-16).
      *
      * @param (callable(int, int): int)|null $random Zufallszahl im Bereich [min, max], in Tests ersetzbar
