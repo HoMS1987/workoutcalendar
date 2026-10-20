@@ -122,4 +122,4 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 | O-08 | Die Standardwerte der Einstellungen sind ein Vorschlag. Passen sie so? | geklärt: bestätigt |
 | O-09 | Garmin-Konten mit Two-Step Verification später unterstützen? Relevant, sobald EKG an einer Uhr aktiviert wird. | geklärt: vorgemerkt als F-07 |
 | O-06 | Welche Nextcloud-Version läuft auf der Instanz? | geklärt: 35.0.2, liegt im unterstützten Bereich (NF-05) |
-| O-07 | Funktioniert der Garmin-Login aus dem Nextcloud-Container im Cluster? | Test steht aus |
+| O-07 | Funktioniert der Garmin-Login aus dem Nextcloud-Container im Cluster? | geklärt: ja, Mobile-Login und Datenabruf aus dem Nextcloud-Pod getestet (MACHBARKEIT.md, Abschnitt 4) |

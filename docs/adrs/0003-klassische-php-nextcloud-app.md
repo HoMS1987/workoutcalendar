@@ -52,7 +52,8 @@ Cluster steht noch aus.
 - Der Garmin-Client ist eigener Code. Ändert Garmin die Login-Abläufe, muss er nachgezogen werden.
   Deshalb braucht es eine gute Diagnose, siehe [ADR 0004](0004-diagnose-logging-fuer-garmin-zugriffe.md).
 - Ob der Login aus dem Linux-Container der Instanz funktioniert (anderer TLS-Fingerprint, andere
-  IP), ist noch nicht geprüft.
+  IP), war zum Zeitpunkt der Entscheidung nicht geprüft. Nachtrag 2026-10-20: Mobile-Login und
+  Datenabruf funktionieren aus dem Nextcloud-Pod (MACHBARKEIT.md, Abschnitt 4).
 - Das Python-Testskript und `php-test/` bleiben als Werkzeuge zur Fehlersuche im Repository, werden
   aber nicht mit der App ausgeliefert.
 - Unterstützte Nextcloud-Versionen: vorerst 33 bis 35. Die Version der eigenen Instanz ist noch
