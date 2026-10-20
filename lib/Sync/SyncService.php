@@ -70,8 +70,9 @@ final class SyncService
     /**
      * Ändert den Historien-Zeitraum nachträglich. Ein längerer Zeitraum setzt den Import fort,
      * ein gleicher oder kürzerer ändert nichts und löscht keine Termine. `null` bedeutet die komplette Historie.
+     * Statisch, weil dafür kein Garmin-Zugriff nötig ist (Einstellungsseite nach der Einrichtung).
      */
-    public function changeHistory(SyncState $state, ?int $historyDays, \DateTimeImmutable $now): void
+    public static function changeHistory(SyncState $state, ?int $historyDays, \DateTimeImmutable $now): void
     {
         if (!$state->initialized) {
             return;
