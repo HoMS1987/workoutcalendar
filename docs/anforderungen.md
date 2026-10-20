@@ -76,6 +76,12 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | F-42 | Die Einstellungen zeigen den letzten Sync-Zeitpunkt und den letzten Fehler in verständlicher Form. | Soll |
 | F-43 | Ein anhaltender Fehler füllt das Log nicht: ausführlich geloggt wird nur ein neuer Fehler oder ein Wechsel von Kategorie bzw. Schritt, solange er anhält höchstens einmal täglich eine Erinnerung mit der Zahl der Fehlschläge, nach Behebung ein Eintrag „wieder erfolgreich nach X Fehlschlägen“. | Muss |
 
+### Unterstützung
+
+| ID | Anforderung | Prio |
+|---|---|---|
+| F-50 | Vorgemerkt: Wer das Projekt unterstützen möchte, findet einen PayPal-Spendenlink. Er steht im App Store (`<donation type="paypal">` in `info.xml`) und unauffällig ganz unten auf der Einstellungsseite, ohne Pop-ups und ohne Hinweis im Assistenten. Über eine `.github/FUNDING.yml` wird mit dem Release-Prozess entschieden, sie wirkt nur bei einem öffentlichen Repository. Der PayPal-Link steht noch aus. | Kann |
+
 ## Standardwerte
 
 | Einstellung | Standard | Auswahl |
