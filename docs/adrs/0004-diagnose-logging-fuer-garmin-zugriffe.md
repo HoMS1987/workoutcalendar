@@ -39,6 +39,13 @@ Service-Tickets nie im Log landen.
 - Geloggt wird über PSR-3 (`Psr\Log\LoggerInterface`), in Nextcloud also ins Nextcloud-Log mit der
   App-ID `garmincalendar`.
 - Später zeigt die App den letzten Sync-Status samt Kategorie in den persönlichen Einstellungen an.
+- Wiederholte Fehler werden gedrosselt: Der Sync-Ablauf merkt sich pro Person Kategorie, Schritt,
+  Beginn und Anzahl des aktuellen Fehlers. Ausführlich (`warning`/`error`) geloggt wird nur ein
+  neuer Fehler oder ein Wechsel von Kategorie oder Schritt. Hält derselbe Fehler an, folgt höchstens
+  einmal täglich eine kurze Erinnerung mit der Zahl der Fehlschläge. Nach Behebung folgt ein
+  `info`-Eintrag mit der Zahl der Fehlschläge.
+- Die Größe der Logdatei begrenzt Nextcloud (`log_rotate_size`) bzw. die Container-Plattform. Die
+  App legt keine eigenen Logdateien oder Log-Tabellen an.
 
 ## Konsequenzen
 
@@ -46,6 +53,9 @@ Service-Tickets nie im Log landen.
   zuordnen, ohne den Fehler lokal nachstellen zu müssen.
 - Mit Log-Stufe `debug` entsteht ein vollständiger Ablauf jeder Anmeldung, vergleichbar mit der
   Ausgabe von `php-test/garmin_test.php`.
+- Bei einer dauerhaften Sperre entstehen pro Person nur ein ausführlicher Eintrag und danach eine
+  Erinnerung pro Tag, statt einer Warnung bei jedem Sync-Lauf. Das Detail-Log pro Anfrage
+  erscheint nur bei Log-Stufe `debug`.
 - Der Redactor ist sicherheitsrelevant. Neue Felder mit Geheimnissen müssen dort ergänzt werden.
 - Die Erkennung von Cloudflare stützt sich auf heutige Merkmale (Header, Seitentitel). Ändern sich
   diese, landet ein Fehler eventuell unter `PROTOCOL_CHANGED` statt `BLOCKED`. Die Rohdaten (Status,
