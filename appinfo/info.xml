@@ -14,7 +14,9 @@ Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]><
     <author>HoMS1987</author>
     <namespace>GarminCalendar</namespace>
     <category>organization</category>
-    <bugs>https://github.com/HoMS1987/NextCloudGarmin/issues</bugs>
+    <website>https://github.com/HoMS1987/garmincalendar</website>
+    <bugs>https://github.com/HoMS1987/garmincalendar/issues</bugs>
+    <repository type="git">https://github.com/HoMS1987/garmincalendar.git</repository>
     <dependencies>
         <php min-version="8.2"/>
         <lib>curl</lib>
