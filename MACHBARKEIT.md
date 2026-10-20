@@ -358,7 +358,7 @@ Nebenbefunde:
 | GitHub CLI `gh` | Repo auf GitHub anlegen und pushen | ✅ installiert (2.102.0), Login noch offen |
 | Python-Pakete in `.venv` | `garminconnect` 0.3.19, `caldav` 3.5.0, `curl_cffi` 0.16.3 | ✅ installiert |
 | PHP 8.4 CLI (winget) | PHP-Tests und die Nextcloud-App | ✅ installiert (8.4.25). Eine minimale `php.ini` im PHP-Ordner lädt curl, openssl, mbstring, intl, fileinfo, sodium, zip |
-| Composer | Abhängigkeiten der App (PHPUnit, OCP-Stubs) | ✅ installiert (2.10.3, `composer.phar` mit SHA-256-Prüfung in `%LOCALAPPDATA%\Programs\Composer`, im Benutzer-PATH) |
+| Composer | Abhängigkeiten der App (PHPUnit, OCP-Stubs) | ✅ installiert (2.10.3, `composer.phar` mit SHA-256-Prüfung in einem Ordner im Benutzer-PATH) |
 | Node.js LTS | Erst in Phase 2 bei einem App-Frontend (Vue) | ❌ fehlt, noch nicht nötig |
 | ~~Docker Desktop~~ | Bewusst **nicht**: installiert Hintergrunddienst und Autostart | – |
 
