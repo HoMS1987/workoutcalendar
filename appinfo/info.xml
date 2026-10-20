@@ -9,7 +9,7 @@
 Garmin offers no official API for personal use. The app uses the same unofficial endpoints as the Garmin Connect mobile app, so Garmin may change or block them at any time.
 
 Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]></description>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <licence>agpl</licence>
     <author>HoMS1987</author>
     <namespace>WorkoutCalendar</namespace>
@@ -22,4 +22,7 @@ Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]><
         <lib>curl</lib>
         <nextcloud min-version="33" max-version="35"/>
     </dependencies>
+    <background-jobs>
+        <job>OCA\WorkoutCalendar\BackgroundJob\SyncJob</job>
+    </background-jobs>
 </info>
