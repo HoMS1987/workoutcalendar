@@ -5,6 +5,7 @@ OC.L10N.register("workoutcalendar", {
     "Your Garmin account asks for a verification code. This is not supported yet, Workout Calendar is paused.": "Dein Garmin-Konto verlangt einen Bestätigungscode. Das wird noch nicht unterstützt, Workout Calendar pausiert.",
     "Workout Calendar could not sync for a day because Garmin changed its sign-in. An app update may be needed.": "Workout Calendar konnte einen Tag lang nicht synchronisieren, weil Garmin die Anmeldung geändert hat. Möglicherweise ist ein App-Update nötig.",
     "Workout Calendar could not reach Garmin for a day. It keeps trying.": "Workout Calendar konnte Garmin einen Tag lang nicht erreichen. Es wird weiter versucht.",
+    "Garmin activities": "Garmin-Aktivitäten",
     "Running": "Laufen",
     "Trail running": "Trailrunning",
     "Treadmill running": "Laufband",
