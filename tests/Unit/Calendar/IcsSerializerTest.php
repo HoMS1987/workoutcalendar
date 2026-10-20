@@ -99,10 +99,9 @@ final class IcsSerializerTest extends TestCase
         $ics = (new IcsSerializer())->serialize(self::event(), new \DateTimeImmutable('2026-10-20 08:00:00', new \DateTimeZone('UTC')), '0123456789abcdef');
 
         self::assertStringContainsString(
-            'X-GARMIN-FINGERPRINT:' . self::event()->fingerprint() . "
-X-GARMIN-ACCOUNT:0123456789abcdef
-END:VEVENT
-",
+            'X-GARMIN-FINGERPRINT:' . self::event()->fingerprint() . "\r\n"
+            . "X-GARMIN-ACCOUNT:0123456789abcdef\r\n"
+            . "END:VEVENT\r\n",
             $ics,
         );
     }
