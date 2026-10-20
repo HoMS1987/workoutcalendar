@@ -20,7 +20,7 @@ unproblematisch. Der Engpass ist der Datenzugriff auf Garmin Connect:
 | Garmin-Daten über inoffizielle Bibliotheken | ⚠️ Funktioniert, aber fragil (Garmin blockiert aktiv) |
 | Garmin-Daten über den Umweg Strava | ⚠️ Möglich, kostet aber eventuell Geld und hängt von Stravas API-Regeln ab |
 | Garmin-Daten über manuellen Export | ✅ Stabil, aber nicht automatisch |
-| Verteilung über den Nextcloud App Store | ✅ Als klassische PHP-App: Garmin-Login und Abruf aus PHP getestet (siehe 2.3 und 4.), Test aus dem Cluster offen |
+| Verteilung über den Nextcloud App Store | ✅ Als klassische PHP-App: Garmin-Login und Abruf aus PHP getestet, vom Windows-Rechner und aus dem Cluster (siehe 2.3 und 4.) |
 
 ## 1. Datenquelle Garmin Connect
 
@@ -203,9 +203,9 @@ Ob Garmin dagegen vorgeht, ist nicht abschätzbar. *(Spekulation.)*
 
 **Bewertung (aktualisiert nach dem PHP-Test):** Eine **klassische PHP-App** ist umsetzbar und
 lässt sich ohne AppAPI und Deploy-Daemon direkt aus dem App Store installieren. Auf der eigenen
-Instanz sind AppAPI und Daemon nicht aktiv, damit fällt die ExApp praktisch weg. Offen ist,
-ob die Garmin-Zugriffe auch vom Nextcloud-Container im Talos-Cluster funktionieren. Dort sind
-TLS-Fingerprint (Linux/OpenSSL im Container) und IP anders als beim Test auf Windows.
+Instanz sind AppAPI und Daemon nicht aktiv, damit fällt die ExApp praktisch weg. Die
+Garmin-Zugriffe funktionieren auch aus dem Nextcloud-Container im Talos-Cluster, trotz anderem
+TLS-Fingerprint (Linux/OpenSSL im Container) und anderer IP (siehe 4.).
 
 ## 3. Empfohlene Architektur
 
@@ -280,8 +280,30 @@ Einschränkungen: Es gab nur einen Versuch pro Ablauf, vom privaten Anschluss au
 Nextcloud-Container unter Linux hat einen anderen TLS-Fingerprint und eine andere IP. Garmin kann
 das Verhalten jederzeit ändern.
 
-**Noch offen:** derselbe Test aus dem Nextcloud-Container im Talos-Cluster, weil Garmin laut
-Forenberichten manche Server-IPs blockiert.
+Den Test aus dem Cluster beschreibt der nächste Abschnitt.
+
+### 2026-10-20: Garmin-Zugriff aus dem Nextcloud-Pod im Talos-Cluster
+
+Derselbe Test (`php-test/garmin_test.php`) im Nextcloud-Pod, Image
+`containerforge/nextcloud-fpm:35.0.2`. Umgebung: PHP 8.5.11, curl 8.14.1, OpenSSL 3.5.7, Benutzer
+uid 568, ausgehende Verbindung über die IP des Clusters. Skript und `.env` lagen nur für den Test
+in `/tmp/wctest` (tmpfs) und wurden danach gelöscht. Je ein Versuch pro Ablauf:
+
+| Ablauf | Ergebnis |
+|---|---|
+| Login wie iOS-App (`/mobile/api/login`) | ✅ `SUCCESSFUL`, DI-Token-Tausch HTTP 200 (`GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2`) |
+| Datenabruf (`activitylist-service`) mit dem neuen Token | ✅ HTTP 200, Umlaute korrekt |
+| Login über SSO-Embed-Widget | nicht getestet, als Ausweichweg nicht nötig |
+
+Damit ist O-07 geklärt: Garmin akzeptiert IP und TLS-Fingerprint des Clusters, zumindest zum
+Zeitpunkt des Tests. Die Cron-Pods der Instanz nutzen dasselbe Image wie der getestete Pod.
+Dass sie auch über dieselbe IP hinausgehen, ist anzunehmen, aber nicht geprüft.
+
+Nebenbefunde:
+- Im Pod läuft PHP 8.5, lokal wird mit PHP 8.4 getestet. Die App setzt PHP 8.2 voraus.
+- Git Bash unter Windows wandelt Argumente wie `/tmp/…` in Windows-Pfade um, auch bei
+  `kubectl exec` und `kubectl cp`. Befehle mit Pfaden im Pod deshalb mit `MSYS_NO_PATHCONV=1`
+  ausführen oder aus PowerShell starten.
 
 ## 5. Entscheidungen und offene Fragen
 
@@ -322,8 +344,8 @@ Forenberichten manche Server-IPs blockiert.
 **Offen:**
 1. ~~Welche Nextcloud-Version?~~ Geklärt: Die eigene Instanz läuft mit 35.0.2, die App
    unterstützt 33 bis 35.
-2. Funktioniert der Garmin-Zugriff aus dem Nextcloud-Container im Talos-Cluster? (Garmin
-   blockiert laut Forenberichten manche Server-IPs.)
+2. ~~Funktioniert der Garmin-Zugriff aus dem Nextcloud-Container im Talos-Cluster?~~ Geklärt:
+   Mobile-Login und Datenabruf funktionieren aus dem Nextcloud-Pod (siehe 4.).
 3. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Signierung und Upload
    in den App Store, Merge von `dev` nach `main`. Muss vor der ersten Release-Version stehen.
 

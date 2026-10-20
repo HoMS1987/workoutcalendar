@@ -79,7 +79,8 @@ python -m venv .venv
 ## Limitationen
 
 - Der Garmin-Zugriff läuft über inoffizielle Schnittstellen und kann jederzeit ausfallen.
-- Ob der Login aus einem Server-Container funktioniert, hängt von IP und TLS-Fingerprint ab und
-  ist noch nicht geprüft.
+- Ob der Login aus einem Server-Container funktioniert, hängt von IP und TLS-Fingerprint ab. Auf
+  der eigenen Instanz (Talos-Cluster) funktioniert er, auf anderen Servern kann Garmin anders
+  entscheiden.
 - Garmin-Konten mit Zwei-Faktor-Anmeldung werden nicht unterstützt.
 - Die App ist noch nicht installierbar, die Nextcloud-Anbindung fehlt.
