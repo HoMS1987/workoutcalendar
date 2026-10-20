@@ -29,8 +29,15 @@ final class SyncState
     public int $failureCount = 0;
     public ?int $failureReportedAt = null;
 
+    /** FailureCategory-Wert, der den Sync anhält, bis neue Zugangsdaten vorliegen (INVALID_CREDENTIALS, MFA_REQUIRED). */
+    public ?string $pausedFor = null;
+    /** Für diese Fehlerkategorie wurde bereits eine Benachrichtigung gesendet. */
+    public ?string $notifiedCategory = null;
+    /** Ältestes lokales Startdatum aller bisher importierten Aktivitäten, wandert nie nach vorn. */
+    public ?string $oldestActivityDate = null;
+
     private const INT_FIELDS = ['lastRunAt', 'lastSuccessAt', 'nextRunAt', 'failureSince', 'failureReportedAt'];
-    private const STRING_FIELDS = ['backfillBefore', 'backfillUntil', 'failureCategory', 'failureStep', 'failureMessage'];
+    private const STRING_FIELDS = ['backfillBefore', 'backfillUntil', 'failureCategory', 'failureStep', 'failureMessage', 'pausedFor', 'notifiedCategory', 'oldestActivityDate'];
     private const BOOL_FIELDS = ['initialized', 'backfillDone'];
 
     /** @param array<string, mixed> $data */

@@ -120,4 +120,13 @@ final class FailureLogTest extends TestCase
 
         self::assertSame([], $this->logger->records);
     }
+
+    public function testSuccessKeepsNotifiedCategory(): void
+    {
+        $this->state->notifiedCategory = 'INVALID_CREDENTIALS';
+
+        $this->log->recordSuccess($this->state, self::T0);
+
+        self::assertSame('INVALID_CREDENTIALS', $this->state->notifiedCategory);
+    }
 }

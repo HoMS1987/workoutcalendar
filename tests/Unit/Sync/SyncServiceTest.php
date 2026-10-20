@@ -8,6 +8,8 @@ use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
 use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
+use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
+use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
@@ -34,6 +36,8 @@ final class SyncServiceTest extends TestCase
     private MemoryLogger $logger;
     private SyncState $state;
     private \DateTimeImmutable $now;
+    /** Wenn gesetzt: keine gespeicherten Tokens, der Login wirft diesen Fehler. */
+    private ?FailureCategory $loginFailure = null;
 
     protected function setUp(): void
     {
@@ -46,10 +50,31 @@ final class SyncServiceTest extends TestCase
 
     private function sync(SyncSettings $settings = new SyncSettings()): \OCA\WorkoutCalendar\Sync\SyncResult
     {
-        $tokens = new MemoryTokenStore(new GarminTokens(Jwt::make(['exp' => $this->now->getTimestamp() + 3600]), 'r', 'C'));
+        $tokens = new MemoryTokenStore($this->loginFailure !== null
+            ? null
+            : new GarminTokens(Jwt::make(['exp' => $this->now->getTimestamp() + 3600]), 'r', 'C'));
+        $strategies = [];
+        if ($this->loginFailure !== null) {
+            $category = $this->loginFailure;
+            $strategies[] = new class ($category) implements LoginStrategy {
+                public function __construct(private readonly FailureCategory $category)
+                {
+                }
+
+                public function name(): string
+                {
+                    return 'fake';
+                }
+
+                public function login(\OCA\WorkoutCalendar\Garmin\Auth\Credentials $credentials): GarminTokens
+                {
+                    throw new GarminException($this->category, 'fake.login', 'abgelehnt');
+                }
+            };
+        }
         $client = new GarminClient(
             $this->http,
-            new Authenticator([], $this->logger),
+            new Authenticator($strategies, $this->logger),
             new DiTokenService($this->http),
             $tokens,
             new Credentials('a@b.de', 'pw'),
@@ -369,5 +394,70 @@ final class SyncServiceTest extends TestCase
 
         self::assertSame($this->now->getTimestamp(), $this->state->lastRunAt);
         self::assertSame($this->now->getTimestamp() + 30 * 60, $this->state->nextRunAt);
+    }
+
+    public function testInvalidCredentialsPauseTheSync(): void
+    {
+        $this->loginFailure = FailureCategory::InvalidCredentials;
+
+        $this->sync();
+
+        self::assertSame('INVALID_CREDENTIALS', $this->state->pausedFor);
+    }
+
+    public function testMfaRequiredPausesTheSync(): void
+    {
+        $this->loginFailure = FailureCategory::MfaRequired;
+
+        $this->sync();
+
+        self::assertSame('MFA_REQUIRED', $this->state->pausedFor);
+    }
+
+    public function testNetworkErrorDoesNotPause(): void
+    {
+        $this->initialized();
+        $this->http->queue(new NetworkException('Could not resolve host'));
+
+        $this->sync();
+
+        self::assertNull($this->state->pausedFor);
+    }
+
+    public function testRunningBackfillSchedulesNextRunSoon(): void
+    {
+        $settings = new SyncSettings(historyDays: null);
+        $this->http->queue(self::page([]));
+        for ($page = 0; $page < SyncSettings::BACKFILL_PAGES_PER_RUN; $page++) {
+            $this->http->queue(self::page(self::days(100 + 20 * $page, (new \DateTimeImmutable('2026-09-20'))->modify('-' . (20 * $page) . ' days')->format('Y-m-d'), 20)));
+        }
+
+        $this->sync($settings);
+
+        self::assertFalse($this->state->backfillDone);
+        self::assertSame($this->now->getTimestamp() + SyncSettings::BACKFILL_NEXT_RUN_SECONDS, $this->state->nextRunAt);
+    }
+
+    public function testFinishedBackfillUsesInterval(): void
+    {
+        $this->http->queue(self::page([]));
+
+        $this->sync(new SyncSettings(historyDays: 7));
+
+        $delta = $this->state->nextRunAt - $this->now->getTimestamp();
+        self::assertGreaterThanOrEqual(1440, $delta);
+        self::assertLessThanOrEqual(2160, $delta);
+    }
+
+    public function testOldestActivityDateTracksImportedActivities(): void
+    {
+        $this->initialized();
+        $this->http->queue(self::page([self::activity(1, '2026-10-01 07:00:00'), self::activity(2, '2026-09-15 07:00:00')]));
+        $this->sync();
+        self::assertSame('2026-09-15', $this->state->oldestActivityDate);
+
+        $this->http->queue(self::page([self::activity(3, '2026-10-18 07:00:00')]));
+        $this->sync();
+        self::assertSame('2026-09-15', $this->state->oldestActivityDate);
     }
 }
