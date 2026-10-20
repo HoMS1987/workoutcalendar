@@ -20,7 +20,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "OCA\\WorkoutCalendar\\Tests\\": "tests/"
+            "OCA\\WorkoutCalendar\\Tests\\": "tests/",
+            "OCP\\": "vendor/nextcloud/ocp/OCP/"
         }
     },
     "config": {
