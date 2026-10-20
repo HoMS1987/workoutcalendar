@@ -147,8 +147,8 @@ python-garminconnect  ──►  Aktivitäten der letzten N Tage holen
 ```
 
 - Lokal manuell starten. Das prüft am schnellsten, ob der Garmin-Login überhaupt funktioniert.
-- Danach **vom Nextcloud-Server aus** testen, ob dessen IP von Cloudflare geblockt wird.
-- Wenn es stabil läuft: per Cron auf dem Server bzw. NAS ausführen, **nicht** auf dem
+- Danach **aus einem Pod im Talos-Cluster** testen, ob dessen IP von Cloudflare geblockt wird.
+- Wenn es stabil läuft: als Kubernetes-CronJob im Cluster ausführen, **nicht** auf dem
   Windows-Rechner als Dienst.
 
 **Phase 2 – optional echte Nextcloud-App:**
@@ -184,10 +184,17 @@ Server-IPs blockiert.
 ## 5. Entscheidungen und offene Fragen
 
 **Geklärt (2026-10-20, Angaben des Nutzers im Chat):**
-- Nextcloud läuft auf einem **eigenen Server**. Cron und eigene Apps sind also möglich.
+- Nextcloud läuft auf einem **eigenen Server**: Kubernetes auf **Talos Linux**, installiert per
+  **Helm Chart**. Talos hat keine Shell und kein SSH auf dem Host. Ein regelmäßiger Sync läuft
+  daher als Kubernetes-**CronJob** in einem eigenen Container, nicht als System-Cron.
 - Der Nextcloud-Account hat **2FA aktiv**. Für CalDAV wird daher ein **App-Passwort** benötigt.
-- Am Garmin-Konto ist nach Sicht des Nutzers in den Einstellungen **keine 2FA aktiv**. Das zeigt
-  sich spätestens beim ersten Login-Test. Unbeaufsichtigte Logins sind damit einfacher.
+- Am Garmin-Konto ist nach Sicht des Nutzers in den Einstellungen **keine 2FA aktiv**. Der
+  Login-Test am 2026-10-20 lief ohne MFA-Abfrage durch und bestätigt das.
+
+**Geklärt (2026-10-20, Vorgehen):**
+- Bis zur ersten Release-Version wird direkt auf `dev` gearbeitet, ohne Feature-Branches.
+- Der Test vom Cluster aus folgt später vom Hauptrechner des Nutzers, der Zugriff auf den
+  Cluster hat.
 - Ein Strava-Konto ist vorhanden. **Der Strava-Fallback wird nur genutzt, wenn die API
   kostenlos ist.** Das ist noch offiziell zu prüfen.
 
@@ -196,6 +203,10 @@ Server-IPs blockiert.
 2. Welche Felder sollen im Termin stehen? (Titel-Schema, Distanz, Pace, Puls, Höhenmeter, Link zu
    Garmin Connect)
 3. Sollen auch historische Aktivitäten importiert werden, und wenn ja, ab wann?
+4. Funktioniert der Garmin-Zugriff aus einem Pod im Talos-Cluster? (Garmin blockiert laut
+   Forenberichten manche Server-IPs.)
+5. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Container-Image für
+   den CronJob, Merge von `dev` nach `main`. Muss vor der ersten Release-Version stehen.
 
 ## 6. Lokale Werkzeuge (Windows, keine Dienste/Autostarts)
 

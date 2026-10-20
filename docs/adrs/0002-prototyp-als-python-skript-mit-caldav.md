@@ -34,5 +34,6 @@ Nextcloud-App entschieden (PHP-App oder ExApp in Python über AppAPI).
 - Positiv: Der Code lässt sich später in einer ExApp weiterverwenden.
 - Negativ: Ohne Nextcloud-App gibt es keine Oberfläche in Nextcloud. Konfiguriert wird über
   Dateien.
-- Negativ: Der regelmäßige Lauf braucht einen Cron-Job auf dem Server. Auf dem Windows-Rechner
-  soll bewusst kein Dienst und kein Autostart laufen.
+- Negativ: Der regelmäßige Lauf braucht einen Kubernetes-CronJob im Talos-Cluster, auf dem auch
+  Nextcloud läuft. Dafür ist ein Container-Image nötig. Auf dem Windows-Rechner soll bewusst
+  kein Dienst und kein Autostart laufen.
