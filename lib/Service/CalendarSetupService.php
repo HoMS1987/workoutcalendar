@@ -53,6 +53,10 @@ final class CalendarSetupService
             throw new \InvalidArgumentException('Zuerst bei Garmin anmelden');
         }
 
+        if ($setup->step === SetupStep::Done && $setup->maintenance !== null) {
+            throw new \InvalidArgumentException('Kalenderwechsel läuft noch');
+        }
+
         $existing = null;
         if ($calendarId !== null) {
             $existing = $this->ownCalendar($uid, $calendarId);
