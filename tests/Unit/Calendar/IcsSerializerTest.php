@@ -93,4 +93,22 @@ final class IcsSerializerTest extends TestCase
     {
         self::assertStringNotContainsString("\r\n ", self::serialize(self::event()));
     }
+
+    public function testAccountKeyIsWritten(): void
+    {
+        $ics = (new IcsSerializer())->serialize(self::event(), new \DateTimeImmutable('2026-10-20 08:00:00', new \DateTimeZone('UTC')), '0123456789abcdef');
+
+        self::assertStringContainsString(
+            'X-GARMIN-FINGERPRINT:' . self::event()->fingerprint() . "
+X-GARMIN-ACCOUNT:0123456789abcdef
+END:VEVENT
+",
+            $ics,
+        );
+    }
+
+    public function testNoAccountKeyNoLine(): void
+    {
+        self::assertStringNotContainsString('X-GARMIN-ACCOUNT', self::serialize(self::event()));
+    }
 }
