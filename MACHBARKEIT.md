@@ -348,6 +348,9 @@ Nebenbefunde:
    Mobile-Login und Datenabruf funktionieren aus dem Nextcloud-Pod (siehe 4.).
 3. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Signierung und Upload
    in den App Store, Merge von `dev` nach `main`. Muss vor der ersten Release-Version stehen.
+   Bis dahin ist `dev` der Standard-Branch auf GitHub, damit Renovate seine Konfiguration dort
+   findet und PRs gegen `dev` stellt. Vor dem ersten Release wieder auf `main` umstellen und in
+   `renovate.json` `baseBranches: ["dev"]` setzen.
 
 ## 6. Lokale Werkzeuge (Windows, keine Dienste/Autostarts)
 
