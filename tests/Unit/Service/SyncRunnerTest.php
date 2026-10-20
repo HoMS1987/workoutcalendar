@@ -90,6 +90,36 @@ final class SyncRunnerTest extends TestCase
         self::assertSame([], $this->notificationCalls);
     }
 
+    public function testRunWaitsWhileRemovalIsRunning(): void
+    {
+        $this->connect();
+        $setup = $this->users->setup(self::UID);
+        $this->users->saveSetup(self::UID, new SetupState($setup->step, true, self::ACCOUNT, $setup->maskedEmail, $this->calendarId, true, 'remove'));
+        $this->queued($this->users->state(self::UID));
+        $writes = $this->objects->writes;
+
+        self::assertSame(RunOutcome::Skipped, $this->runner()->run(self::UID, $this->now));
+
+        self::assertSame([], $this->http->requests);
+        self::assertSame($writes, $this->objects->writes);
+        $nextRunAt = $this->users->state(self::UID)->nextRunAt;
+        self::assertNotNull($nextRunAt);
+        self::assertGreaterThanOrEqual($this->now->getTimestamp() + 24 * 60, $nextRunAt);
+        self::assertLessThanOrEqual($this->now->getTimestamp() + 36 * 60, $nextRunAt);
+    }
+
+    public function testRunContinuesDuringMove(): void
+    {
+        $this->connect();
+        $setup = $this->users->setup(self::UID);
+        $this->users->saveSetup(self::UID, new SetupState($setup->step, true, self::ACCOUNT, $setup->maskedEmail, $this->calendarId, true, 'move'));
+        $this->http->queue(FakeHttpClient::json(200, []), FakeHttpClient::json(200, []));
+
+        self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now));
+
+        self::assertNotSame([], $this->http->requests);
+    }
+
     public function testLockedRunIsSkipped(): void
     {
         $this->connect();
