@@ -18,6 +18,11 @@ nutzt dieselben inoffiziellen Schnittstellen wie die Garmin-Connect-App. Garmin 
 ändern oder sperren, im ungünstigen Fall auch das Konto einschränken. Das Projekt steht in keiner
 Verbindung zu Garmin.
 
+## Lizenz
+
+[AGPL-3.0-or-later](LICENSE). Die Software wird ohne Gewährleistung bereitgestellt, siehe
+Abschnitte 15 und 16 der Lizenz.
+
 ## Voraussetzungen
 
 - Nextcloud 33 bis 35 mit aktivierter Kalender-App
