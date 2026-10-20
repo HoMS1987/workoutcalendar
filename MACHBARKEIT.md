@@ -20,6 +20,7 @@ unproblematisch. Der Engpass ist der Datenzugriff auf Garmin Connect:
 | Garmin-Daten über inoffizielle Bibliotheken | ⚠️ Funktioniert, aber fragil (Garmin blockiert aktiv) |
 | Garmin-Daten über den Umweg Strava | ⚠️ Möglich, kostet aber eventuell Geld und hängt von Stravas API-Regeln ab |
 | Garmin-Daten über manuellen Export | ✅ Stabil, aber nicht automatisch |
+| Verteilung über den Nextcloud App Store | ⚠️ Realistisch als ExApp (Python), als PHP-App am Garmin-Login fraglich (siehe 2.3) |
 
 ## 1. Datenquelle Garmin Connect
 
@@ -128,9 +129,68 @@ Zwei Wege, Termine einzutragen:
   laufen über den System-Cron des Nextcloud-Servers.
 - Problem: Der Garmin-Zugriff müsste dann **aus PHP** und **vom Nextcloud-Server** erfolgen.
   Beide Punkte verschärfen das TLS-Fingerprinting- und IP-Block-Problem (siehe 1.2).
-- Variante **ExApp (AppAPI)**: Nextcloud-Apps in Python, die in einem Docker-Container neben
-  Nextcloud laufen. Damit wäre `python-garminconnect` nutzbar. Voraussetzung ist Docker plus
-  AppAPI auf dem Nextcloud-Server. *(Aufwand und Eignung noch nicht im Detail geprüft.)*
+- Variante **ExApp (AppAPI)**: siehe 2.3.
+
+### 2.3 Verteilung über den Nextcloud App Store
+
+Ziel des Nutzers: Die App soll über den integrierten App Store installierbar sein.
+
+**Klassische PHP-App:**
+- Sie lässt sich in jeder Nextcloud installieren und erreicht damit die meisten Nutzer.
+- Kernproblem ist der Garmin-Login. Die Analyse von `garminconnect` 0.3.19 zeigt:
+  - Login-Strategien in dieser Reihenfolge: `mobile+cffi`, `mobile+requests`, `widget+cffi`,
+    `portal+cffi`, `portal+requests`. „cffi“ bedeutet, dass sich der Client per `curl_cffi` als
+    Browser ausgibt (TLS-Impersonation).
+  - Im Test am 2026-10-20 bekamen beide Mobile-Strategien HTTP 429. Erfolgreich war danach
+    **`widget+cffi`**, also eine Strategie mit Browser-Impersonation. Abgeleitet aus der Ausgabe:
+    Nur die fehlgeschlagenen Strategien werden gemeldet, `widget+cffi` ist die nächste in der
+    Kette.
+  - Auch der Token-Refresh nutzt `curl_cffi`, sofern vorhanden.
+  - Die eigentlichen Datenabrufe (`connectapi`) laufen dagegen über normales `requests`, ohne
+    Impersonation.
+- PHP nutzt die libcurl des Systems bzw. Containers und kann keinen Browser-TLS-Fingerprint
+  nachahmen. Dafür bräuchte es eine Sonderbuild wie curl-impersonate, die man in fremden
+  Nextcloud-Installationen nicht voraussetzen kann. **Vermutung, nicht getestet:** Login und
+  Token-Refresh scheitern aus PHP daher häufig. Datenabrufe würden wahrscheinlich funktionieren.
+
+**ExApp (Python, über AppAPI):**
+- ExApps werden laut Nextcloud-Doku genauso im App Store veröffentlicht wie normale Apps.
+  Zusätzlich braucht es ExApp-Felder in `info.xml` und ein Container-Image in einer Registry,
+  z. B. `ghcr.io`.
+- Sie können `python-garminconnect` inklusive `curl_cffi` nutzen. Das ist der Weg, der im Test
+  funktioniert hat.
+- Voraussetzung auf dem Server: die App **AppAPI** plus ein **Deploy-Daemon**. Empfohlen ist
+  **HaRP**, der Docker Socket Proxy gilt als Legacy und soll mit Nextcloud 35 entfallen.
+- **HaRP hat ein Kubernetes-Backend** (`HP_K8S_ENABLED=true`). HaRP legt die ExApps dann selbst
+  als `Deployment` mit PVC in einem eigenen Namespace an, Standard ist `nextcloud-exapps`. Laut
+  HaRP-README braucht es dafür nur eine namespaced `Role`. Das passt zum Talos-Cluster.
+  *(Nicht getestet. Ob das Nextcloud-Helm-Chart HaRP mitbringt, ist nicht geprüft. Vermutlich
+  muss HaRP separat deployt werden.)*
+- Nachteil: Viele Nextcloud-Installationen haben AppAPI und Deploy-Daemon nicht eingerichtet.
+  Für sie ist die App nicht ohne Zusatzaufwand nutzbar.
+
+**Programmiersprache:**
+- Klassische Nextcloud-Apps: Backend in **PHP**, es läuft im Nextcloud-Prozess. Frontend in
+  **JavaScript/TypeScript mit Vue.js**. Eine andere Sprache ist hier nicht möglich.
+- ExApps: Sie laufen in einem eigenen Container und sprechen per HTTP mit Nextcloud. Damit ist
+  **jede Sprache möglich**. Das offizielle SDK gibt es aber nur für Python (`nc_py_api`), in
+  anderen Sprachen müsste das AppAPI-Protokoll selbst umgesetzt werden.
+- Ausschlaggebend ist der Garmin-Login. Gebraucht wird eine gepflegte Garmin-Bibliothek plus
+  Browser-TLS-Impersonation. Für Python gibt es beides (`python-garminconnect`, `curl_cffi`). In
+  anderen Sprachen müssten die Login-Strategien selbst nachgebaut und bei jeder Garmin-Änderung
+  selbst nachgezogen werden. Für Go gibt es TLS-Impersonation-Bibliotheken (z. B. uTLS). Für
+  .NET ist mir keine ausgereifte bekannt. *(Nicht im Detail recherchiert.)*
+
+**App Store allgemein:** Apps werden mit einem Zertifikat signiert, das der App Store ausstellt.
+Die App-ID wird mit einer Signatur registriert, `info.xml` wird beim Upload validiert.
+Lizenzvorgaben habe ich nicht geprüft.
+
+**Risiko bei öffentlicher Verteilung:** Eine öffentlich angebotene App, die inoffizielle
+Garmin-Schnittstellen nutzt und sich als Browser ausgibt, ist sichtbarer als ein privates Skript.
+Ob Garmin dagegen vorgeht, ist nicht abschätzbar. *(Spekulation.)*
+
+**Bewertung:** Über den App Store umsetzbar ist die App realistisch **als ExApp**. Eine reine
+PHP-App bleibt am Garmin-Login hängen, solange es keine offizielle API gibt.
 
 ## 3. Empfohlene Architektur
 
@@ -195,18 +255,29 @@ Server-IPs blockiert.
 - Bis zur ersten Release-Version wird direkt auf `dev` gearbeitet, ohne Feature-Branches.
 - Der Test vom Cluster aus folgt später vom Hauptrechner des Nutzers, der Zugriff auf den
   Cluster hat.
+
+**Geklärt (2026-10-20, Anforderungen laut Nutzer):**
+- **Motivation:** Garmin synchronisiert Aktivitäten derzeit automatisch in den Kalender des
+  Microsoft-Kontos. Outlook auf dem Hauptrechner gleicht diesen per CalDAV-Plugin mit Nextcloud
+  ab. Ziel ist, von diesem Weg über Garmin und Outlook unabhängig zu werden.
+- **Ziel:** Installation über den Nextcloud App Store (siehe 2.3).
+- **Termin-Inhalt:** Titel z. B. „🏃 Laufen – 7,6 km“. Die Beschreibung enthält Dauer, Distanz,
+  Pace bzw. Geschwindigkeit, Puls, Höhenmeter und einen Link zur Aktivität in Garmin Connect.
+- **Historie:** Der Startzeitpunkt für den Import ist einstellbar, inklusive der Option „komplette
+  Historie“.
+- Nextcloud ist von diesem Windows-Rechner aus erreichbar, CalDAV-Tests sind also lokal möglich.
 - Ein Strava-Konto ist vorhanden. **Der Strava-Fallback wird nur genutzt, wenn die API
   kostenlos ist.** Das ist noch offiziell zu prüfen.
 
 **Offen:**
 1. Welche Nextcloud-Version?
-2. Welche Felder sollen im Termin stehen? (Titel-Schema, Distanz, Pace, Puls, Höhenmeter, Link zu
-   Garmin Connect)
-3. Sollen auch historische Aktivitäten importiert werden, und wenn ja, ab wann?
-4. Funktioniert der Garmin-Zugriff aus einem Pod im Talos-Cluster? (Garmin blockiert laut
+2. Entscheidung PHP-App oder ExApp (siehe 2.3).
+3. Funktioniert der Garmin-Zugriff aus einem Pod im Talos-Cluster? (Garmin blockiert laut
    Forenberichten manche Server-IPs.)
-5. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Container-Image für
-   den CronJob, Merge von `dev` nach `main`. Muss vor der ersten Release-Version stehen.
+4. Release-Prozess: Versionierung, Release-Workflow (z. B. GitHub Actions), Container-Image,
+   Signierung und Upload in den App Store, Merge von `dev` nach `main`. Muss vor der ersten
+   Release-Version stehen.
+5. Bei einer ExApp: HaRP mit Kubernetes-Backend im Talos-Cluster einrichten.
 
 ## 6. Lokale Werkzeuge (Windows, keine Dienste/Autostarts)
 
