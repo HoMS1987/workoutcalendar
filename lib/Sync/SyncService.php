@@ -67,6 +67,31 @@ final class SyncService
         return $result;
     }
 
+    /**
+     * Ändert den Historien-Zeitraum nachträglich. Ein längerer Zeitraum setzt den Import fort,
+     * ein gleicher oder kürzerer ändert nichts und löscht keine Termine. `null` bedeutet die komplette Historie.
+     */
+    public function changeHistory(SyncState $state, ?int $historyDays, \DateTimeImmutable $now): void
+    {
+        if (!$state->initialized) {
+            return;
+        }
+
+        $newUntil = $historyDays === null
+            ? null
+            : $now->setTimezone(new \DateTimeZone('UTC'))->modify("-{$historyDays} days")->format('Y-m-d');
+        $isLonger = $state->backfillUntil !== null && ($newUntil === null || $newUntil < $state->backfillUntil);
+        if (!$isLonger) {
+            return;
+        }
+
+        $state->backfillUntil = $newUntil;
+        $state->backfillDone = $newUntil !== null && $state->backfillBefore !== null && $newUntil >= $state->backfillBefore;
+        if (!$state->backfillDone) {
+            $state->nextRunAt = $now->getTimestamp() + SyncSettings::BACKFILL_NEXT_RUN_SECONDS;
+        }
+    }
+
     private function initialize(SyncState $state, SyncSettings $settings, \DateTimeImmutable $now, \DateTimeImmutable $checkFrom): void
     {
         $state->initialized = true;
