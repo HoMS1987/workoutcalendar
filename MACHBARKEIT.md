@@ -159,7 +159,29 @@ Dann entweder:
 
 **Fallback:** Garmin → Strava → Strava-API, mit derselben CalDAV-Schreiblogik.
 
-## 4. Entscheidungen und offene Fragen
+## 4. Testergebnisse
+
+### 2026-10-20: Garmin-Login vom Windows-Rechner (privater Anschluss)
+
+`test_garmin.py` mit `garminconnect` 0.3.19:
+
+- **Erster Login mit Zugangsdaten: erfolgreich**, aber erst über eine Ausweich-Strategie. Die
+  beiden Mobile-Strategien (`mobile+cffi`, `mobile+requests`) bekamen HTTP 429. Laut Meldung der
+  Bibliothek kann das an einem Rate-Limit oder am Client-Fingerprint liegen, nicht nur an der IP.
+  Welche Strategie am Ende erfolgreich war, zeigt die Ausgabe nicht.
+- **Abruf der Aktivitäten: erfolgreich.** Startzeit (lokal), Typ (`typeKey`), Dauer, Distanz,
+  Name und ID sind vorhanden.
+- **Zweiter Lauf mit gespeichertem Token: erfolgreich, ohne erneuten Login** und ohne 429.
+  Für den regelmäßigen Sync heißt das: Der fehleranfällige Login ist nur selten nötig.
+- Nebenbefund: Umlaute in Aktivitätsnamen erscheinen in der Konsolenausgabe kaputt. Ursache ist
+  das Ausgabe-Encoding von Python unter Windows (cp1252), nicht Garmin. Die Daten selbst sind
+  korrekt. Entscheidung: `test_garmin.py` bleibt unverändert, weil es ein Wegwerf-Skript ist.
+  Der eigentliche Sync-Code legt das Encoding von Anfang an fest und bekommt dafür einen Test.
+
+**Noch offen:** derselbe Test vom Nextcloud-Server aus, weil Garmin laut Forenberichten manche
+Server-IPs blockiert.
+
+## 5. Entscheidungen und offene Fragen
 
 **Geklärt (2026-10-20, Angaben des Nutzers im Chat):**
 - Nextcloud läuft auf einem **eigenen Server**. Cron und eigene Apps sind also möglich.
@@ -175,7 +197,7 @@ Dann entweder:
    Garmin Connect)
 3. Sollen auch historische Aktivitäten importiert werden, und wenn ja, ab wann?
 
-## 5. Lokale Werkzeuge (Windows, keine Dienste/Autostarts)
+## 6. Lokale Werkzeuge (Windows, keine Dienste/Autostarts)
 
 | Tool | Wofür | Status |
 |---|---|---|
