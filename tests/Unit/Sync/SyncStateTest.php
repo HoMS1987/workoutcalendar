@@ -38,6 +38,20 @@ final class SyncStateTest extends TestCase
         self::assertEquals($state, SyncState::fromArray(json_decode(json_encode($state->toArray()), true)));
     }
 
+    public function testStateRoundTripKeepsNewFields(): void
+    {
+        $state = new SyncState();
+        $state->pausedFor = 'INVALID_CREDENTIALS';
+        $state->oldestActivityDate = '2026-09-15';
+        $state->notifiedCategory = 'MFA_REQUIRED';
+
+        $copy = SyncState::fromArray(json_decode(json_encode($state->toArray()), true));
+
+        self::assertSame('INVALID_CREDENTIALS', $copy->pausedFor);
+        self::assertSame('2026-09-15', $copy->oldestActivityDate);
+        self::assertSame('MFA_REQUIRED', $copy->notifiedCategory);
+    }
+
     public function testIgnoresUnknownAndInvalidValues(): void
     {
         $state = SyncState::fromArray(['initialized' => 'ja', 'failureCount' => 'viele', 'unbekannt' => 1]);

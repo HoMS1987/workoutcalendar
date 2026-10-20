@@ -12,6 +12,9 @@ final class SyncSettings
     /** Seiten Historien-Import pro Lauf, damit ein großer Import den Nextcloud-Cron nicht blockiert (F-22). */
     public const BACKFILL_PAGES_PER_RUN = 5;
 
+    /** Wartezeit bis zum nächsten Lauf, solange der Historien-Import noch nicht fertig ist. */
+    public const BACKFILL_NEXT_RUN_SECONDS = 60;
+
     /**
      * @param ?int $historyDays null = komplette Historie
      */

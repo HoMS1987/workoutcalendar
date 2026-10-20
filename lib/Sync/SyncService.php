@@ -51,6 +51,9 @@ final class SyncService
             $this->syncRecent($settings, $state, $now, $checkFrom, $result);
             $state->lastSuccessAt = $now->getTimestamp();
             $this->continueBackfill($state, $result);
+            if (!$state->backfillDone) {
+                $state->nextRunAt = $now->getTimestamp() + SyncSettings::BACKFILL_NEXT_RUN_SECONDS;
+            }
             $this->failureLog->recordSuccess($state, $now->getTimestamp());
         } catch (GarminException $e) {
             $this->fail($state, $result, $e, $now);
@@ -94,7 +97,7 @@ final class SyncService
             }
         }
 
-        $seen = $this->upsert($activities, $result);
+        $seen = $this->upsert($activities, $state, $result);
         if ($settings->deletionMode !== DeletionMode::Keep) {
             $this->handleDeleted($settings->deletionMode, $this->calendar->inRange($checkFrom, $now), $seen, $result);
         }
@@ -125,7 +128,7 @@ final class SyncService
         while (!$state->backfillDone && $result->backfillPages < SyncSettings::BACKFILL_PAGES_PER_RUN) {
             $page = $this->garmin->activities(0, SyncSettings::PAGE_SIZE, $state->backfillUntil, $state->backfillBefore);
             $result->backfillPages++;
-            $this->upsert($page, $result);
+            $this->upsert($page, $state, $result);
 
             if (count($page) < SyncSettings::PAGE_SIZE) {
                 $state->backfillDone = true;
@@ -149,7 +152,7 @@ final class SyncService
      * @param list<array<string, mixed>> $activities
      * @return array<string, true> Activity-IDs der abgebildeten Aktivitäten
      */
-    private function upsert(array $activities, SyncResult $result): array
+    private function upsert(array $activities, SyncState $state, SyncResult $result): array
     {
         /** @var array<string, CalendarEvent> $events */
         $events = [];
@@ -157,6 +160,10 @@ final class SyncService
             try {
                 $event = $this->mapper->map($activity);
                 $events[$event->activityId] = $event;
+                $date = self::localDate($activity);
+                if ($date !== null && ($state->oldestActivityDate === null || $date < $state->oldestActivityDate)) {
+                    $state->oldestActivityDate = $date;
+                }
             } catch (\InvalidArgumentException $e) {
                 $result->skipped++;
                 $this->logger->debug('Garmin-Aktivität übersprungen', ['reason' => $e->getMessage()]);
@@ -183,6 +190,10 @@ final class SyncService
     private function fail(SyncState $state, SyncResult $result, GarminException $e, \DateTimeImmutable $now): void
     {
         $result->failure = $e->category;
+        if ($e->category === FailureCategory::InvalidCredentials || $e->category === FailureCategory::MfaRequired) {
+            // Kein weiterer Login-Versuch, bis neue Zugangsdaten vorliegen (SyncRunner prüft das).
+            $state->pausedFor = $e->category->value;
+        }
         $this->failureLog->recordFailure($state, $e, $now->getTimestamp());
     }
 
