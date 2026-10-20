@@ -11,6 +11,7 @@ use OCA\WorkoutCalendar\Calendar\IcsReader;
 use OCA\WorkoutCalendar\Calendar\IcsSerializer;
 use OCA\WorkoutCalendar\Sync\StoredEvent;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use PHPUnit\Framework\TestCase;
 
 final class DavCalendarTargetTest extends TestCase
@@ -26,7 +27,7 @@ final class DavCalendarTargetTest extends TestCase
         $this->calendarId = $this->objects->addCalendar('anna', 'sport', 'Sport');
     }
 
-    private function target(string $accountKey = self::ACCOUNT): DavCalendarTarget
+    private function target(string $accountKey = self::ACCOUNT, ?MemoryLogger $logger = null): DavCalendarTarget
     {
         return new DavCalendarTarget(
             $this->objects,
@@ -36,6 +37,7 @@ final class DavCalendarTargetTest extends TestCase
             new IcsReader(),
             new DeletedMarker(),
             static fn (): \DateTimeImmutable => new \DateTimeImmutable('2026-10-20 08:00:00', new \DateTimeZone('UTC')),
+            $logger ?? new MemoryLogger(),
         );
     }
 
@@ -150,5 +152,38 @@ final class DavCalendarTargetTest extends TestCase
         $this->target()->markDeleted('42');
 
         self::assertSame([], $this->objects->writes);
+    }
+
+    public function testForeignObjectUnderAppUriIsNeverOverwritten(): void
+    {
+        $foreign = self::foreignIcs('zahnarzt', '20261011T080000Z');
+        $this->objects->put($this->calendarId, 'garmin-42.ics', $foreign);
+        $logger = new MemoryLogger();
+        $target = $this->target(self::ACCOUNT, $logger);
+
+        self::assertSame([], $target->find(['42']));
+
+        $target->create(self::event('42'));
+        $target->update(self::event('42'));
+        $target->markDeleted('42');
+        $target->delete('42');
+
+        self::assertSame($foreign, $this->objects->objects[$this->calendarId]['garmin-42.ics']);
+        self::assertSame([], $this->objects->writes);
+        self::assertCount(4, $logger->byLevel('debug'));
+        self::assertStringContainsString('42', $logger->dump());
+    }
+
+    public function testInRangeIgnoresForeignUidUnderAppUri(): void
+    {
+        // Fremde UID, aber Konto-Kennung und URI der App
+        $ics = str_replace(
+            'UID:garmin-42',
+            'UID:etwas-anderes',
+            (new IcsSerializer())->serialize(self::event('42', '2026-10-10 06:00:00'), self::utc('2026-10-10'), self::ACCOUNT),
+        );
+        $this->objects->put($this->calendarId, 'garmin-42.ics', $ics);
+
+        self::assertSame([], $this->target()->inRange(self::utc('2026-10-01'), self::utc('2026-10-20')));
     }
 }

@@ -38,6 +38,10 @@ interface CalendarObjects
 
     public function update(int $calendarId, string $uri, string $ics): void;
 
-    /** Verschiebt das Objekt in den Papierkorb, fehlende Objekte werden ignoriert. */
+    /**
+     * Verschiebt das Objekt in den Papierkorb, fehlende Objekte werden ignoriert. Endgültig gelöscht
+     * wird, wenn der Papierkorb abgeschaltet ist (Aufbewahrung 0) oder schon eine Fassung desselben
+     * Objekts enthält.
+     */
     public function delete(int $calendarId, string $uri): void;
 }

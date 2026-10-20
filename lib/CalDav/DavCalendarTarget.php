@@ -11,8 +11,13 @@ use OCA\WorkoutCalendar\Calendar\IcsReader;
 use OCA\WorkoutCalendar\Calendar\IcsSerializer;
 use OCA\WorkoutCalendar\Sync\CalendarTarget;
 use OCA\WorkoutCalendar\Sync\StoredEvent;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
-/** Zielkalender einer Person über `CalendarObjects`. Termine liegen unter `garmin-<activityId>.ics`. */
+/**
+ * Zielkalender einer Person über `CalendarObjects`. Termine liegen unter `garmin-<activityId>.ics`.
+ * Liegt unter dieser URI ein fremdes Objekt (andere UID), gilt sie als belegt und wird nie angefasst.
+ */
 final class DavCalendarTarget implements CalendarTarget
 {
     /** @param \Closure(): \DateTimeImmutable $now */
@@ -24,6 +29,7 @@ final class DavCalendarTarget implements CalendarTarget
         private readonly IcsReader $reader,
         private readonly DeletedMarker $marker,
         private readonly \Closure $now,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -36,6 +42,9 @@ final class DavCalendarTarget implements CalendarTarget
 
         $stored = [];
         foreach ($this->objects->get($this->calendarId, array_keys($uris)) as $uri => $ics) {
+            if (!AppObjects::isAppObject((string)$uri, $ics)) {
+                continue;
+            }
             $activityId = $uris[$uri];
             $stored[$activityId] = $this->stored($activityId, $ics);
         }
@@ -58,7 +67,9 @@ final class DavCalendarTarget implements CalendarTarget
         $stored = [];
         foreach ($this->objects->get($this->calendarId, $uris) as $uri => $ics) {
             $start = self::start($ics);
-            if ($this->reader->accountKey($ics) !== $this->accountKey || $start === null || $start < $from || $start > $to) {
+            if (!AppObjects::isAppObject((string)$uri, $ics)
+                || $this->reader->accountKey($ics) !== $this->accountKey
+                || $start === null || $start < $from || $start > $to) {
                 continue;
             }
             $activityId = (string)AppObjects::activityId((string)$uri);
@@ -70,18 +81,31 @@ final class DavCalendarTarget implements CalendarTarget
 
     public function create(CalendarEvent $event): void
     {
-        $this->objects->create($this->calendarId, AppObjects::uri($event->activityId), $this->ics($event));
+        $uri = AppObjects::uri($event->activityId);
+        $current = $this->current($uri);
+        if ($current !== null && !AppObjects::isAppObject($uri, $current)) {
+            $this->skip('create', $event->activityId);
+
+            return;
+        }
+
+        $this->objects->create($this->calendarId, $uri, $this->ics($event));
     }
 
     public function update(CalendarEvent $event): void
     {
-        $this->objects->update($this->calendarId, AppObjects::uri($event->activityId), $this->ics($event));
+        $uri = AppObjects::uri($event->activityId);
+        if ($this->appObject($uri, 'update', $event->activityId) === null) {
+            return;
+        }
+
+        $this->objects->update($this->calendarId, $uri, $this->ics($event));
     }
 
     public function markDeleted(string $activityId): void
     {
         $uri = AppObjects::uri($activityId);
-        $ics = $this->objects->get($this->calendarId, [$uri])[$uri] ?? null;
+        $ics = $this->appObject($uri, 'markDeleted', $activityId);
         if ($ics === null) {
             return;
         }
@@ -91,7 +115,42 @@ final class DavCalendarTarget implements CalendarTarget
 
     public function delete(string $activityId): void
     {
-        $this->objects->delete($this->calendarId, AppObjects::uri($activityId));
+        $uri = AppObjects::uri($activityId);
+        if ($this->appObject($uri, 'delete', $activityId) === null) {
+            return;
+        }
+
+        $this->objects->delete($this->calendarId, $uri);
+    }
+
+    private function current(string $uri): ?string
+    {
+        return $this->objects->get($this->calendarId, [$uri])[$uri] ?? null;
+    }
+
+    /** ICS des Objekts der App unter der URI, sonst null (fehlt oder fremdes Objekt, dann mit Debug-Log). */
+    private function appObject(string $uri, string $operation, string $activityId): ?string
+    {
+        $ics = $this->current($uri);
+        if ($ics === null) {
+            return null;
+        }
+        if (!AppObjects::isAppObject($uri, $ics)) {
+            $this->skip($operation, $activityId);
+
+            return null;
+        }
+
+        return $ics;
+    }
+
+    private function skip(string $operation, string $activityId): void
+    {
+        $this->logger->debug('Calendar object of activity {activityId} belongs to someone else, {operation} skipped', [
+            'app' => 'workoutcalendar',
+            'activityId' => $activityId,
+            'operation' => $operation,
+        ]);
     }
 
     private function ics(CalendarEvent $event): string
