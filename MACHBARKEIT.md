@@ -67,6 +67,14 @@ undokumentierten REST-Endpunkte, die auch App und Website verwenden.
   praktisch eher gering, aber vorhanden.
 - 2FA/MFA am Garmin-Konto erschwert unbeaufsichtigte Logins. Die Bibliothek unterstützt MFA,
   ein erneuter Login braucht dann aber Interaktion.
+  - Garmin bietet eine optionale „Two-Step Verification“ an (Code per E-Mail oder SMS, laut einer
+    Drittanleitung keine Authenticator-App). Laut Berichten im Garmin-Forum wird sie mit der
+    EKG-Funktion mancher Uhren verpflichtend und lässt sich dann nicht abschalten. Eine offizielle
+    Garmin-Seite dazu lag bei der Recherche (2026-10-20) nicht vor. *(Quellen: Forum, Drittanbieter.)*
+  - Folge für die App: Wird später EKG aktiviert, scheitert der automatische Login mit
+    `MFA_REQUIRED`. Denkbar wäre, den Code einmalig in den Einstellungen einzugeben und danach nur
+    noch per Refresh-Token zu arbeiten. *(Vermutung: dass der Refresh ohne zweiten Faktor
+    funktioniert, ist nicht geprüft.)*
 - Klartext-Zugangsdaten bzw. Tokens müssen auf dem Rechner liegen, auf dem der Sync läuft.
 
 ➡️ **Technisch der einzige Weg zur echten Automatisierung direkt aus Garmin, aber

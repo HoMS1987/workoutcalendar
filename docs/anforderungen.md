@@ -73,6 +73,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | F-40 | Sperrt oder ändert Garmin den Zugriff, zeigt das Log, welcher Schritt mit welcher Fehlerkategorie gescheitert ist (ADR 0004). | Muss |
 | F-41 | Das Log zeigt, welche Login-Strategie erfolgreich war, sodass ein Ausfall des Hauptwegs auffällt. | Muss |
 | F-42 | Die Einstellungen zeigen den letzten Sync-Zeitpunkt und den letzten Fehler in verständlicher Form. | Soll |
+| F-43 | Ein anhaltender Fehler füllt das Log nicht: ausführlich geloggt wird nur ein neuer Fehler oder ein Wechsel von Kategorie bzw. Schritt, solange er anhält höchstens einmal täglich eine Erinnerung mit der Zahl der Fehlschläge, nach Behebung ein Eintrag „wieder erfolgreich nach X Fehlschlägen“. | Muss |
 
 ## Standardwerte
 
@@ -118,5 +119,6 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 | O-04 | Nur ein Garmin-Konto für die eigene Nutzung, oder jede Person der Instanz mit eigenem Konto? | geklärt: mehrere Personen (F-05) |
 | O-05 | Sprache der Oberfläche und Termine: nur Deutsch oder übersetzbar (App Store)? | geklärt: übersetzbar (NF-07) |
 | O-08 | Die Standardwerte der Einstellungen sind ein Vorschlag. Passen sie so? | Vorschlag |
+| O-09 | Garmin-Konten mit Two-Step Verification später unterstützen (z. B. Code einmalig in den Einstellungen eingeben)? Relevant, sobald EKG an einer Uhr aktiviert wird. | offen |
 | O-06 | Welche Nextcloud-Version läuft auf der Instanz? | offen |
 | O-07 | Funktioniert der Garmin-Login aus dem Nextcloud-Container im Cluster? | Test steht aus |
