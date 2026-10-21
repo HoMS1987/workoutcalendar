@@ -12,6 +12,21 @@ export type Hint = 'paused'
 	| 'maintenanceFailedRemove'
 	| 'backfill'
 
+export type Severity = 'error' | 'warning' | 'info'
+
+// Errors are red, running or abandoned maintenance and a missing calendar are yellow, progress is blue.
+export function hintSeverity(hint: Hint): Severity {
+	switch (hint) {
+		case 'failure':
+		case 'paused':
+			return 'error'
+		case 'backfill':
+			return 'info'
+		default:
+			return 'warning'
+	}
+}
+
 export interface ViewState {
 	view: View
 	hints: Hint[]
