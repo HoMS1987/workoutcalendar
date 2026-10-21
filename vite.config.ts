@@ -7,6 +7,8 @@ export default createAppConfig(
 	},
 	{
 		createEmptyCSSEntryPoints: true,
+		// The default only clears js/, so CSS chunks with an old hash would pile up in css/.
+		emptyOutputDirectory: { additionalDirectories: ['css'] },
 		extractLicenseInformation: {},
 	},
 )
