@@ -43,7 +43,7 @@ final class StatusService
                 'lastRunAt' => $state->lastRunAt,
                 'lastSuccessAt' => $state->lastSuccessAt,
                 'nextRunAt' => $state->nextRunAt,
-                'eventCount' => $calendar === null ? 0 : $this->calendars->countAppEvents($calendar->id),
+                'eventCount' => $calendar === null ? 0 : $this->calendars->countAppEventsByUri($calendar->id),
                 'oldestActivityDate' => $state->oldestActivityDate,
                 'backfill' => [
                     'running' => $state->initialized && !$state->backfillDone,

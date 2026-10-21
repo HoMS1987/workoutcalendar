@@ -64,6 +64,18 @@ final class CalendarService
     }
 
     /**
+     * Zählt nur nach der URI-Form `garmin-<activityId>.ics`, ohne ICS zu lesen. Für die Anzeige;
+     * ändernde Vorgänge prüfen zusätzlich die UID.
+     */
+    public function countAppEventsByUri(int $calendarId): int
+    {
+        return count(array_filter(
+            $this->objects->uris($calendarId),
+            static fn (string $uri): bool => AppObjects::activityId($uri) !== null,
+        ));
+    }
+
+    /**
      * Verschiebt höchstens `limit` Termine der App. Gibt es die URI im Ziel schon, wird nur die
      * Quelle gelöscht.
      *

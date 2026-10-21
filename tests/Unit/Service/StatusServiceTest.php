@@ -145,6 +145,16 @@ final class StatusServiceTest extends TestCase
         ], $this->service()->status(self::UID));
     }
 
+    public function testEventCountReadsNoIcs(): void
+    {
+        $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
+        $this->objects->put($calendarId, 'garmin-1.ics', sprintf(self::ICS, '1'));
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true));
+
+        self::assertSame(1, $this->service()->status(self::UID)['sync']['eventCount']);
+        self::assertSame(0, $this->objects->getCalls);
+    }
+
     public function testFreshPersonHasNoCalendarAndNoFailure(): void
     {
         $status = $this->service()->status(self::UID);
