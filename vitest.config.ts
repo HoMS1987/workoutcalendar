@@ -6,5 +6,7 @@ export default defineConfig({
 	test: {
 		environment: 'happy-dom',
 		include: ['tests/js/**/*.test.ts'],
+		// @nextcloud/vue imports CSS files from its dist, which Node cannot load unprocessed.
+		server: { deps: { inline: [/@nextcloud\/vue/] } },
 	},
 })
