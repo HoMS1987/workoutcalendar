@@ -305,6 +305,31 @@ Nebenbefunde:
   `kubectl exec` und `kubectl cp`. Befehle mit Pfaden im Pod deshalb mit `MSYS_NO_PATHCONV=1`
   ausführen oder aus PowerShell starten.
 
+### 2026-10-21: Test von Hand mit der fertigen App auf der eigenen Instanz
+
+App-Version 0.1.2, von Hand in `custom_apps/workoutcalendar` des Nextcloud-Pods installiert
+(Nextcloud 35.0.2, PHP 8.5, System-Cron alle 5 Minuten). Anmeldung mit dem echten Garmin-Konto über
+die Einstellungsseite.
+
+| Schritt | Ergebnis |
+|---|---|
+| App aktivieren, `SyncJob` registriert | ✅ |
+| Auslieferung von `.mjs`, CSS und Icon über Nginx | ✅ HTTP 200, `text/javascript` für `.mjs` |
+| Assistent: Anmeldung, neuer Kalender „Garmin-Aktivitäten“, 90 Tage | ✅ 45 Termine (24.07. bis 20.10.2026), Titel, Beschreibung und Umlaute korrekt |
+| „Jetzt synchronisieren“ | ✅ keine doppelten Termine |
+| Umstellen auf die ganze Historie | ✅ Import läuft in Etappen, Termine ab 02.03.2025, jede UID genau einmal |
+| Abmelden ohne Bereinigung | ✅ Termine bleiben, die Seite zeigt wieder die Anmeldung |
+| Anmeldung mit falschem Passwort | ✅ verständliche Meldung, Seite bleibt bei der Anmeldung |
+| Erneute Anmeldung | ✅ weiter mit bisherigem Kalender und Einstellungen, ohne Assistent (wie im Entwurf) |
+| Hintergrundlauf über den Cron | ⚠️ zunächst nur jeder zweite Cron-Aufruf, behoben (siehe unten) |
+
+Befund: Der `SyncJob` lief nur alle 10 statt alle 5 Minuten. `TimedJob` startet erst, wenn mehr als
+das Intervall vergangen ist, und das Intervall war mit 300 s genau so lang wie der Cron-Takt. Seit
+dem Fix läuft er mit 240 s bei jedem Aufruf.
+
+Nicht getestet: die Benachrichtigung bei wiederholten Fehlern im Hintergrund. Dafür müssten die
+gespeicherten Zugangsdaten nachträglich ungültig werden. Die Integrationstests decken diesen Weg ab.
+
 ## 5. Entscheidungen und offene Fragen
 
 **Geklärt (2026-10-20, Rahmenbedingungen):**
@@ -362,7 +387,7 @@ Nebenbefunde:
 | Python-Pakete in `.venv` | `garminconnect` 0.3.19, `caldav` 3.5.0, `curl_cffi` 0.16.3 | ✅ installiert |
 | PHP 8.4 CLI (winget) | PHP-Tests und die Nextcloud-App | ✅ installiert (8.4.25). Eine minimale `php.ini` im PHP-Ordner lädt curl, openssl, mbstring, intl, fileinfo, sodium, zip |
 | Composer | Abhängigkeiten der App (PHPUnit, OCP-Stubs) | ✅ installiert (2.10.3, `composer.phar` mit SHA-256-Prüfung in einem Ordner im Benutzer-PATH) |
-| Node.js LTS | Erst in Phase 2 bei einem App-Frontend (Vue) | ❌ fehlt, noch nicht nötig |
+| Node.js LTS (winget) | Bauen und Testen der Einstellungsseite (Vue) | ✅ installiert (24.20.0 mit npm 11.19.0) |
 | ~~Docker Desktop~~ | Bewusst **nicht**: installiert Hintergrunddienst und Autostart | – |
 
 Alle aufgeführten Tools sind reine Kommandozeilenprogramme ohne Dienst oder Autostart.

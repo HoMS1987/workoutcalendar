@@ -3,8 +3,8 @@
 Nextcloud app (`workoutcalendar`) that automatically adds activities from Garmin Connect as events
 to a Nextcloud calendar.
 
-Status: **in development.** Backend and settings page are built and tested against Nextcloud 33 to
-35. The manual test on a real instance is pending.
+Status: **in development, not yet released.** Backend and settings page are built, tested against
+Nextcloud 33 to 35 and running on the author's own instance. There is no App Store release yet.
 
 The project documentation is written in German:
 
@@ -32,6 +32,21 @@ the license.
 
 For development, additionally Composer and Node.js 24 with npm 11. Python 3.13 is optional for the
 diagnostic scripts.
+
+## Manual installation
+
+Until there is an App Store release, the app can be installed by hand:
+
+1. Build the settings page: `npm ci` and `npm run build`.
+2. Copy `appinfo`, `lib`, `templates`, `img`, `js`, `css`, `l10n` and `LICENSE` into a folder
+   `workoutcalendar` in one of the server's app directories (usually `custom_apps`). The files
+   belong to the web server user. `vendor`, `node_modules` and the sources in `src/` are not
+   needed at runtime.
+3. Enable the app: `php occ app:enable workoutcalendar`.
+4. Make sure background jobs run via system cron (`php occ background:cron`), ideally every
+   5 minutes.
+
+Each person then opens *Personal settings → Workout Calendar* and signs in to Garmin there.
 
 ## Development setup
 
@@ -97,4 +112,4 @@ python -m venv .venv
   works on the author's own instance (Talos cluster); Garmin may decide differently for other
   servers.
 - Garmin accounts with two-factor authentication are not supported.
-- The settings page has not yet been tested on a real instance.
+- New activities appear with a delay of up to the configured interval plus the cron period.
