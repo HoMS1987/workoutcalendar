@@ -17,6 +17,7 @@ Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]><
     <website>https://github.com/HoMS1987/workoutcalendar</website>
     <bugs>https://github.com/HoMS1987/workoutcalendar/issues</bugs>
     <repository type="git">https://github.com/HoMS1987/workoutcalendar.git</repository>
+    <donation type="other" title="GitHub Sponsors">https://github.com/sponsors/HoMS1987</donation>
     <dependencies>
         <php min-version="8.2"/>
         <lib>curl</lib>

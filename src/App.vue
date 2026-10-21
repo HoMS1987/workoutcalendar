@@ -46,6 +46,11 @@
 				:locks="viewState.locks"
 				@status="setStatus" />
 		</template>
+
+		<p v-if="status && !wizardStep" class="workoutcalendar-settings__support" data-test="support">
+			{{ t('workoutcalendar', 'Find the app useful? You can support its development:') }}
+			<a :href="SPONSOR_URL" target="_blank" rel="noopener noreferrer">GitHub Sponsors</a>
+		</p>
 	</div>
 </template>
 
@@ -68,6 +73,9 @@ import { ApiError, getStatus } from './api.ts'
 import { apiErrorText, pollProblem, pollProblemText } from './messages.ts'
 import { usePolling } from './usePolling.ts'
 import { deriveView } from './viewState.ts'
+
+// Donation link (requirement F-50): only at the bottom of the overview, never in the wizard.
+const SPONSOR_URL = 'https://github.com/sponsors/HoMS1987'
 
 const status = ref<Status | null>(null)
 // Counts status updates so a slow poll cannot overwrite a newer status from an action.
@@ -167,3 +175,14 @@ usePolling(async () => {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.workoutcalendar-settings__support {
+	margin-top: calc(4 * var(--default-grid-baseline));
+	color: var(--color-text-maxcontrast);
+}
+
+.workoutcalendar-settings__support a {
+	text-decoration: underline;
+}
+</style>

@@ -49,6 +49,14 @@ describe('App wizard flow', () => {
 		vi.mocked(api.chooseHistory).mockReset().mockResolvedValue(importing)
 	})
 
+	it('shows no sponsor link in the wizard', async () => {
+		vi.mocked(api.getStatus).mockResolvedValue(disconnected)
+		const wrapper = await mountApp()
+
+		expect(wrapper.find('[data-test="support"]').exists()).toBe(false)
+		wrapper.unmount()
+	})
+
 	it('moves from a successful login to the calendar step', async () => {
 		const wrapper = await mountApp()
 		expect(wrapper.find('form').exists()).toBe(true)
