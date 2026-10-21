@@ -17,7 +17,11 @@ export function isLoginFailure(code: string): boolean {
 	return LOGIN_FAILURES.includes(code)
 }
 
-// Text for a failed Garmin sign-in, by failure category.
+/**
+ * Text for a failed Garmin sign-in, by failure category.
+ *
+ * @param code Failure category from the login route
+ */
 export function loginError(code: string): string {
 	switch (code) {
 		case 'INVALID_CREDENTIALS':
@@ -36,7 +40,11 @@ export function loginError(code: string): string {
 	}
 }
 
-// Text for a failed API call.
+/**
+ * Text for a failed API call.
+ *
+ * @param e Error of the failed call
+ */
 export function apiErrorText(e: ApiError): string {
 	if (e.code === 'busy') {
 		return t(APP, 'A sync is running right now. Please try again in a moment.')
@@ -61,7 +69,11 @@ export type PollProblem = 'session' | 'network'
 
 const PROXY_UNAVAILABLE = [502, 503, 504]
 
-// Classifies a failed status refresh; other failures are not shown.
+/**
+ * Classifies a failed status refresh; other failures are not shown.
+ *
+ * @param e Whatever the refresh threw
+ */
 export function pollProblem(e: unknown): PollProblem | null {
 	if (!(e instanceof ApiError)) {
 		return null
@@ -74,14 +86,22 @@ export function pollProblem(e: unknown): PollProblem | null {
 	return e.code === 'network' || PROXY_UNAVAILABLE.includes(e.status) ? 'network' : null
 }
 
-// Text for a failed status refresh.
+/**
+ * Text for a failed status refresh.
+ *
+ * @param problem Kind of the refresh failure
+ */
 export function pollProblemText(problem: PollProblem): string {
 	return problem === 'session'
 		? t(APP, 'Your session has expired. Please reload the page.')
 		: t(APP, 'The connection to Nextcloud was lost. The page keeps trying to reconnect.')
 }
 
-// Names the cause of a sync failure in words.
+/**
+ * Names the cause of a sync failure in words.
+ *
+ * @param category Failure category of the last sync
+ */
 export function failureReason(category: string): string {
 	switch (category) {
 		case 'TOKEN_REJECTED':
@@ -102,7 +122,12 @@ function formatDate(unixSeconds: number): string {
 	return new Intl.DateTimeFormat(getCanonicalLocale(), { dateStyle: 'medium' }).format(new Date(unixSeconds * 1000))
 }
 
-// Short text for a hint shown next to the current view.
+/**
+ * Short text for a hint shown next to the current view.
+ *
+ * @param h Hint to describe
+ * @param status Current status, for counts and dates in the text
+ */
 export function hintText(h: Hint, status: Status): string {
 	switch (h) {
 		case 'paused':

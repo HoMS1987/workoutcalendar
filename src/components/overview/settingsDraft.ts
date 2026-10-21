@@ -25,7 +25,14 @@ export function draftFromSettings(settings: Settings): SettingsDraft {
 	}
 }
 
-// Rounds to a whole number inside [min, max]; unusable input falls back to the current value.
+/**
+ * Rounds to a whole number inside [min, max]; unusable input falls back to the current value.
+ *
+ * @param raw Text from the input field
+ * @param min Smallest allowed value
+ * @param max Largest allowed value
+ * @param fallback Current value, used when the input is not a number
+ */
 function clampInt(raw: string, min: number, max: number, fallback: number): number {
 	if (raw.trim() === '') {
 		return fallback
