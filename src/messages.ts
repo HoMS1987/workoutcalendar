@@ -53,7 +53,7 @@ export function apiErrorText(e: ApiError): string {
 }
 
 // Names the cause of a sync failure in words.
-function failureReason(category: string): string {
+export function failureReason(category: string): string {
 	switch (category) {
 		case 'TOKEN_REJECTED':
 			return t(APP, 'Garmin no longer accepts the saved sign-in.')

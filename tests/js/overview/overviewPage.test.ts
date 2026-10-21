@@ -132,7 +132,7 @@ describe('OverviewPage', () => {
 		expect(wrapper.find('[data-test="advanced"]').text()).not.toContain('4 failed')
 		await openAdvanced(wrapper)
 		const text = wrapper.find('[data-test="advanced"]').text()
-		expect(text).toContain('BLOCKED')
+		expect(text).toContain('Garmin is blocking the sign-in right now.')
 		expect(text).toContain('4 failed attempts')
 		wrapper.unmount()
 	})
@@ -147,6 +147,66 @@ describe('OverviewPage', () => {
 
 		expect(wrapper.text()).toContain('A sync is running right now')
 		expect(wrapper.emitted('status')).toBeUndefined()
+		wrapper.unmount()
+	})
+})
+
+describe('OverviewPage form', () => {
+	beforeEach(() => {
+		document.body.innerHTML = ''
+		vi.mocked(api.updateSettings).mockReset()
+		vi.mocked(api.chooseHistory).mockReset()
+	})
+
+	it('takes over new settings from the status while the form is untouched', async () => {
+		const wrapper = mountPage()
+		const next = makeStatus()
+		next.settings.intervalMinutes = 360
+		await wrapper.setProps({ status: next })
+
+		expect((wrapper.find('select[data-test="interval"]').element as HTMLSelectElement).value).toBe('360')
+		wrapper.unmount()
+	})
+
+	it('keeps edits while a new status arrives', async () => {
+		const wrapper = mountPage()
+		await setValue(wrapper, 'select[data-test="interval"]', '15')
+		const next = makeStatus()
+		next.settings.intervalMinutes = 360
+		await wrapper.setProps({ status: next })
+
+		expect((wrapper.find('select[data-test="interval"]').element as HTMLSelectElement).value).toBe('15')
+		wrapper.unmount()
+	})
+
+	it('clamps the interval to 15 to 1440 minutes', async () => {
+		vi.mocked(api.updateSettings).mockResolvedValue(makeStatus())
+		const wrapper = mountPage()
+		const select = wrapper.find('select[data-test="interval"]')
+		const option = document.createElement('option')
+		option.value = '5000'
+		select.element.appendChild(option)
+		await select.setValue('5000')
+		await wrapper.find('button[data-test="save"]').trigger('click')
+		await flushPromises()
+
+		expect(vi.mocked(api.updateSettings).mock.calls[0][0].intervalMinutes).toBe(1440)
+		wrapper.unmount()
+	})
+
+	it('emits the settings result even when the history request fails', async () => {
+		const saved = makeStatus()
+		saved.settings.intervalMinutes = 15
+		vi.mocked(api.updateSettings).mockResolvedValue(saved)
+		vi.mocked(api.chooseHistory).mockRejectedValue(new api.ApiError(409, 'busy'))
+		const wrapper = mountPage()
+		await setValue(wrapper, 'select[data-test="interval"]', '15')
+		await setValue(wrapper, 'select[data-test="history"]', '365')
+		await wrapper.find('button[data-test="save"]').trigger('click')
+		await flushPromises()
+
+		expect(wrapper.emitted('status')).toEqual([[saved]])
+		expect(wrapper.text()).toContain('A sync is running right now')
 		wrapper.unmount()
 	})
 })

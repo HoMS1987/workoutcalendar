@@ -72,6 +72,7 @@ import type { SettingsDraft } from './settingsDraft.ts'
 import { n, t } from '@nextcloud/l10n'
 import { computed } from 'vue'
 import CollapsibleSection from './CollapsibleSection.vue'
+import { failureReason } from '../../messages.ts'
 import { formatDateTime } from './relativeTime.ts'
 
 const model = defineModel<SettingsDraft>({ required: true })
@@ -89,9 +90,9 @@ const failureText = computed(() => {
 	}
 	const attempts = n('workoutcalendar', '{n} failed attempt', '{n} failed attempts', failure.count, { n: failure.count }, { escape: false })
 	if (failure.since === null) {
-		return t('workoutcalendar', '{category}, {attempts}', { category: failure.category, attempts }, { escape: false })
+		return t('workoutcalendar', '{category}, {attempts}', { category: failureReason(failure.category), attempts }, { escape: false })
 	}
-	return t('workoutcalendar', '{category} since {time}, {attempts}', { category: failure.category, time: formatDateTime(failure.since), attempts }, { escape: false })
+	return t('workoutcalendar', '{category} since {time}, {attempts}', { category: failureReason(failure.category), time: formatDateTime(failure.since), attempts }, { escape: false })
 })
 </script>
 

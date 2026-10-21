@@ -45,7 +45,7 @@ function clampInt(raw: string, min: number, max: number, fallback: number): numb
  */
 export function payloadFromDraft(draft: SettingsDraft, current: Settings): SettingsPayload {
 	return {
-		intervalMinutes: draft.intervalMinutes,
+		intervalMinutes: clampInt(String(draft.intervalMinutes), 15, 1440, current.intervalMinutes),
 		jitterPercent: draft.jitterEnabled ? clampInt(draft.jitterPercent, 0, 50, current.jitterPercent) : 0,
 		deletionMode: draft.deletionMode,
 		deletionCheckDays: clampInt(draft.deletionCheckDays, 7, 365, current.deletionCheckDays),

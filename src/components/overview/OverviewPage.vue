@@ -29,7 +29,7 @@ import type { Status } from '../../types.ts'
 import type { ViewState } from '../../viewState.ts'
 
 import { t } from '@nextcloud/l10n'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AccountSection from './AccountSection.vue'
@@ -58,6 +58,17 @@ const error = ref('')
 const payload = computed(() => payloadFromDraft(draft.value, props.status.settings))
 const dirty = computed(() => payloadChanged(payload.value, props.status.settings) || historyChanged(draft.value, props.status.settings))
 
+// A new status (poll, sync, other actions) refreshes the form unless the person is editing it.
+watch(() => props.status.settings, (next, previous) => {
+	if (!dirtyAgainst(previous)) {
+		draft.value = draftFromSettings(next)
+	}
+})
+
+function dirtyAgainst(settings: Status['settings']): boolean {
+	return payloadChanged(payloadFromDraft(draft.value, settings), settings) || historyChanged(draft.value, settings)
+}
+
 async function save() {
 	if (saving.value) {
 		return
@@ -65,16 +76,21 @@ async function save() {
 	saving.value = true
 	error.value = ''
 	try {
-		let next = props.status
-		if (payloadChanged(payload.value, props.status.settings)) {
-			next = await updateSettings(payload.value)
+		const before = props.status.settings
+		let last: Status | null = null
+		if (payloadChanged(payload.value, before)) {
+			last = await updateSettings(payload.value)
+			// This request is done even if the history request fails afterwards.
+			emit('status', last)
 		}
 		// The history has its own route: a longer period starts an import.
-		if (historyChanged(draft.value, props.status.settings)) {
-			next = await chooseHistory(draft.value.historyDays as 30 | 90 | 365 | null)
+		if (historyChanged(draft.value, before)) {
+			last = await chooseHistory(draft.value.historyDays as 30 | 90 | 365 | null)
+			emit('status', last)
 		}
-		draft.value = draftFromSettings(next.settings)
-		emit('status', next)
+		if (last) {
+			draft.value = draftFromSettings(last.settings)
+		}
 	} catch (e) {
 		error.value = apiErrorText(e instanceof ApiError ? e : new ApiError(0, 'internal'))
 	} finally {

@@ -3,6 +3,7 @@
 		:name="t('workoutcalendar', 'Use an existing calendar?')"
 		:buttons="buttons"
 		:closeOnClickOutside="false"
+		:noClose="busy"
 		size="small"
 		@closing="emit('cancel')">
 		<p>

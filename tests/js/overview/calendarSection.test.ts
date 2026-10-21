@@ -94,4 +94,28 @@ describe('CalendarSection', () => {
 		expect(wrapper.text()).toContain('cannot be changed while events are being moved or removed')
 		wrapper.unmount()
 	})
+
+	it('skips the move question when the current calendar is picked again', async () => {
+		const wrapper = mount(CalendarSection, { props: { status: makeStatus(), locked: false }, attachTo: document.body })
+		await wrapper.find('button[data-test="change"]').trigger('click')
+		await flushPromises()
+		const select = wrapper.findComponent(NcSelect)
+		select.vm.$emit('update:modelValue', { key: 'existing:7', label: 'Garmin-Aktivitäten', choice: { kind: 'existing', id: 7, name: 'Garmin-Aktivitäten' } })
+		await flushPromises()
+		await wrapper.find('button[data-test="continue"]').trigger('click')
+		await flushPromises()
+
+		expect(document.body.textContent).not.toContain('Should the existing events move')
+		expect(api.chooseCalendar).toHaveBeenCalledWith({ calendarId: 7, confirmed: false, moveEvents: false })
+		wrapper.unmount()
+	})
+
+	it('skips the move question when there are no events', async () => {
+		const wrapper = mount(CalendarSection, { props: { status: makeStatus({ sync: { eventCount: 0 } }), locked: false }, attachTo: document.body })
+		await pickSport(wrapper)
+
+		expect(document.body.textContent).not.toContain('Should the existing events move')
+		expect(api.chooseCalendar).toHaveBeenCalledWith({ calendarId: 3, confirmed: false, moveEvents: false })
+		wrapper.unmount()
+	})
 })

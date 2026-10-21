@@ -3,6 +3,7 @@
 		:name="t('workoutcalendar', 'Move the existing events?')"
 		:buttons="buttons"
 		:closeOnClickOutside="false"
+		:noClose="busy"
 		size="small"
 		@closing="emit('cancel')">
 		<p>{{ t('workoutcalendar', 'Should the existing events move to the new calendar?') }}</p>
