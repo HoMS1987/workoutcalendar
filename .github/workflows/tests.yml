@@ -81,3 +81,36 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  release-archive:
+    name: Release archive (package, sign with a throwaway key)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: bash scripts/package.sh
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Check out Nextcloud server for occ
+        uses: actions/checkout@v7
+        with:
+          repository: nextcloud/server
+          ref: stable33
+          submodules: true
+          path: server
+      - name: Sign like the release workflow and verify the signature
+        run: |
+          openssl req -x509 -nodes -newkey rsa:4096 -days 1 -subj /CN=workoutcalendar \
+            -keyout "$RUNNER_TEMP/test.key" -out "$RUNNER_TEMP/test.crt"
+          bash scripts/sign.sh "$RUNNER_TEMP/test.key" "$RUNNER_TEMP/test.crt" server
+          openssl x509 -pubkey -noout -in "$RUNNER_TEMP/test.crt" > "$RUNNER_TEMP/test.pub"
+          base64 -d build/artifacts/workoutcalendar.tar.gz.sig > "$RUNNER_TEMP/test.sig"
+          openssl dgst -sha512 -verify "$RUNNER_TEMP/test.pub" -signature "$RUNNER_TEMP/test.sig" build/artifacts/workoutcalendar.tar.gz
+          tar -tzf build/artifacts/workoutcalendar.tar.gz | grep -qx 'workoutcalendar/appinfo/signature.json'
