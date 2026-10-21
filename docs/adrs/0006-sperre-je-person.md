@@ -35,7 +35,8 @@ Ohne Abstimmung zwischen diesen Wegen gehen Änderungen verloren:
   Abschluss des `CalendarMaintenanceJob`.
 - Es wird nicht gewartet. Ist die Sperre belegt, antwortet die API mit 409 `{"error": "busy"}`, der
   Hintergrundjob überspringt die Person (`skipped`), und der Wartungsjob reiht sich mit
-  unverändertem Argument neu ein, ohne dass das als Fehlversuch zählt.
+  unverändertem Argument neu ein, ohne dass das als Fehlversuch zählt. Hat er bereits aufgegeben,
+  bleibt das endgültig: Der neue Lauf führt nur noch den Abschluss aus.
 - Ein sofortiger Lauf (`POST /api/sync`, Abschluss der Historie) nutzt `SyncRunner::runNow`: Einreihen
   und Lauf geschehen in derselben Sperre.
 - Die Sperre ist nicht wiedereintrittsfähig. Wer sie hält, ruft `PersonLock::run` für dieselbe Person

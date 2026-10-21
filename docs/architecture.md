@@ -88,7 +88,9 @@ Hintergrundjob die Person (`skipped`) und die API antwortet mit 409 `busy`
   Sperre aus. Ist sie belegt, endet der Aufruf mit `skipped` und ändert nichts.
 - **Wartungsjob:** Der Abschluss (Markierung `maintenance` löschen, `maintenanceFailed` setzen)
   speichert unter der Sperre. Ist sie belegt, reiht sich der Job mit unverändertem Argument neu ein,
-  das zählt nicht als Fehlversuch. Beim Abmelden mit Bereinigung `events` steht `maintenance: "remove"`
+  das zählt nicht als Fehlversuch. Hat der Job zu diesem Zeitpunkt aufgegeben, trägt das Argument
+  zusätzlich `gaveUp`, und der nächste Lauf führt nur noch den Abschluss aus, ohne weitere Termine zu
+  verschieben oder zu entfernen. Beim Abmelden mit Bereinigung `events` steht `maintenance: "remove"`
   gespeichert, bevor der Job eingereiht wird.
 - **Nicht wiedereintrittsfähig:** Wer die Sperre hält, ruft `PersonLock::run` für dieselbe Person
   nicht erneut auf. Der Abschluss der Historie bereitet den Zustand unter der Sperre vor, gibt sie
