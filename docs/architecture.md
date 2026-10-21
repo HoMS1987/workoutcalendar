@@ -52,7 +52,10 @@ das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
 
 ## Hintergrundjob und Warteschlange
 
-- `SyncJob` läuft alle 5 Minuten und bearbeitet pro Aufruf höchstens 10 Personen.
+- `SyncJob` läuft bei jedem Aufruf des Nextcloud-Crons (alle 5 Minuten) und bearbeitet pro Aufruf
+  höchstens 10 Personen. Das Intervall des `TimedJob` ist mit 240 s bewusst kürzer als der
+  Cron-Takt: Nextcloud startet ihn erst, wenn mehr als das Intervall vergangen ist, mit 300 s fiele
+  jeder zweite Aufruf aus.
 - Die Warteschlange ist `next_run_at` je Person in `IUserConfig`. Fällig sind Personen mit
   erreichtem `next_run_at`, die am längsten wartende zuerst.
 - Personen, für die kein Lauf möglich ist (Einrichtung unvollständig, Zugangsdaten abgelehnt,
