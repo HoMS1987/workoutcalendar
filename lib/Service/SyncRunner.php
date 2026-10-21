@@ -57,9 +57,9 @@ final class SyncRunner
     }
 
     /**
-     * Manual sync and wizard completion: puts the person in the queue and runs
-     * the run within the same lock so no other operation changes the state in between.
-     * If the lock is taken, everything stays unchanged.
+     * Manual sync and wizard completion: makes the person due now and runs the sync under the
+     * same lock, so no other operation can change the state in between.
+     * If another operation holds the lock, nothing changes and the outcome is `Skipped`.
      */
     public function runNow(string $uid, \DateTimeImmutable $now): RunOutcome
     {

@@ -108,7 +108,8 @@ final class SyncService
         if ($state->lastSuccessAt !== null && $state->lastSuccessAt < $from->getTimestamp()) {
             $from = $now->setTimestamp($state->lastSuccessAt);
         }
-        // WHY: Garmin filters by local date; one day of lead covers every time zone.
+        // WHY: Garmin filters by the local date of an activity; starting one day earlier covers
+        // every time zone.
         $startDate = $from->modify('-1 day')->format('Y-m-d');
 
         $activities = [];
