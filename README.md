@@ -11,7 +11,10 @@ The project documentation is written in German:
 - Requirements: [docs/anforderungen.md](docs/anforderungen.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Decisions: [docs/adrs/](docs/adrs/)
+- Release process: [docs/release.md](docs/release.md)
 - Feasibility and test results: [MACHBARKEIT.md](MACHBARKEIT.md)
+
+The changes per version are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Disclaimer
 
