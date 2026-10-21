@@ -18,8 +18,9 @@ Ohne Abstimmung zwischen diesen Wegen gehen Änderungen verloren:
 
 - Ein Lauf speichert am Ende seinen alten Zustand und überschreibt eine Abmeldung, einen
   Kalenderwechsel oder neue Zugangsdaten, die währenddessen gespeichert wurden.
-- Ein manueller Sync stellt die Person in die Warteschlange, ein anderer Vorgang ändert dazwischen
-  den Zustand, und der Lauf startet danach mit veralteten Annahmen.
+- Ein manueller Sync liest den Zustand, um die Person in die Warteschlange zu stellen. Ändert ein
+  anderer Vorgang den Zustand, bevor der manuelle Sync den gelesenen Zustand wieder speichert,
+  überschreibt dieses Speichern die Änderung.
 - Eine Anmeldung prüft die Zugangsdaten bei Garmin, während ein Lauf mit den alten Zugangsdaten
   Tokens erneuert, und beide speichern nacheinander.
 - Der Wartungsjob schließt ab, während eine Abmeldung die Einrichtung speichert, und eine der beiden
