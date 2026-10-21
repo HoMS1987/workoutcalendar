@@ -29,16 +29,22 @@ Abschnitte 15 und 16 der Lizenz.
 - PHP 8.2 oder neuer mit `ext-curl`
 - Garmin-Connect-Konto ohne Zwei-Faktor-Anmeldung
 
-Für die Entwicklung zusätzlich Composer. Für die Diagnose-Skripte optional Python 3.13.
+Für die Entwicklung zusätzlich Composer und Node.js 24 mit npm 11. Für die Diagnose-Skripte optional Python 3.13.
 
 ## Setup für die Entwicklung
 
 ```powershell
 composer install
 composer test
+npm ci
+npm run build
 ```
 
 Die Unit-Tests brauchen weder Nextcloud noch einen Garmin-Zugang.
+
+Die Einstellungsseite ist eine Vue-3-Oberfläche in `src/`. `npm run build` schreibt sie nach `js/`
+und `css/` (nicht eingecheckt, das Bauen ist Teil jedes Releases). `npm run lint` und `npm test`
+prüfen den Quelltext, `npm run watch` baut bei Änderungen neu.
 
 Die Integrationstests (`tests/Integration`) laufen in einem echten Nextcloud-Server. Normalerweise
 führt sie die GitHub-Action `tests.yml` gegen Nextcloud 33, 34 und 35 aus. Sie lassen sich auch in

@@ -49,6 +49,9 @@ final class Notifier implements INotifier
                 'PROTOCOL_CHANGED' => $l->t('Workout Calendar could not sync for a day because Garmin changed its sign-in. An app update may be needed.'),
                 default => $l->t('Workout Calendar could not reach Garmin for a day. It keeps trying.'),
             })
+            ->setIcon($this->urlGenerator->getAbsoluteURL(
+                $this->urlGenerator->imagePath(self::APP_ID, 'app-dark.svg'),
+            ))
             ->setLink($this->urlGenerator->linkToRouteAbsolute(
                 'settings.PersonalSettings.index',
                 ['section' => self::APP_ID],
