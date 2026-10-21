@@ -100,6 +100,16 @@ final class CalendarServiceTest extends TestCase
         self::assertSame(5, $this->service->countAll($id));
     }
 
+    public function testCountAppEventsByUriReadsNoIcs(): void
+    {
+        $id = $this->objects->addCalendar('anna', 'sport', 'Sport');
+        $this->fill($id, 3, 2);
+        $this->objects->put($id, 'garmin-x.ics', self::ics('garmin-x'));
+
+        self::assertSame(3, $this->service->countAppEventsByUri($id));
+        self::assertSame(0, $this->objects->getCalls);
+    }
+
     public function testMoveKeepsForeignEventsAndReportsRest(): void
     {
         $from = $this->objects->addCalendar('anna', 'alt', 'Alt');

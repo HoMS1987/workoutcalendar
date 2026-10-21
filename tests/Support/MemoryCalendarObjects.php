@@ -17,6 +17,8 @@ final class MemoryCalendarObjects implements CalendarObjects
     public array $objects = [];
     /** @var list<string> Ausgeführte Schreibvorgänge, z. B. "create:1:garmin-42.ics" */
     public array $writes = [];
+    /** Aufrufe von get(), für Prüfungen, dass kein ICS gelesen wird. */
+    public int $getCalls = 0;
     private int $nextId = 1;
 
     /** @param list<string> $components */
@@ -96,6 +98,8 @@ final class MemoryCalendarObjects implements CalendarObjects
 
     public function get(int $calendarId, array $uris): array
     {
+        $this->getCalls++;
+
         return array_intersect_key($this->objects[$calendarId] ?? [], array_flip($uris));
     }
 
