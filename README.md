@@ -6,7 +6,9 @@ to a Nextcloud calendar.
 Status: **in development, not yet released.** Backend and settings page are built, tested against
 Nextcloud 33 to 35 and running on the author's own instance. There is no App Store release yet.
 
-The project documentation is written in German:
+How the app is built, why and how a sync works is described in English in
+[docs/project-structure.md](docs/project-structure.md). The rest of the project documentation is
+written in German:
 
 - Requirements: [docs/anforderungen.md](docs/anforderungen.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
