@@ -17,7 +17,9 @@ function fill(text: string, vars: Vars | undefined, options: { escape?: boolean 
 vi.mock('@nextcloud/l10n', () => ({
 	t: (_app: string, text: string, vars?: Vars, options?: { escape?: boolean }) => fill(text, vars, options),
 	n: (_app: string, singular: string, plural: string, count: number, vars?: Vars, options?: { escape?: boolean }) => fill(count === 1 ? singular : plural, { ...vars, n: count }, options),
-	getLocale: () => 'en',
+	// Like the real functions: getLocale() is not a valid BCP 47 tag, getCanonicalLocale() is.
+	getLocale: () => 'en_US',
+	getCanonicalLocale: () => 'en-US',
 }))
 
 describe('loginError', () => {
@@ -68,10 +70,8 @@ describe('hintText', () => {
 
 	it('names the failure category and the date', () => {
 		const status = makeStatus({ failure: { category: 'NETWORK', since: Date.UTC(2026, 9, 3, 12) / 1000, count: 2 } })
-		const text = hintText('failure', status)
 
-		expect(text).toContain('Garmin cannot be reached right now')
-		expect(text).toContain('2026')
+		expect(hintText('failure', status)).toBe('Garmin cannot be reached right now. Please try again later. This has been happening since Oct 3, 2026.')
 	})
 
 	it('falls back to a generic text for unknown failure categories', () => {
