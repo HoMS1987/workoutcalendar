@@ -84,18 +84,6 @@ function hintsOf(status: Status): Hint[] {
 	return hints
 }
 
-// After a calendar change without moving the events the sync starts over: the import begins with
-// the next cron run, before which the status has no run at all.
-function importPending(status: Status): boolean {
-	const { setup } = status
-	return setup.connected
-		&& setup.step === 'done'
-		&& setup.calendar !== null
-		&& !setup.calendarMissing
-		&& status.paused === null
-		&& status.sync.lastRunAt === null
-}
-
 // Derives everything the settings page shows from the status alone.
 export function deriveView(status: Status, wizardFinished: boolean): ViewState {
 	const maintenanceRunning = status.setup.maintenance !== null
@@ -104,6 +92,7 @@ export function deriveView(status: Status, wizardFinished: boolean): ViewState {
 		view: viewOf(status, wizardFinished),
 		hints: hintsOf(status),
 		locks: { calendarChange: maintenanceRunning, cleanup: maintenanceRunning },
-		polling: status.sync.backfill.running || maintenanceRunning || importPending(status),
+		// backfill.pending covers the time between a calendar change without moving and the first run.
+		polling: status.sync.backfill.running || status.sync.backfill.pending || maintenanceRunning,
 	}
 }

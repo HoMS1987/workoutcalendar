@@ -6,6 +6,7 @@ namespace OCA\WorkoutCalendar\Service;
 
 use OCA\WorkoutCalendar\CalDav\CalendarInfo;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
+use OCA\WorkoutCalendar\Storage\SetupStep;
 use OCA\WorkoutCalendar\Storage\UserStore;
 
 /**
@@ -50,6 +51,14 @@ final class StatusService
                 'backfill' => [
                     'running' => $state->initialized && !$state->backfillDone,
                     'reachedDate' => $state->backfillBefore,
+                    // WHY initialized: every run sets it first, and a fresh state (calendar change without
+                    // moving, other account) clears it. So the import waits for its first run.
+                    'pending' => !$state->initialized
+                        && $setup->connected
+                        && $setup->step === SetupStep::Done
+                        && $calendar !== null
+                        && !$setup->calendarMissing
+                        && $state->pausedFor === null,
                 ],
             ],
             'failure' => $state->failureCategory === null ? null : [

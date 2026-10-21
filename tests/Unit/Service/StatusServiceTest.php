@@ -80,7 +80,7 @@ final class StatusServiceTest extends TestCase
 
         $backfill = $this->service()->status(self::UID)['sync']['backfill'];
 
-        self::assertSame(['running' => true, 'reachedDate' => '2026-08-01'], $backfill);
+        self::assertSame(['running' => true, 'reachedDate' => '2026-08-01', 'pending' => false], $backfill);
     }
 
     public function testFinishedOrUninitializedBackfillIsNotRunning(): void
@@ -93,7 +93,44 @@ final class StatusServiceTest extends TestCase
         $state->backfillBefore = '2026-07-20';
         $this->users->saveState(self::UID, $state);
 
-        self::assertSame(['running' => false, 'reachedDate' => '2026-07-20'], $this->service()->status(self::UID)['sync']['backfill']);
+        self::assertSame(['running' => false, 'reachedDate' => '2026-07-20', 'pending' => false], $this->service()->status(self::UID)['sync']['backfill']);
+    }
+
+    public function testImportIsPendingUntilTheFirstRunForTheCalendar(): void
+    {
+        $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
+        // A calendar change without moving the events starts over with a fresh state.
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true));
+
+        self::assertTrue($this->service()->status(self::UID)['sync']['backfill']['pending']);
+
+        $state = $this->users->state(self::UID);
+        $state->initialized = true;
+        $this->users->saveState(self::UID, $state);
+
+        self::assertFalse($this->service()->status(self::UID)['sync']['backfill']['pending']);
+    }
+
+    public function testImportIsNotPendingWhenNoRunCanHappen(): void
+    {
+        $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
+        $setups = [
+            'disconnected' => new SetupState(SetupStep::Done, false, self::ACCOUNT, 'a***@example.org', $calendarId, true),
+            'history step' => new SetupState(SetupStep::History, true, self::ACCOUNT, 'a***@example.org', $calendarId, true),
+            'no calendar' => new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', null, false),
+            'deleted calendar' => new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', 999, true),
+            'calendar missing' => new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true, null, null, true),
+        ];
+        foreach ($setups as $case => $setup) {
+            $this->users->saveSetup(self::UID, $setup);
+            self::assertFalse($this->service()->status(self::UID)['sync']['backfill']['pending'], $case);
+        }
+
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true));
+        $state = $this->users->state(self::UID);
+        $state->pausedFor = 'INVALID_CREDENTIALS';
+        $this->users->saveState(self::UID, $state);
+        self::assertFalse($this->service()->status(self::UID)['sync']['backfill']['pending'], 'paused');
     }
 
     public function testFullShapeAfterSetup(): void
@@ -133,7 +170,7 @@ final class StatusServiceTest extends TestCase
                 'nextRunAt' => 200,
                 'eventCount' => 2,
                 'oldestActivityDate' => '2025-10-03',
-                'backfill' => ['running' => false, 'reachedDate' => '2025-10-01'],
+                'backfill' => ['running' => false, 'reachedDate' => '2025-10-01', 'pending' => false],
             ],
             'failure' => ['category' => 'SERVER_ERROR', 'since' => 80, 'count' => 3],
             'paused' => null,

@@ -143,7 +143,10 @@ kommen zur jeweiligen Ansicht hinzu.
 
 Unabhängig vom Schritt: `paused` gesetzt ⇒ Hinweis, dass neue Zugangsdaten nötig sind;
 `failure` gesetzt ⇒ Fehlerhinweis mit Kategorie und Zeitpunkt; `sync.backfill.running` ⇒
-Fortschritt des Historien-Imports. Eine Antwort 409 `busy` ändert nichts an der Ansicht, die Aktion
+Fortschritt des Historien-Imports. `sync.backfill.pending` ist `true`, solange der Import für den
+aktuellen Kalender angefordert ist, aber noch kein Lauf stattfand (Zustand nicht `initialized`,
+verbunden, Schritt `done`, eigener Kalender vorhanden, keine Pause). Während `running`, `pending`
+oder `maintenance` fragt die Seite den Status regelmäßig neu ab. Eine Antwort 409 `busy` ändert nichts an der Ansicht, die Aktion
 lässt sich nach dem laufenden Sync wiederholen.
 
 ## Garmin-Zugriff
