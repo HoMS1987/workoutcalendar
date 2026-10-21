@@ -1,3 +1,6 @@
+// Dates in the tests are formatted in the local time zone; pin it so they are deterministic.
+process.env.TZ = 'UTC'
+
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
 

@@ -8,11 +8,8 @@
 		</NcNoteCard>
 
 		<template v-if="status">
-			<NcNoteCard v-for="hint in viewState.hints" :key="hint" :type="hint === 'backfill' ? 'info' : 'warning'">
-				{{ hintText(hint, status) }}
-			</NcNoteCard>
-
 			<template v-if="wizardStep">
+				<StatusHints :status="status" :hints="wizardHints" />
 				<WizardSteps :current="wizardStep" />
 				<StepGarmin
 					v-if="view === 'login'"
@@ -20,7 +17,7 @@
 					@status="onLogin" />
 				<StepCalendar
 					v-else-if="view === 'calendar'"
-					@status="status = $event"
+					@status="setStatus"
 					@back="showLogin = true" />
 				<StepHistory
 					v-else-if="view === 'history'"
@@ -35,8 +32,13 @@
 					@settings="leaveWizard" />
 			</template>
 
-			<!-- Task 6 builds the overview. -->
-			<div v-else class="workoutcalendar-settings__overview" />
+			<OverviewPage
+				v-else
+				class="workoutcalendar-settings__overview"
+				:status="status"
+				:hints="viewState.hints"
+				:locks="viewState.locks"
+				@status="setStatus" />
 		</template>
 	</div>
 </template>
@@ -45,21 +47,24 @@
 import type { SetupStep, Status } from './types.ts'
 
 import { t } from '@nextcloud/l10n'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import OverviewPage from './components/overview/OverviewPage.vue'
+import StatusHints from './components/overview/StatusHints.vue'
 import StepCalendar from './components/wizard/StepCalendar.vue'
 import StepDone from './components/wizard/StepDone.vue'
 import StepGarmin from './components/wizard/StepGarmin.vue'
 import StepHistory from './components/wizard/StepHistory.vue'
 import WizardSteps from './components/wizard/WizardSteps.vue'
 import { ApiError, getStatus } from './api.ts'
-import { apiErrorText, hintText } from './messages.ts'
+import { apiErrorText } from './messages.ts'
+import { usePolling } from './usePolling.ts'
 import { deriveView } from './viewState.ts'
 
-const POLL_INTERVAL_MS = 10_000
-
 const status = ref<Status | null>(null)
+// Counts status updates so a slow poll cannot overwrite a newer status from an action.
+let statusVersion = 0
 const loadError = ref('')
 // True from the moment the history import was chosen until the person leaves the "done" step.
 const wizardFinished = ref(false)
@@ -83,6 +88,9 @@ const view = computed(() => {
 	return viewState.value.view
 })
 
+// The history step and the final step show the import progress themselves.
+const wizardHints = computed(() => viewState.value.hints.filter((hint) => hint !== 'backfill' || (view.value !== 'history' && view.value !== 'done')))
+
 const wizardStep = computed<SetupStep | null>(() => {
 	switch (view.value) {
 		case 'login':
@@ -96,14 +104,19 @@ const wizardStep = computed<SetupStep | null>(() => {
 	}
 })
 
+function setStatus(next: Status) {
+	statusVersion++
+	status.value = next
+}
+
 function onLogin(next: Status) {
 	showLogin.value = false
-	status.value = next
+	setStatus(next)
 }
 
 function onHistoryStarted(next: Status) {
 	wizardFinished.value = true
-	status.value = next
+	setStatus(next)
 }
 
 function finishHistory() {
@@ -117,33 +130,20 @@ function leaveWizard() {
 
 async function load() {
 	try {
-		status.value = await getStatus()
+		setStatus(await getStatus())
 	} catch (e) {
 		loadError.value = apiErrorText(e instanceof ApiError ? e : new ApiError(0, 'internal'))
 	}
 }
 
 // While an import or a maintenance job runs, the status is refreshed quietly.
-let timer: ReturnType<typeof setInterval> | undefined
-function stopPolling() {
-	if (timer !== undefined) {
-		clearInterval(timer)
-		timer = undefined
+usePolling(async () => {
+	const version = statusVersion
+	const next = await getStatus()
+	if (version === statusVersion) {
+		setStatus(next)
 	}
-}
-watch(() => viewState.value.polling, (polling) => {
-	stopPolling()
-	if (polling) {
-		timer = setInterval(async () => {
-			try {
-				status.value = await getStatus()
-			} catch {
-				// A failed refresh keeps the last known status; the next tick tries again.
-			}
-		}, POLL_INTERVAL_MS)
-	}
-})
+}, computed(() => viewState.value.polling))
 
 onMounted(load)
-onBeforeUnmount(stopPolling)
 </script>
