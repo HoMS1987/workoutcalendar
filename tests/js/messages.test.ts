@@ -105,7 +105,17 @@ describe('hintText', () => {
 		expect(hintText('maintenanceRemove', status)).toBe('Your events are being removed from the old calendar. This can take a few minutes.')
 		expect(hintText('maintenanceFailedMove', status)).toBe('Moving the events was given up. Some events may still be in the old calendar.')
 		expect(hintText('maintenanceFailedRemove', status)).toBe('Removing the events was given up. Some events may still be in the old calendar.')
-		expect(hintText('backfill', status)).toBe('Importing your history: 340 activities so far.')
+	})
+
+	it('names how far back the history import got', () => {
+		const status = makeStatus({ sync: { eventCount: 340, backfill: { running: true, reachedDate: '2023-03-02' } } })
+		expect(hintText('backfill', status)).toBe('Importing your history: 340 activities so far, back to March 2023.')
+		const one = makeStatus({ sync: { eventCount: 1, backfill: { running: true, reachedDate: '2024-05-01' } } })
+		expect(hintText('backfill', one)).toBe('Importing your history: 1 activity so far, back to May 2024.')
+	})
+
+	it('shows only the count while the import has not reached a date yet', () => {
+		expect(hintText('backfill', makeStatus({ sync: { eventCount: 340, backfill: { running: true, reachedDate: null } } }))).toBe('Importing your history: 340 activities so far.')
 		expect(hintText('backfill', makeStatus({ sync: { eventCount: 1 } }))).toBe('Importing your history: 1 activity so far.')
 	})
 })

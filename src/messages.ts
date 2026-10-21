@@ -3,6 +3,7 @@ import type { Hint } from './viewState.ts'
 
 import { getCanonicalLocale, n, t } from '@nextcloud/l10n'
 import { ApiError } from './api.ts'
+import { formatMonthYear } from './components/overview/relativeTime.ts'
 
 const APP = 'workoutcalendar'
 
@@ -128,7 +129,12 @@ export function hintText(h: Hint, status: Status): string {
 			return t(APP, 'Removing the events was given up. Some events may still be in the old calendar.')
 		case 'backfill': {
 			const count = status.sync.eventCount
-			return n(APP, 'Importing your history: {n} activity so far.', 'Importing your history: {n} activities so far.', count, { n: count }, RAW)
+			const reached = status.sync.backfill.reachedDate
+			if (reached === null) {
+				return n(APP, 'Importing your history: {n} activity so far.', 'Importing your history: {n} activities so far.', count, { n: count }, RAW)
+			}
+			const date = formatMonthYear(reached)
+			return n(APP, 'Importing your history: {n} activity so far, back to {date}.', 'Importing your history: {n} activities so far, back to {date}.', count, { n: count, date }, RAW)
 		}
 	}
 }
