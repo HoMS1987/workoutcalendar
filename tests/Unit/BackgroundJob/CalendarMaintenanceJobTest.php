@@ -7,11 +7,13 @@ namespace OCA\WorkoutCalendar\Tests\Unit\BackgroundJob;
 use OCA\WorkoutCalendar\BackgroundJob\CalendarMaintenanceJob;
 use OCA\WorkoutCalendar\CalDav\CalendarObjects;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
 use OCA\WorkoutCalendar\Storage\UserStore;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
@@ -28,6 +30,7 @@ final class CalendarMaintenanceJobTest extends TestCase
     private UserStore $users;
     private MemoryCalendarObjects $objects;
     private MemoryLogger $logger;
+    private MemoryLockingProvider $locking;
     private int $from;
     private int $to;
 
@@ -36,6 +39,7 @@ final class CalendarMaintenanceJobTest extends TestCase
         $this->users = new UserStore($this->memoryUserConfig($this->store));
         $this->objects = new MemoryCalendarObjects();
         $this->logger = new MemoryLogger();
+        $this->locking = new MemoryLockingProvider();
         $this->from = $this->objects->addCalendar(self::UID, 'alt', 'Alt', null, ['VEVENT']);
         $this->to = $this->objects->addCalendar(self::UID, 'neu', 'Neu', null, ['VEVENT']);
     }
@@ -81,6 +85,34 @@ final class CalendarMaintenanceJobTest extends TestCase
 
         self::assertSame(['fremd.ics'], array_keys($this->objects->objects[$this->from]));
         self::assertNull($this->users->setup(self::UID)->maintenance);
+    }
+
+    public function testFinishRequeuesWhenPersonIsBusy(): void
+    {
+        $this->fill($this->from, 3);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 2, 'rest' => 3];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::once())->method('add')->with(CalendarMaintenanceJob::class, $argument);
+
+        $this->execute($this->job($jobList), $argument);
+
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenance);
+        self::assertSame(['workoutcalendar/sync/' . md5(self::UID)], $this->locking->held());
+    }
+
+    public function testFinishReleasesLock(): void
+    {
+        $this->fill($this->from, 3);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::never())->method('add');
+
+        $this->execute($this->job($jobList), ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null]);
+
+        self::assertNull($this->users->setup(self::UID)->maintenance);
+        self::assertSame([], $this->locking->held());
     }
 
     public function testMalformedArgumentDoesNothing(): void
@@ -223,6 +255,7 @@ final class CalendarMaintenanceJobTest extends TestCase
             $this->users,
             $jobList,
             $this->logger,
+            new PersonLock($this->locking),
         );
     }
 

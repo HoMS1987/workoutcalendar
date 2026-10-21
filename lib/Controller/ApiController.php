@@ -132,7 +132,7 @@ final class ApiController extends Controller
             // WHY: Die Sperre ist nicht wiedereintrittsfähig, der erste Lauf startet erst nach ihrer Freigabe.
             $finishedWizard = $this->lock->run($uid, fn (): bool => $this->applyHistory($uid, $historyDays, $now));
             if ($finishedWizard) {
-                $this->runner->run($uid, $now);
+                $this->runner->runNow($uid, $now);
             }
 
             return $this->status->status($uid);
@@ -232,9 +232,7 @@ final class ApiController extends Controller
     public function sync(): JSONResponse
     {
         return $this->handle(function (string $uid): array {
-            $now = $this->now();
-            $this->arm($uid, $now);
-            $outcome = $this->runner->run($uid, $now);
+            $outcome = $this->runner->runNow($uid, $this->now());
 
             return ['outcome' => $outcome->value, 'status' => $this->status->status($uid)];
         });
@@ -291,14 +289,6 @@ final class ApiController extends Controller
 
             return new JSONResponse(['error' => 'internal'], Http::STATUS_INTERNAL_SERVER_ERROR);
         }
-    }
-
-    /** Stellt die Person sofort in die Warteschlange. */
-    private function arm(string $uid, \DateTimeImmutable $now): void
-    {
-        $state = $this->users->state($uid);
-        $state->nextRunAt = $now->getTimestamp();
-        $this->users->saveState($uid, $state);
     }
 
     private function now(): \DateTimeImmutable

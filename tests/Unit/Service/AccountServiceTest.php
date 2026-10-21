@@ -57,6 +57,8 @@ final class AccountServiceTest extends TestCase
     private array $jobs = [];
     /** @var list<string> */
     private array $notificationCalls = [];
+    /** @var ?\Closure(): void */
+    private ?\Closure $onJobAdded = null;
 
     protected function setUp(): void
     {
@@ -516,6 +518,53 @@ final class AccountServiceTest extends TestCase
         self::assertNull($this->secrets->credentials(self::UID));
     }
 
+    public function testLoginDuringRunDoesNotContactGarmin(): void
+    {
+        $this->connected();
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+        $this->queueSuccessfulLogin();
+
+        try {
+            $this->service()->login(self::UID, 'a@b.de', 'geheim');
+            self::fail('PersonBusyException erwartet');
+        } catch (PersonBusyException) {
+        }
+
+        self::assertSame([], $this->http->requests);
+    }
+
+    public function testLogoutSavesRemovalMarkerBeforeQueueing(): void
+    {
+        $this->connected();
+        $markerWhenQueued = [];
+        $this->onJobAdded = function () use (&$markerWhenQueued): void {
+            $markerWhenQueued[] = $this->users->setup(self::UID)->maintenance;
+        };
+
+        $this->service()->logout(self::UID, Cleanup::Events);
+
+        self::assertSame(['remove'], $markerWhenQueued);
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenance);
+    }
+
+    public function testFailedQueueingRestoresSetup(): void
+    {
+        $this->connected();
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $before = $this->store;
+        $this->onJobAdded = static function (): void {
+            throw new \RuntimeException('Datenbank nicht erreichbar');
+        };
+
+        try {
+            $this->service()->logout(self::UID, Cleanup::Events);
+            self::fail('RuntimeException erwartet');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertSame($before, $this->store);
+    }
+
     public function testLifecycleReleasesLock(): void
     {
         $this->connected();
@@ -563,6 +612,9 @@ final class AccountServiceTest extends TestCase
         $jobList = $this->createMock(IJobList::class);
         $jobList->method('add')->willReturnCallback(function (string $job, $argument = null): void {
             $this->jobs[] = [$job, $argument];
+            if ($this->onJobAdded !== null) {
+                ($this->onJobAdded)();
+            }
         });
         $time = $this->createStub(ITimeFactory::class);
         $time->method('getTime')->willReturn(self::NOW);

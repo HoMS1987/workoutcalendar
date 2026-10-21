@@ -398,6 +398,23 @@ final class ApiControllerTest extends TestCase
         self::assertSame('skipped', $response->getData()['outcome']);
     }
 
+    public function testSyncRouteUsesRunNow(): void
+    {
+        $this->done();
+        $state = $this->users->state(self::UID);
+        $state->nextRunAt = self::NOW + 600;
+        $this->users->saveState(self::UID, $state);
+        $before = $this->store;
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+
+        $response = $this->controller()->sync();
+
+        // Das Einreihen läuft in derselben Sperre wie der Lauf: ist sie belegt, ändert sich nichts.
+        self::assertSame('skipped', $response->getData()['outcome']);
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->http->requests);
+    }
+
     private function done(): void
     {
         $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
