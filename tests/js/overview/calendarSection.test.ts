@@ -45,6 +45,14 @@ describe('CalendarSection', () => {
 		wrapper.unmount()
 	})
 
+	it('says the calendar no longer exists when it is linked but deleted', () => {
+		const wrapper = mount(CalendarSection, { props: { status: makeStatus({ setup: { calendar: { id: 7, name: null, createdByApp: true } } }), locked: false } })
+
+		expect(wrapper.text()).toContain('The calendar no longer exists.')
+		expect(wrapper.text()).not.toContain('No calendar chosen')
+		wrapper.unmount()
+	})
+
 	it('asks whether to move events when changing the calendar', async () => {
 		const wrapper = mount(CalendarSection, { props: { status: makeStatus(), locked: false }, attachTo: document.body })
 		await pickSport(wrapper)

@@ -45,11 +45,13 @@ OC.L10N.register("workoutcalendar", {
     "What should happen to the events?": "Was soll mit den Terminen passieren?",
     "Keep the events": "Termine behalten",
     "Remove the app's events ({count})": "Termine der App entfernen ({count})",
-    "Delete calendar “{name}”": "Kalender „{name}“ löschen",
     "The whole calendar is deleted, including events that do not come from this app.": "Der ganze Kalender wird gelöscht, auch Termine, die nicht von dieser App stammen.",
     "Removing events is not possible while events are being moved or removed.": "Termine lassen sich nicht entfernen, solange Termine verschoben oder entfernt werden.",
     "Use an existing calendar?": "Vorhandenen Kalender verwenden?",
-    "_The calendar “{name}” already contains {n} event._::_The calendar “{name}” already contains {n} events._": ["Der Kalender „{name}“ enthält bereits {n} Termin.", "Der Kalender „{name}“ enthält bereits {n} Termine."],
+    "_The calendar “{name}” already contains {n} event._::_The calendar “{name}” already contains {n} events._": [
+        "Der Kalender „{name}“ enthält bereits {n} Termin.",
+        "Der Kalender „{name}“ enthält bereits {n} Termine."
+    ],
     "Your own events stay unchanged. The app only adds its Garmin activities.": "Deine eigenen Termine bleiben unverändert. Die App fügt nur ihre Garmin-Aktivitäten hinzu.",
     "When you sign out later, the app can remove only its own events, not the calendar itself.": "Wenn du dich später abmeldest, kann die App nur ihre eigenen Termine entfernen, nicht den Kalender selbst.",
     "Choose another": "Anderen wählen",
@@ -92,7 +94,10 @@ OC.L10N.register("workoutcalendar", {
     "Needs attention": "Braucht Aufmerksamkeit",
     "Connected": "Verbunden",
     "In the calendar": "Im Kalender",
-    "_{n} activity_::_{n} activities_": ["{n} Aktivität", "{n} Aktivitäten"],
+    "_{n} activity_::_{n} activities_": [
+        "{n} Aktivität",
+        "{n} Aktivitäten"
+    ],
     "since {date}": "seit {date}",
     "Last sync": "Letzter Sync",
     "Not yet": "Noch nicht",
@@ -111,8 +116,6 @@ OC.L10N.register("workoutcalendar", {
     "How often the app asks Garmin for new activities. Shorter times show new activities sooner.": "Wie oft die App Garmin nach neuen Aktivitäten fragt. Kürzere Zeiten zeigen neue Aktivitäten früher an.",
     "History": "Historie",
     "How far back activities are imported. A longer period imports the missing activities in the background, a shorter one deletes nothing.": "Wie weit zurück Aktivitäten importiert werden. Ein längerer Zeitraum importiert die fehlenden Aktivitäten im Hintergrund, ein kürzerer löscht nichts.",
-    "_{n} hour_::_{n} hours_": ["{n} Stunde", "{n} Stunden"],
-    "_{n} minute_::_{n} minutes_": ["{n} Minute", "{n} Minuten"],
     "1 year": "1 Jahr",
     "{days} days": "{days} Tage",
     "Complete history": "Komplette Historie",
@@ -125,7 +128,6 @@ OC.L10N.register("workoutcalendar", {
     "Garmin account: {email}": "Garmin-Konto: {email}",
     "Calendar: {name}": "Kalender: {name}",
     "The import is still running in the background.": "Der Import läuft noch im Hintergrund.",
-    "_New activities appear in the calendar about every minute._::_New activities appear in the calendar about every {interval} minutes._": ["Neue Aktivitäten erscheinen etwa jede Minute im Kalender.", "Neue Aktivitäten erscheinen etwa alle {interval} Minuten im Kalender."],
     "Go to settings": "Zu den Einstellungen",
     "History: complete": "Historie: komplett",
     "History: 1 year": "Historie: 1 Jahr",
@@ -174,8 +176,28 @@ OC.L10N.register("workoutcalendar", {
     "Your events are being removed from the old calendar. This can take a few minutes.": "Deine Termine werden aus dem alten Kalender entfernt. Das kann einige Minuten dauern.",
     "Moving the events was given up. Some events may still be in the old calendar.": "Das Verschieben der Termine wurde aufgegeben. Einige Termine liegen möglicherweise noch im alten Kalender.",
     "Removing the events was given up. Some events may still be in the old calendar.": "Das Entfernen der Termine wurde aufgegeben. Einige Termine liegen möglicherweise noch im alten Kalender.",
-    "_Importing your history: {n} activity so far._::_Importing your history: {n} activities so far._": ["Import deiner Historie: bisher {n} Aktivität.", "Import deiner Historie: bisher {n} Aktivitäten."],
+    "_Importing your history: {n} activity so far._::_Importing your history: {n} activities so far._": [
+        "Import deiner Historie: bisher {n} Aktivität.",
+        "Import deiner Historie: bisher {n} Aktivitäten."
+    ],
     "Loading …": "Lade …",
     "Loading calendars …": "Lade Kalender …",
-    "Signing in to Garmin …": "Melde bei Garmin an …"
+    "Signing in to Garmin …": "Anmeldung bei Garmin läuft …",
+    "_every hour_::_every {n} hours_": [
+        "jede Stunde",
+        "alle {n} Stunden"
+    ],
+    "_every minute_::_every {n} minutes_": [
+        "jede Minute",
+        "alle {n} Minuten"
+    ],
+    "once a day": "einmal am Tag",
+    "New activities appear in the calendar about {interval}.": "Neue Aktivitäten erscheinen etwa {interval} im Kalender.",
+    "The calendar no longer exists.": "Der Kalender existiert nicht mehr.",
+    "Importing the first activities …": "Die ersten Aktivitäten werden importiert …",
+    "The import starts with the next sync.": "Der Import startet mit dem nächsten Sync.",
+    "Too many attempts. Please try again later.": "Zu viele Versuche. Bitte versuche es später erneut.",
+    "Due": "Fällig",
+    "Events are being reorganised in the background.": "Die Termine werden im Hintergrund neu geordnet.",
+    "Delete calendar “{name}” ({count})": "Kalender „{name}“ löschen ({count})"
 }, "nplurals=2; plural=(n != 1);");

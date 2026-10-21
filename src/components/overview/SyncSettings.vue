@@ -39,21 +39,14 @@
 <script setup lang="ts">
 import type { SettingsDraft } from './settingsDraft.ts'
 
-import { n, t } from '@nextcloud/l10n'
+import { t } from '@nextcloud/l10n'
 import { computed } from 'vue'
+import { intervalLabel } from '../../intervalLabel.ts'
 
 const model = defineModel<SettingsDraft>({ required: true })
 
 function update(change: Partial<SettingsDraft>) {
 	model.value = { ...model.value, ...change }
-}
-
-function intervalLabel(minutes: number): string {
-	if (minutes >= 60 && minutes % 60 === 0) {
-		const hours = minutes / 60
-		return n('workoutcalendar', '{n} hour', '{n} hours', hours, { n: hours }, { escape: false })
-	}
-	return n('workoutcalendar', '{n} minute', '{n} minutes', minutes, { n: minutes }, { escape: false })
 }
 
 // 15, 30, 60 minutes and 2, 6, 12, 24 hours; a stored value outside this list stays selectable.

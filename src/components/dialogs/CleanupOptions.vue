@@ -19,13 +19,13 @@
 			{{ t('workoutcalendar', 'Remove the app\'s events ({count})', { count: eventCount }, { escape: false }) }}
 		</NcCheckboxRadioSwitch>
 		<NcCheckboxRadioSwitch
-			v-if="createdByApp"
+			v-if="createdByApp && calendarName !== ''"
 			v-model="model"
 			type="radio"
 			name="workoutcalendar-cleanup"
 			value="calendar"
 			:disabled="locked">
-			{{ t('workoutcalendar', 'Delete calendar “{name}”', { name: calendarName }, { escape: false }) }}
+			{{ t('workoutcalendar', 'Delete calendar “{name}” ({count})', { name: calendarName, count: eventCount }, { escape: false }) }}
 		</NcCheckboxRadioSwitch>
 		<p v-if="model === 'calendar'" class="cleanup__hint">
 			{{ t('workoutcalendar', 'The whole calendar is deleted, including events that do not come from this app.') }}

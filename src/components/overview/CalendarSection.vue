@@ -2,7 +2,7 @@
 	<section class="calendar-section">
 		<h3>{{ t('workoutcalendar', 'Calendar') }}</h3>
 		<p>
-			{{ status.setup.calendar?.name ?? t('workoutcalendar', 'No calendar chosen') }}
+			{{ calendarText }}
 			<NcButton
 				data-test="change"
 				:disabled="locked || picking"
@@ -60,7 +60,7 @@ import type { CalendarOption, Status } from '../../types.ts'
 import type { CalendarChoice } from '../calendarChoice.ts'
 
 import { t } from '@nextcloud/l10n'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
@@ -77,6 +77,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ status: [status: Status] }>()
+
+// A linked calendar without a name was deleted in the meantime.
+const calendarText = computed(() => {
+	const calendar = props.status.setup.calendar
+	if (calendar === null) {
+		return t('workoutcalendar', 'No calendar chosen')
+	}
+	return calendar.name ?? t('workoutcalendar', 'The calendar no longer exists.')
+})
 
 const picking = ref(false)
 const loading = ref(false)

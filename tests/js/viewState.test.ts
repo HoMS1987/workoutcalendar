@@ -24,6 +24,7 @@ describe('deriveView, one row per row of the state table', () => {
 		['done, nothing pending', makeStatus(), 'overview', [], false, false],
 		['done, maintenance move', makeStatus({ setup: { maintenance: 'move' } }), 'overview', ['maintenanceMove'], true, true],
 		['done, maintenance remove', makeStatus({ setup: { maintenance: 'remove' } }), 'overview', ['maintenanceRemove'], true, true],
+		['done, unknown maintenance value', makeStatus({ setup: { maintenance: 'rebuild' } }), 'overview', ['maintenanceOther'], true, true],
 		['done, maintenanceFailed move', makeStatus({ setup: { maintenanceFailed: 'move' } }), 'overview', ['maintenanceFailedMove'], false, false],
 		['done, maintenanceFailed remove', makeStatus({ setup: { maintenanceFailed: 'remove' } }), 'overview', ['maintenanceFailedRemove'], false, false],
 	]
