@@ -31,3 +31,7 @@ Thumbs.db
 # PHPUnit
 .phpunit.result.cache
 .phpunit.cache/
+
+# Frontend build output
+/js/
+/css/

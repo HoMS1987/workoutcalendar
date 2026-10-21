@@ -64,6 +64,13 @@ final class NotifierTest extends TestCase
         self::assertSame('https://cloud.example/settings/user/workoutcalendar', $prepared->getLink());
     }
 
+    public function testIconIsTheDarkAppIconAsAbsoluteUrl(): void
+    {
+        $prepared = $this->notifier()->prepare($this->notification('INVALID_CREDENTIALS'), 'de');
+
+        self::assertSame('https://cloud.example/apps/workoutcalendar/img/app-dark.svg', $prepared->getIcon());
+    }
+
     public function testUnknownSubjectThrowsUnknownNotification(): void
     {
         $this->expectException(UnknownNotificationException::class);
@@ -101,6 +108,17 @@ final class NotifierTest extends TestCase
 
                 return 'https://cloud.example/settings/user/workoutcalendar';
             },
+        );
+
+        $urls->method('imagePath')->willReturnCallback(
+            static function (string $app, string $image): string {
+                self::assertSame('workoutcalendar', $app);
+
+                return '/apps/workoutcalendar/img/' . $image;
+            },
+        );
+        $urls->method('getAbsoluteURL')->willReturnCallback(
+            static fn (string $url): string => 'https://cloud.example' . $url,
         );
 
         return new Notifier($factory, $urls);
