@@ -63,7 +63,11 @@ const nextText = computed(() => {
 		return t('workoutcalendar', 'Paused')
 	}
 	const next = props.status.sync.nextRunAt
-	return next === null ? t('workoutcalendar', 'Not scheduled') : formatRelative(next)
+	if (next === null) {
+		return t('workoutcalendar', 'Not scheduled')
+	}
+	// A run that is overdue is due now; a past relative time would read like a stale value.
+	return next <= Date.now() / 1000 ? t('workoutcalendar', 'Due') : formatRelative(next)
 })
 
 function outcomeText(outcome: RunOutcome): string {

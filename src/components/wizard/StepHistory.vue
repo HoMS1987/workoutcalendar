@@ -29,13 +29,24 @@
 			{{ error }}
 		</NcNoteCard>
 
+		<p v-if="busy"
+			class="step__importing"
+			role="status"
+			data-test="importing">
+			<NcLoadingIcon :size="20" />
+			{{ t('workoutcalendar', 'Importing the first activities …') }}
+		</p>
+
 		<div v-if="started" class="step__progress" role="status">
 			<p>{{ progressText }}</p>
 			<p v-if="status.sync.backfill.running" class="step__hint">
 				{{ t('workoutcalendar', 'The next stage follows in about 5 minutes.') }}
 			</p>
-			<p v-else class="step__hint">
+			<p v-else-if="status.sync.lastSuccessAt !== null" class="step__hint">
 				{{ t('workoutcalendar', 'The import is complete.') }}
+			</p>
+			<p v-else class="step__hint">
+				{{ t('workoutcalendar', 'The import starts with the next sync.') }}
 			</p>
 		</div>
 
@@ -66,6 +77,7 @@ import { getCanonicalLocale, n, t } from '@nextcloud/l10n'
 import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { ApiError, chooseHistory } from '../../api.ts'
 import { apiErrorText } from '../../messages.ts'
@@ -159,6 +171,13 @@ async function start() {
 
 .step__explanation {
 	display: block;
+	color: var(--color-text-maxcontrast);
+}
+
+.step__importing {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	color: var(--color-text-maxcontrast);
 }
 

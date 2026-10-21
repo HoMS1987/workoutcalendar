@@ -71,6 +71,23 @@ describe('AccountSection', () => {
 		foreign.unmount()
 	})
 
+	it('names the event count in the calendar deletion option', async () => {
+		const wrapper = mountSection(makeStatus({ sync: { eventCount: 340 } }))
+		await open(wrapper, 'logout')
+
+		expect(document.body.textContent).toContain('Delete calendar “Garmin-Aktivitäten” (340)')
+		wrapper.unmount()
+	})
+
+	it('hides the calendar deletion when the linked calendar no longer exists', async () => {
+		const wrapper = mountSection(makeStatus({ setup: { calendar: { id: 7, name: null, createdByApp: true } } }))
+		await open(wrapper, 'logout')
+
+		expect(document.body.textContent).toContain('Remove the app\'s events')
+		expect(document.body.textContent).not.toContain('Delete calendar')
+		wrapper.unmount()
+	})
+
 	it('signs out without cleanup by default and passes the chosen cleanup', async () => {
 		const wrapper = mountSection()
 		await open(wrapper, 'logout')

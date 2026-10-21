@@ -38,6 +38,26 @@ describe('StepHistory', () => {
 		expect(wrapper.emitted('started')).toHaveLength(1)
 	})
 
+	it('shows a progress line while the import starts', async () => {
+		let resolve: (status: typeof running) => void = () => {}
+		chooseHistory.mockReturnValue(new Promise((r) => {
+			resolve = r
+		}))
+		const wrapper = mount(StepHistory, { props: { status: fresh, started: false } })
+
+		await wrapper.find('button[data-test="start"]').trigger('click')
+
+		const line = wrapper.find('[data-test="importing"]')
+		expect(line.exists()).toBe(true)
+		expect(line.attributes('role')).toBe('status')
+		expect(line.text()).toContain('Importing the first activities …')
+		expect(line.findComponent({ name: 'NcLoadingIcon' }).exists()).toBe(true)
+
+		resolve(running)
+		await flushPromises()
+		expect(wrapper.find('[data-test="importing"]').exists()).toBe(false)
+	})
+
 	it('sends 90 by default', async () => {
 		chooseHistory.mockResolvedValue(running)
 		const wrapper = mount(StepHistory, { props: { status: fresh, started: false } })
@@ -58,6 +78,23 @@ describe('StepHistory', () => {
 		await next.trigger('click')
 
 		expect(wrapper.emitted('next')).toHaveLength(1)
+	})
+})
+
+describe('StepHistory completion text', () => {
+	const idle = (lastSuccessAt: number | null) => makeStatus({ sync: { eventCount: 12, lastSuccessAt, backfill: { running: false } } })
+
+	it('says the import is complete only after a successful sync', () => {
+		const wrapper = mount(StepHistory, { props: { status: idle(1_760_000_000), started: true } })
+
+		expect(wrapper.text()).toContain('The import is complete.')
+	})
+
+	it('announces the first sync instead when none has succeeded yet', () => {
+		const wrapper = mount(StepHistory, { props: { status: idle(null), started: true } })
+
+		expect(wrapper.text()).toContain('The import starts with the next sync.')
+		expect(wrapper.text()).not.toContain('The import is complete.')
 	})
 })
 

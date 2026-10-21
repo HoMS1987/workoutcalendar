@@ -33,6 +33,27 @@ describe('StepDone', () => {
 		expect(wrapper.text()).not.toContain('still running')
 	})
 
+	it('says the calendar no longer exists when it is linked but deleted', () => {
+		const status = statusWith(90)
+		status.setup.calendar = { id: 7, name: null, createdByApp: true }
+		const wrapper = mount(StepDone, { props: { status } })
+
+		expect(wrapper.text()).toContain('Calendar: The calendar no longer exists.')
+	})
+
+	it.each([
+		[15, 'about every 15 minutes'],
+		[60, 'about every hour'],
+		[120, 'about every 2 hours'],
+		[1440, 'about once a day'],
+	])('words the interval of %s minutes like the settings', (minutes, text) => {
+		const status = statusWith(90)
+		status.settings.intervalMinutes = minutes
+		const wrapper = mount(StepDone, { props: { status } })
+
+		expect(wrapper.text()).toContain(`New activities appear in the calendar ${text}.`)
+	})
+
 	it('says when the import is still running', () => {
 		const wrapper = mount(StepDone, { props: { status: statusWith(90, true) } })
 

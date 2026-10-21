@@ -7,6 +7,7 @@ export type Hint = 'paused'
 	| 'calendarMissing'
 	| 'maintenanceMove'
 	| 'maintenanceRemove'
+	| 'maintenanceOther'
 	| 'maintenanceFailedMove'
 	| 'maintenanceFailedRemove'
 	| 'backfill'
@@ -58,6 +59,9 @@ function hintsOf(status: Status): Hint[] {
 		hints.push('maintenanceMove')
 	} else if (setup.maintenance === 'remove') {
 		hints.push('maintenanceRemove')
+	} else if (setup.maintenance !== null) {
+		// A value this version does not know still locks the page; say so in general terms.
+		hints.push('maintenanceOther')
 	}
 	if (status.sync.backfill.running) {
 		hints.push('backfill')

@@ -43,6 +43,9 @@ export function apiErrorText(e: ApiError): string {
 	if (e.status === 401 || e.code === 'notLoggedIn') {
 		return t(APP, 'Your session has expired. Please reload the page.')
 	}
+	if (e.status === 429) {
+		return t(APP, 'Too many attempts. Please try again later.')
+	}
 	if (e.code === 'network') {
 		return t(APP, 'No connection to the server. Please check your connection and try again.')
 	}
@@ -96,6 +99,8 @@ export function hintText(h: Hint, status: Status): string {
 			return t(APP, 'Your events are being moved to the new calendar. This can take a few minutes.')
 		case 'maintenanceRemove':
 			return t(APP, 'Your events are being removed from the old calendar. This can take a few minutes.')
+		case 'maintenanceOther':
+			return t(APP, 'Events are being reorganised in the background.')
 		case 'maintenanceFailedMove':
 			return t(APP, 'Moving the events was given up. Some events may still be in the old calendar.')
 		case 'maintenanceFailedRemove':

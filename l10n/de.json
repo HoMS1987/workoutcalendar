@@ -46,7 +46,6 @@
         "What should happen to the events?": "Was soll mit den Terminen passieren?",
         "Keep the events": "Termine behalten",
         "Remove the app's events ({count})": "Termine der App entfernen ({count})",
-        "Delete calendar “{name}”": "Kalender „{name}“ löschen",
         "The whole calendar is deleted, including events that do not come from this app.": "Der ganze Kalender wird gelöscht, auch Termine, die nicht von dieser App stammen.",
         "Removing events is not possible while events are being moved or removed.": "Termine lassen sich nicht entfernen, solange Termine verschoben oder entfernt werden.",
         "Use an existing calendar?": "Vorhandenen Kalender verwenden?",
@@ -118,14 +117,6 @@
         "How often the app asks Garmin for new activities. Shorter times show new activities sooner.": "Wie oft die App Garmin nach neuen Aktivitäten fragt. Kürzere Zeiten zeigen neue Aktivitäten früher an.",
         "History": "Historie",
         "How far back activities are imported. A longer period imports the missing activities in the background, a shorter one deletes nothing.": "Wie weit zurück Aktivitäten importiert werden. Ein längerer Zeitraum importiert die fehlenden Aktivitäten im Hintergrund, ein kürzerer löscht nichts.",
-        "_{n} hour_::_{n} hours_": [
-            "{n} Stunde",
-            "{n} Stunden"
-        ],
-        "_{n} minute_::_{n} minutes_": [
-            "{n} Minute",
-            "{n} Minuten"
-        ],
         "1 year": "1 Jahr",
         "{days} days": "{days} Tage",
         "Complete history": "Komplette Historie",
@@ -138,10 +129,6 @@
         "Garmin account: {email}": "Garmin-Konto: {email}",
         "Calendar: {name}": "Kalender: {name}",
         "The import is still running in the background.": "Der Import läuft noch im Hintergrund.",
-        "_New activities appear in the calendar about every minute._::_New activities appear in the calendar about every {interval} minutes._": [
-            "Neue Aktivitäten erscheinen etwa jede Minute im Kalender.",
-            "Neue Aktivitäten erscheinen etwa alle {interval} Minuten im Kalender."
-        ],
         "Go to settings": "Zu den Einstellungen",
         "History: complete": "Historie: komplett",
         "History: 1 year": "Historie: 1 Jahr",
@@ -196,7 +183,24 @@
         ],
         "Loading …": "Lade …",
         "Loading calendars …": "Lade Kalender …",
-        "Signing in to Garmin …": "Melde bei Garmin an …"
+        "Signing in to Garmin …": "Anmeldung bei Garmin läuft …",
+        "_every hour_::_every {n} hours_": [
+            "jede Stunde",
+            "alle {n} Stunden"
+        ],
+        "_every minute_::_every {n} minutes_": [
+            "jede Minute",
+            "alle {n} Minuten"
+        ],
+        "once a day": "einmal am Tag",
+        "New activities appear in the calendar about {interval}.": "Neue Aktivitäten erscheinen etwa {interval} im Kalender.",
+        "The calendar no longer exists.": "Der Kalender existiert nicht mehr.",
+        "Importing the first activities …": "Die ersten Aktivitäten werden importiert …",
+        "The import starts with the next sync.": "Der Import startet mit dem nächsten Sync.",
+        "Too many attempts. Please try again later.": "Zu viele Versuche. Bitte versuche es später erneut.",
+        "Due": "Fällig",
+        "Events are being reorganised in the background.": "Die Termine werden im Hintergrund neu geordnet.",
+        "Delete calendar “{name}” ({count})": "Kalender „{name}“ löschen ({count})"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -53,7 +53,18 @@ describe('apiErrorText', () => {
 	})
 })
 
+describe('apiErrorText for rate limits', () => {
+	it('names too many attempts for HTTP 429 regardless of the code', () => {
+		expect(apiErrorText(new ApiError(429, 'internal'))).toBe('Too many attempts. Please try again later.')
+		expect(apiErrorText(new ApiError(429, 'whatever'))).toBe('Too many attempts. Please try again later.')
+	})
+})
+
 describe('hintText', () => {
+	it('has a general hint for an unknown maintenance value', () => {
+		expect(hintText('maintenanceOther', makeStatus({ setup: { maintenance: 'rebuild' } }))).toBe('Events are being reorganised in the background.')
+	})
+
 	it('names the calendar when it is missing', () => {
 		const status = makeStatus({ setup: { calendarMissing: true, calendar: { id: 1, name: 'Fitness', createdByApp: false } } })
 		expect(hintText('calendarMissing', status)).toContain('Fitness')
