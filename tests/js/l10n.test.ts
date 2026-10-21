@@ -22,6 +22,29 @@ function unquote(single: string | undefined, double: string | undefined): string
 	return (single ?? double ?? '').replace(/\\(['"\\])/g, '$1')
 }
 
+// Every call of t()/n() for this app, up to the opening of its first text argument.
+const CALL_START = /\b(t|n)\(\s*(?:APP|'workoutcalendar'|"workoutcalendar")\s*,\s*/g
+// The text arguments a call must start with: one literal for t(), two for n(), each ending at "," or ")".
+const LITERAL_T = new RegExp(String.raw`^${STRING}\s*[,)]`)
+const LITERAL_N = new RegExp(String.raw`^${STRING}\s*,\s*${STRING}\s*[,)]`)
+
+/**
+ * Calls whose text is not a plain string literal; such a text cannot be extracted for translation.
+ *
+ * @param code Source code to scan
+ */
+function nonLiteralCalls(code: string): string[] {
+	const found: string[] = []
+	for (const match of code.matchAll(CALL_START)) {
+		const rest = code.slice(match.index + match[0].length)
+		const literal = match[1] === 'n' ? LITERAL_N : LITERAL_T
+		if (!literal.test(rest)) {
+			found.push(code.slice(match.index, match.index + match[0].length + 40).split('\n')[0])
+		}
+	}
+	return found
+}
+
 type Source = { singular: string, plural: string | null }
 
 function uiStrings(): Source[] {
@@ -98,6 +121,23 @@ describe('German translation', () => {
 				expect(form, source).not.toBe('')
 			}
 		}
+	})
+
+	it('recognises texts that cannot be extracted', () => {
+		expect(nonLiteralCalls("t('workoutcalendar', text)")).toHaveLength(1)
+		expect(nonLiteralCalls('t(APP, `Hello ${name}`)')).toHaveLength(1)
+		expect(nonLiteralCalls("t('workoutcalendar', 'Hello ' + name)")).toHaveLength(1)
+		expect(nonLiteralCalls("n('workoutcalendar', '{n} day', plural, count)")).toHaveLength(1)
+		expect(nonLiteralCalls("n(APP, singular, '{n} days', count)")).toHaveLength(1)
+		expect(nonLiteralCalls(String.raw`t('workoutcalendar', 'It\'s fine', { n: 1 })`)).toEqual([])
+		expect(nonLiteralCalls("t(\n\t'workoutcalendar',\n\t'Multi-line'\n)")).toEqual([])
+		expect(nonLiteralCalls("n(APP, '{n} day', \"{n} days\", count)")).toEqual([])
+	})
+
+	it('only uses string literals as texts, so every text can be extracted', () => {
+		const offenders = sourceFiles(join(root, 'src')).flatMap((file) => nonLiteralCalls(readFileSync(file, 'utf8')).map((call) => `${file}: ${call}`))
+
+		expect(offenders).toEqual([])
 	})
 
 	it('holds identical translations in de.js and de.json', () => {
