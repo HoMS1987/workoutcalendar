@@ -29,7 +29,8 @@
 			{{ error }}
 		</NcNoteCard>
 
-		<p v-if="busy"
+		<p
+			v-if="busy"
 			class="step__importing"
 			role="status"
 			data-test="importing">
