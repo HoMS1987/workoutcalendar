@@ -93,4 +93,18 @@ describe('deriveView, rules below the table', () => {
 		expect(deriveView(makeStatus({ sync: { backfill: { running: true } } }), false).polling).toBe(true)
 		expect(deriveView(makeStatus({ setup: { maintenance: 'remove' } }), false).polling).toBe(true)
 	})
+
+	it('polls while the import for a newly chosen calendar waits for its first run', () => {
+		// A calendar change without moving events starts over: no run yet, the next cron run imports.
+		const pending = { sync: { lastRunAt: null, lastSuccessAt: null, eventCount: 0, oldestActivityDate: null } }
+		expect(deriveView(makeStatus(pending), false).polling).toBe(true)
+	})
+
+	it('does not wait for a first run that cannot happen', () => {
+		const pending = { lastRunAt: null, lastSuccessAt: null, eventCount: 0, oldestActivityDate: null }
+		expect(deriveView(makeStatus({ sync: pending, paused: 'INVALID_CREDENTIALS' }), false).polling).toBe(false)
+		expect(deriveView(makeStatus({ sync: pending, setup: { calendarMissing: true } }), false).polling).toBe(false)
+		expect(deriveView(makeStatus({ sync: pending, setup: { connected: false } }), false).polling).toBe(false)
+		expect(deriveView(makeStatus({ sync: pending, setup: { step: 'history' } }), false).polling).toBe(false)
+	})
 })
