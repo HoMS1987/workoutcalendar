@@ -8,7 +8,9 @@
     "dev": "vite --mode development build",
     "watch": "vite --mode development build --watch",
     "lint": "eslint src tests/js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit",
+    "prepublishOnly": "echo \"workoutcalendar is not published to npm\" && exit 1"
   },
   "browserslist": [
     "extends @nextcloud/browserslist-config"
@@ -36,6 +38,7 @@
     "happy-dom": "^21.0.4",
     "typescript": "^6.0.3",
     "vite": "^7.3.7",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "vue-tsc": "^3.3.13"
   }
 }
