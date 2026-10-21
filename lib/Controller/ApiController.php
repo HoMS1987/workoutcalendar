@@ -77,7 +77,7 @@ final class ApiController extends Controller
             $this->accounts->login($uid, $email, $password);
 
             return $this->status->status($uid);
-        });
+        }, logMessage: false);
     }
 
     #[NoAdminRequired]
@@ -211,8 +211,15 @@ final class ApiController extends Controller
                 $changes['deletionMode'] = $deletionMode;
             }
             $this->lock->run($uid, function () use ($uid, $changes): void {
-                $settings = [...$this->users->settings($uid)->toArray(), ...$changes];
-                $this->users->saveSettings($uid, SyncSettings::fromArray($settings));
+                $previous = $this->users->settings($uid);
+                $settings = SyncSettings::fromArray([...$previous->toArray(), ...$changes]);
+                $this->users->saveSettings($uid, $settings);
+                $state = $this->users->state($uid);
+                if ($settings->intervalMinutes !== $previous->intervalMinutes && $state->nextRunAt !== null) {
+                    // Wer in der Warteschlange steht, bekommt den nächsten Lauf nach dem neuen Intervall.
+                    $state->nextRunAt = $settings->nextRunAt($this->time->getTime());
+                    $this->users->saveState($uid, $state);
+                }
             });
 
             return $this->status->status($uid);
@@ -220,6 +227,7 @@ final class ApiController extends Controller
     }
 
     #[NoAdminRequired]
+    #[UserRateLimit(limit: 30, period: 3600)]
     #[FrontpageRoute(verb: 'POST', url: '/api/sync')]
     public function sync(): JSONResponse
     {
@@ -254,8 +262,11 @@ final class ApiController extends Controller
         });
     }
 
-    /** @param callable(string): array<string, mixed> $action */
-    private function handle(callable $action): JSONResponse
+    /**
+     * @param callable(string): array<string, mixed> $action
+     * @param bool $logMessage false, wenn Meldungen Zugangsdaten enthalten könnten (Anmeldung)
+     */
+    private function handle(callable $action, bool $logMessage = true): JSONResponse
     {
         $user = $this->session->getUser();
         if ($user === null) {
@@ -271,8 +282,12 @@ final class ApiController extends Controller
         } catch (\InvalidArgumentException) {
             return new JSONResponse(['error' => 'invalidRequest'], Http::STATUS_BAD_REQUEST);
         } catch (\Throwable $e) {
-            // Nur die Klasse: Meldung und Anfrage könnten Zugangsdaten enthalten.
-            $this->logger->error('Anfrage der Einstellungsseite fehlgeschlagen', ['exceptionClass' => $e::class]);
+            // Bei der Anmeldung nur die Klasse: Meldung und Anfrage könnten Zugangsdaten enthalten.
+            $context = ['exceptionClass' => $e::class];
+            if ($logMessage) {
+                $context['message'] = $e->getMessage();
+            }
+            $this->logger->error('Anfrage der Einstellungsseite fehlgeschlagen', $context);
 
             return new JSONResponse(['error' => 'internal'], Http::STATUS_INTERNAL_SERVER_ERROR);
         }

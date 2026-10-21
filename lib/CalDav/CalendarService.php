@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\CalDav;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+
 /**
  * Kalenderverwaltung für Einstellungen und Hintergrundjobs: Kalender suchen, anlegen und löschen,
  * Termine der App zählen, verschieben und entfernen. Fremde Termine bleiben unangetastet.
@@ -14,6 +17,7 @@ final class CalendarService
 
     public function __construct(
         private readonly CalendarObjects $objects,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -76,15 +80,29 @@ final class CalendarService
     }
 
     /**
-     * Verschiebt höchstens `limit` Termine der App. Gibt es die URI im Ziel schon, wird nur die
-     * Quelle gelöscht.
+     * Verschiebt höchstens `limit` Termine der App. Liegt unter der URI im Ziel schon ein Termin der
+     * App, wird nur die Quelle gelöscht. Liegt dort ein fremdes Objekt, bleibt die Quelle stehen und
+     * zählt nicht mehr zum Rest, damit der Wartungsjob fertig wird.
      *
-     * @return int Zahl der Termine der App, die noch in der Quelle liegen
+     * @return int Zahl der Termine der App, die noch verschoben werden können
      */
     public function moveAppEvents(int $from, int $to, int $limit): int
     {
         $pending = $this->appObjects($from);
         $existing = array_flip($this->objects->uris($to));
+        $collisions = array_values(array_filter(array_keys($pending), static fn (string $uri): bool => isset($existing[$uri])));
+        $appInTarget = [];
+        foreach ($collisions === [] ? [] : $this->objects->get($to, $collisions) as $uri => $ics) {
+            if (AppObjects::isAppObject((string)$uri, $ics)) {
+                $appInTarget[(string)$uri] = true;
+            }
+        }
+        foreach ($collisions as $uri) {
+            if (!isset($appInTarget[$uri])) {
+                $this->logger->debug('Termin bleibt im alten Kalender, im neuen liegt unter der URI ein fremdes Objekt', ['uri' => $uri]);
+                unset($pending[$uri]);
+            }
+        }
         foreach (array_slice($pending, 0, max(0, $limit), true) as $uri => $ics) {
             if (!isset($existing[$uri])) {
                 $this->objects->create($to, $uri, $ics);

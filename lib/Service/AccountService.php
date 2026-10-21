@@ -60,6 +60,13 @@ final class AccountService
             : $this->users->state($uid);
         $state->pausedFor = null;
         $state->notifiedCategory = null;
+        // Nach erfolgreicher Anmeldung zeigt der Status keinen alten Fehler mehr.
+        $state->failureCategory = null;
+        $state->failureStep = null;
+        $state->failureMessage = null;
+        $state->failureSince = null;
+        $state->failureCount = 0;
+        $state->failureReportedAt = null;
 
         $step = match (true) {
             $previous->calendarId === null => SetupStep::Calendar,

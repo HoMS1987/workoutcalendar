@@ -29,6 +29,7 @@ use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCA\WorkoutCalendar\Tests\Support\RecordingNotification;
+use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
@@ -248,18 +249,71 @@ final class ApiControllerTest extends TestCase
         self::assertSame('garmin', $response->getData()['status']['setup']['step']);
     }
 
-    public function testUnexpectedErrorIsLoggedWithoutDetails(): void
+    public function testUnexpectedErrorIsLoggedWithClassAndMessage(): void
     {
         $this->done();
-        $this->http->queue(new \RuntimeException('Geheim anna@example.org'));
+        $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
+        $this->http->queue(new \RuntimeException('Kalender kaputt'));
 
         $response = $this->controller()->sync();
 
         self::assertSame(500, $response->getStatus());
         self::assertSame(['error' => 'internal'], $response->getData());
         self::assertCount(1, $this->logger->records);
+        self::assertSame(['exceptionClass' => \RuntimeException::class, 'message' => 'Kalender kaputt'], $this->logger->records[0]['context']);
+    }
+
+    public function testUnexpectedLoginErrorIsLoggedWithoutDetails(): void
+    {
+        $this->http->queue(new \RuntimeException('Geheim anna@example.org'));
+
+        $response = $this->controller()->login('anna@example.org', 'geheim');
+
+        self::assertSame(500, $response->getStatus());
+        self::assertSame(['error' => 'internal'], $response->getData());
+        self::assertCount(1, $this->logger->records);
         self::assertSame(['exceptionClass' => \RuntimeException::class], $this->logger->records[0]['context']);
         self::assertStringNotContainsString('Geheim', $this->logger->dump());
+    }
+
+    public function testSyncIsRateLimited(): void
+    {
+        $attributes = (new \ReflectionMethod(ApiController::class, 'sync'))->getAttributes(UserRateLimit::class);
+
+        self::assertCount(1, $attributes);
+        self::assertSame(['limit' => 30, 'period' => 3600], $attributes[0]->getArguments());
+    }
+
+    public function testIntervalChangeReschedulesQueuedPerson(): void
+    {
+        $this->done();
+        $state = $this->users->state(self::UID);
+        $state->nextRunAt = self::NOW + 600;
+        $this->users->saveState(self::UID, $state);
+
+        $this->controller()->updateSettings(intervalMinutes: 120);
+
+        // 120 Minuten ± 20 %.
+        $nextRunAt = $this->users->state(self::UID)->nextRunAt;
+        self::assertNotNull($nextRunAt);
+        self::assertGreaterThanOrEqual(self::NOW + 96 * 60, $nextRunAt);
+        self::assertLessThanOrEqual(self::NOW + 144 * 60, $nextRunAt);
+    }
+
+    public function testSettingsChangeKeepsScheduleOtherwise(): void
+    {
+        $this->done();
+        $state = $this->users->state(self::UID);
+        $state->nextRunAt = self::NOW + 600;
+        $this->users->saveState(self::UID, $state);
+
+        $this->controller()->updateSettings(intervalMinutes: 30, deletionMode: 'keep');
+        self::assertSame(self::NOW + 600, $this->users->state(self::UID)->nextRunAt);
+
+        $state->nextRunAt = null;
+        $this->users->saveState(self::UID, $state);
+        $this->controller()->updateSettings(intervalMinutes: 60);
+        self::assertNull($this->users->state(self::UID)->nextRunAt);
     }
 
     public function testForeignCalendarIsRejected(): void
