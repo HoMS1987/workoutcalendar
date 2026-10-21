@@ -81,7 +81,7 @@ final class IcsSerializerTest extends TestCase
         $ics = self::serialize(self::event('🏃 ' . $name, $name));
 
         foreach (explode("\r\n", rtrim($ics, "\r\n")) as $line) {
-            self::assertLessThanOrEqual(75, strlen($line), "Zeile zu lang: $line");
+            self::assertLessThanOrEqual(75, strlen($line), "Line too long: $line");
             self::assertTrue(mb_check_encoding($line, 'UTF-8'), "Mehrbytezeichen zerschnitten: $line");
         }
         $lines = self::unfold($ics);

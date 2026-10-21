@@ -22,7 +22,7 @@ final class CurlHttpClientTest extends TestCase
         $descriptors = [0 => ['pipe', 'r'], 1 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'w'], 2 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'w']];
         $process = proc_open($command, $descriptors, $pipes);
         if (!is_resource($process)) {
-            self::fail('Fixture-Server konnte nicht gestartet werden');
+            self::fail('Fixture server could not be started');
         }
         self::$process = $process;
 
@@ -36,7 +36,7 @@ final class CurlHttpClientTest extends TestCase
             }
             usleep(50_000);
         }
-        self::fail('Fixture-Server antwortet nicht auf Port ' . self::$port);
+        self::fail('Fixture server does not answer on port ' . self::$port);
     }
 
     public static function tearDownAfterClass(): void
@@ -52,7 +52,7 @@ final class CurlHttpClientTest extends TestCase
     {
         $server = stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
         if ($server === false) {
-            self::fail("Kein freier Port: $errstr");
+            self::fail("No free port: $errstr");
         }
         $name = stream_socket_get_name($server, false);
         fclose($server);

@@ -101,7 +101,7 @@ final class DavCalendarObjectsTest extends TestCase
         $uris = $this->objects->uris($id);
         sort($uris);
         self::assertSame(['garmin-42.ics', 'garmin-43.ics'], $uris);
-        self::assertSame(['garmin-42.ics' => $ics], $this->objects->get($id, ['garmin-42.ics', 'fehlt.ics']));
+        self::assertSame(['garmin-42.ics' => $ics], $this->objects->get($id, ['garmin-42.ics', 'missing.ics']));
 
         $this->objects->update($id, 'garmin-42.ics', (new DeletedMarker())->apply($ics, $now));
         self::assertTrue($reader->isMarkedDeleted($this->objects->get($id, ['garmin-42.ics'])['garmin-42.ics']));
@@ -127,7 +127,7 @@ final class DavCalendarObjectsTest extends TestCase
         self::assertContains(
             $shared,
             array_map(static fn (array $c): int => (int)$c['id'], $this->backend->getCalendarsForUser("principals/users/$anna")),
-            'Vorbedingung: Die Freigabe ist bei Anna angekommen',
+            'Precondition: the share has reached Anna',
         );
         self::assertNotContains($shared, $this->ownIds($anna));
         self::assertContains($shared, $this->ownIds($bert));

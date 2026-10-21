@@ -39,18 +39,18 @@ final class StorageRoundTripTest extends TestCase
     {
         $secrets = new SecretStore($this->config, Server::get(ICrypto::class), new NullLogger());
 
-        $secrets->saveCredentials($this->uid, new Credentials('anna@example.org', 'geheim-123'));
+        $secrets->saveCredentials($this->uid, new Credentials('anna@example.org', 'secret-123'));
         $secrets->saveTokens($this->uid, new GarminTokens('access-xyz', 'refresh-xyz', 'client'));
 
         $credentials = $secrets->credentials($this->uid);
         self::assertSame('anna@example.org', $credentials?->email);
-        self::assertSame('geheim-123', $credentials?->password);
+        self::assertSame('secret-123', $credentials?->password);
         self::assertEquals(new GarminTokens('access-xyz', 'refresh-xyz', 'client'), $secrets->tokens($this->uid));
 
         foreach (['credentials', 'tokens'] as $key) {
             $raw = $this->config->getValueString($this->uid, Application::APP_ID, $key, '', true);
             self::assertNotSame('', $raw);
-            foreach (['anna@example.org', 'geheim-123', 'access-xyz', 'refresh-xyz'] as $secret) {
+            foreach (['anna@example.org', 'secret-123', 'access-xyz', 'refresh-xyz'] as $secret) {
                 self::assertStringNotContainsString($secret, $raw);
             }
         }

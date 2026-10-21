@@ -40,7 +40,7 @@ final class DiTokenServiceTest extends TestCase
 
         try {
             (new DiTokenService($http))->exchangeTicket('ST-1', 'https://svc', 'mobile');
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::ProtocolChanged, $e->category);
             self::assertSame('mobile.di-exchange', $e->step);
@@ -53,7 +53,7 @@ final class DiTokenServiceTest extends TestCase
 
         try {
             (new DiTokenService($http))->exchangeTicket('ST-1', 'https://svc', 'mobile');
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::Blocked, $e->category);
             self::assertCount(1, $http->requests);
@@ -62,13 +62,13 @@ final class DiTokenServiceTest extends TestCase
 
     public function testRefreshKeepsOldRefreshTokenWhenNoneReturned(): void
     {
-        $http = new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => 'neu']));
+        $http = new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => 'new']));
 
-        $tokens = (new DiTokenService($http))->refresh(new GarminTokens('alt', 'r-alt', 'CLIENT'));
+        $tokens = (new DiTokenService($http))->refresh(new GarminTokens('old', 'r-old', 'CLIENT'));
 
-        self::assertSame(['neu', 'r-alt', 'CLIENT'], [$tokens->accessToken, $tokens->refreshToken, $tokens->clientId]);
+        self::assertSame(['new', 'r-old', 'CLIENT'], [$tokens->accessToken, $tokens->refreshToken, $tokens->clientId]);
         parse_str((string)$http->requests[0]->body, $form);
-        self::assertSame(['grant_type' => 'refresh_token', 'client_id' => 'CLIENT', 'refresh_token' => 'r-alt'], $form);
+        self::assertSame(['grant_type' => 'refresh_token', 'client_id' => 'CLIENT', 'refresh_token' => 'r-old'], $form);
     }
 
     public function testRejectedRefreshTokenIsTokenRejected(): void
@@ -76,8 +76,8 @@ final class DiTokenServiceTest extends TestCase
         $http = new FakeHttpClient(FakeHttpClient::json(400, ['error' => 'invalid_grant']));
 
         try {
-            (new DiTokenService($http))->refresh(new GarminTokens('alt', 'r-alt', 'CLIENT'));
-            self::fail('GarminException erwartet');
+            (new DiTokenService($http))->refresh(new GarminTokens('old', 'r-old', 'CLIENT'));
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::TokenRejected, $e->category);
             self::assertSame(400, $e->status);
@@ -87,8 +87,8 @@ final class DiTokenServiceTest extends TestCase
     public function testRefreshWithoutRefreshTokenIsTokenRejected(): void
     {
         try {
-            (new DiTokenService(new FakeHttpClient()))->refresh(new GarminTokens('alt', null, 'CLIENT'));
-            self::fail('GarminException erwartet');
+            (new DiTokenService(new FakeHttpClient()))->refresh(new GarminTokens('old', null, 'CLIENT'));
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::TokenRejected, $e->category);
         }
@@ -99,8 +99,8 @@ final class DiTokenServiceTest extends TestCase
         $http = new FakeHttpClient(FakeHttpClient::json(200, ['token' => 'umbenannt']));
 
         try {
-            (new DiTokenService($http))->refresh(new GarminTokens('alt', 'r', 'CLIENT'));
-            self::fail('GarminException erwartet');
+            (new DiTokenService($http))->refresh(new GarminTokens('old', 'r', 'CLIENT'));
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::ProtocolChanged, $e->category);
         }

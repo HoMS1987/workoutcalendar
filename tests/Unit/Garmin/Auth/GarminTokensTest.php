@@ -37,17 +37,17 @@ final class GarminTokensTest extends TestCase
 
         self::assertSame(1_800_000_000, $tokens->expiresAt());
         self::assertFalse($tokens->isExpired(1_799_999_000));
-        self::assertTrue($tokens->isExpired(1_799_999_950), 'Innerhalb der 60 s Vorlauf gilt der Token als abgelaufen');
+        self::assertTrue($tokens->isExpired(1_799_999_950), 'Within the 60 s margin the token counts as expired');
     }
 
     public function testTokenWithoutReadableExpiryCountsAsValid(): void
     {
-        self::assertFalse((new GarminTokens('kein-jwt', null, 'C'))->isExpired(PHP_INT_MAX));
+        self::assertFalse((new GarminTokens('not-a-jwt', null, 'C'))->isExpired(PHP_INT_MAX));
     }
 
     public function testClientIdFromJwt(): void
     {
         self::assertSame('GARMIN_X', GarminTokens::clientIdFromJwt(Jwt::make(['client_id' => 'GARMIN_X'])));
-        self::assertNull(GarminTokens::clientIdFromJwt('kein-jwt'));
+        self::assertNull(GarminTokens::clientIdFromJwt('not-a-jwt'));
     }
 }

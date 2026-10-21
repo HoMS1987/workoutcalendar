@@ -48,11 +48,11 @@ final class MobileLoginTest extends TestCase
     {
         yield 'Rate-Limit' => [new HttpResponse(429, [], ''), FailureCategory::Blocked];
         yield 'Cloudflare' => [new HttpResponse(403, ['cf-mitigated' => 'challenge'], '<title>Just a moment...</title>'), FailureCategory::Blocked];
-        yield 'falsches Passwort' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'INVALID_USERNAME_PASSWORD']]), FailureCategory::InvalidCredentials];
+        yield 'wrong password' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'INVALID_USERNAME_PASSWORD']]), FailureCategory::InvalidCredentials];
         yield 'MFA' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'MFA_REQUIRED']]), FailureCategory::MfaRequired];
-        yield 'unbekannter Status' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'CAPTCHA_REQUIRED']]), FailureCategory::ProtocolChanged];
-        yield 'kein JSON' => [new HttpResponse(200, [], '<html>neu</html>'), FailureCategory::ProtocolChanged];
-        yield 'Erfolg ohne Ticket' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'SUCCESSFUL']]), FailureCategory::ProtocolChanged];
+        yield 'unknown status' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'CAPTCHA_REQUIRED']]), FailureCategory::ProtocolChanged];
+        yield 'no JSON' => [new HttpResponse(200, [], '<html>new</html>'), FailureCategory::ProtocolChanged];
+        yield 'success without ticket' => [FakeHttpClient::json(200, ['responseStatus' => ['type' => 'SUCCESSFUL']]), FailureCategory::ProtocolChanged];
     }
 
     #[DataProvider('failures')]
@@ -60,7 +60,7 @@ final class MobileLoginTest extends TestCase
     {
         try {
             self::login(new FakeHttpClient($response))->login(new Credentials('a@b.de', 'pw'));
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame($expected, $e->category);
             self::assertSame('mobile.login', $e->step);
@@ -72,7 +72,7 @@ final class MobileLoginTest extends TestCase
         try {
             self::login(new FakeHttpClient(FakeHttpClient::json(200, ['responseStatus' => ['type' => 'CAPTCHA_REQUIRED']])))
                 ->login(new Credentials('a@b.de', 'pw'));
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertStringContainsString('CAPTCHA_REQUIRED', $e->getMessage());
         }

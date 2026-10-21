@@ -61,18 +61,18 @@ describe('StepCalendar', () => {
 	})
 
 	it('creates a calendar with the typed name', async () => {
-		chooseCalendar.mockResolvedValueOnce({ needsConfirmation: false, existingEvents: 0, calendar: { id: 9, name: 'Laufen' }, status })
+		chooseCalendar.mockResolvedValueOnce({ needsConfirmation: false, existingEvents: 0, calendar: { id: 9, name: 'Running' }, status })
 		const wrapper = await mountStep()
 
 		const select = wrapper.findComponent(NcSelect)
 		expect((select.props() as unknown as { taggable: boolean }).taggable).toBe(true)
-		const created = ((select.props() as unknown as { createOption: (label: string) => unknown }).createOption as (label: string) => unknown)('Laufen')
+		const created = ((select.props() as unknown as { createOption: (label: string) => unknown }).createOption as (label: string) => unknown)('Running')
 		select.vm.$emit('update:modelValue', created)
 		await flushPromises()
 		await wrapper.find('button[data-test="next"]').trigger('click')
 		await flushPromises()
 
-		expect(chooseCalendar).toHaveBeenCalledWith({ name: 'Laufen', confirmed: false, moveEvents: false })
+		expect(chooseCalendar).toHaveBeenCalledWith({ name: 'Running', confirmed: false, moveEvents: false })
 		expect(wrapper.emitted('status')).toEqual([[status]])
 		wrapper.unmount()
 	})

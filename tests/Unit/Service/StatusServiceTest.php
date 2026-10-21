@@ -24,7 +24,7 @@ final class StatusServiceTest extends TestCase
 
     private const UID = 'anna';
     private const EMAIL = 'anna.mueller@example.org';
-    private const PASSWORD = 'Geheim-Passwort-42';
+    private const PASSWORD = 'Secret-Password-42';
     private const ACCESS_TOKEN = 'eyJhbGciOiJub25lIn0.eyJjbGllbnRfaWQiOiJDIn0.access';
     private const REFRESH_TOKEN = 'refresh-token-value-123';
     private const ACCOUNT = '0123456789abcdef';
@@ -138,7 +138,7 @@ final class StatusServiceTest extends TestCase
         $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
         $this->objects->put($calendarId, 'garmin-1.ics', sprintf(self::ICS, '1'));
         $this->objects->put($calendarId, 'garmin-2.ics', sprintf(self::ICS, '2'));
-        $this->objects->put($calendarId, 'eigener-termin.ics', sprintf(self::ICS, 'x'));
+        $this->objects->put($calendarId, 'own-event.ics', sprintf(self::ICS, 'x'));
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true, 'move'));
         $this->users->saveSettings(self::UID, new SyncSettings(365, 60));
         $state = $this->users->state(self::UID);

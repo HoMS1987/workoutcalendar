@@ -39,28 +39,28 @@ final class SecretStoreTest extends TestCase
     public function testSecretsAreStoredEncrypted(): void
     {
         $store = $this->store();
-        $store->saveCredentials('anna', new Credentials('anna@example.org', 'geheim-123'));
+        $store->saveCredentials('anna', new Credentials('anna@example.org', 'secret-123'));
         $store->saveTokens('anna', new GarminTokens('access-xyz', 'refresh-xyz', 'client'));
 
         $raw = json_encode($this->data, JSON_THROW_ON_ERROR);
-        foreach (['anna@example.org', 'geheim-123', 'access-xyz', 'refresh-xyz'] as $secret) {
+        foreach (['anna@example.org', 'secret-123', 'access-xyz', 'refresh-xyz'] as $secret) {
             self::assertStringNotContainsString($secret, $raw);
         }
         $credentials = $store->credentials('anna');
         self::assertSame('anna@example.org', $credentials?->email);
-        self::assertSame('geheim-123', $credentials?->password);
+        self::assertSame('secret-123', $credentials?->password);
         self::assertEquals(new GarminTokens('access-xyz', 'refresh-xyz', 'client'), $store->tokens('anna'));
     }
 
     public function testUndecryptableSecretsReadAsMissing(): void
     {
         $store = $this->store();
-        $this->data['anna'] = ['credentials' => 'kaputt-geheim', 'tokens' => 'kaputt-geheim'];
+        $this->data['anna'] = ['credentials' => 'broken-secret', 'tokens' => 'broken-secret'];
 
         self::assertNull($store->credentials('anna'));
         self::assertNull($store->tokens('anna'));
         self::assertCount(2, $this->logger->byLevel('warning'));
-        self::assertStringNotContainsString('kaputt-geheim', $this->logger->dump());
+        self::assertStringNotContainsString('broken-secret', $this->logger->dump());
     }
 
     public function testInvalidDecryptedJsonReadsAsMissing(): void
@@ -68,7 +68,7 @@ final class SecretStoreTest extends TestCase
         $store = $this->store();
         $this->data['anna'] = [
             'credentials' => 'enc:' . strrev(base64_encode('{"email":"a@b.c"}')),
-            'tokens' => 'enc:' . strrev(base64_encode('nicht json')),
+            'tokens' => 'enc:' . strrev(base64_encode('not json')),
         ];
 
         self::assertNull($store->credentials('anna'));

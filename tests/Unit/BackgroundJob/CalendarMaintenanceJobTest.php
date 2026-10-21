@@ -40,8 +40,8 @@ final class CalendarMaintenanceJobTest extends TestCase
         $this->objects = new MemoryCalendarObjects();
         $this->logger = new MemoryLogger();
         $this->locking = new MemoryLockingProvider();
-        $this->from = $this->objects->addCalendar(self::UID, 'alt', 'Alt', null, ['VEVENT']);
-        $this->to = $this->objects->addCalendar(self::UID, 'neu', 'Neu', null, ['VEVENT']);
+        $this->from = $this->objects->addCalendar(self::UID, 'old', 'Old', null, ['VEVENT']);
+        $this->to = $this->objects->addCalendar(self::UID, 'new', 'New', null, ['VEVENT']);
     }
 
     public function testMoveRequeuesUntilDone(): void
@@ -152,7 +152,7 @@ final class CalendarMaintenanceJobTest extends TestCase
         $jobList = $this->createMock(IJobList::class);
         $jobList->expects(self::never())->method('add');
 
-        $this->execute($this->job($jobList, $this->failingObjects('geheim-passwort')), $argument);
+        $this->execute($this->job($jobList, $this->failingObjects('secret-password')), $argument);
 
         self::assertNull($this->users->setup(self::UID)->maintenance);
         self::assertSame('remove', $this->users->setup(self::UID)->maintenanceFailed);
@@ -160,7 +160,7 @@ final class CalendarMaintenanceJobTest extends TestCase
         self::assertNotEmpty($errors);
         $last = end($errors);
         self::assertSame(['uid' => self::UID, 'action' => 'remove', 'attempts' => 6], $last['context']);
-        self::assertStringNotContainsString('geheim-passwort', $last['message'] . json_encode($last['context']));
+        self::assertStringNotContainsString('secret-password', $last['message'] . json_encode($last['context']));
     }
 
     public function testGiveUpWhileBusyRequeuesOnlyTheGiveUp(): void
@@ -245,7 +245,7 @@ final class CalendarMaintenanceJobTest extends TestCase
     }
 
     /** Throws on every access, like a failing CalDAV call. */
-    private function failingObjects(string $message = 'CalDAV nicht erreichbar'): CalendarObjects
+    private function failingObjects(string $message = 'CalDAV unreachable'): CalendarObjects
     {
         $objects = $this->createStub(CalendarObjects::class);
         $objects->method('uris')->willThrowException(new \RuntimeException($message));

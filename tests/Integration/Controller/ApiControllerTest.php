@@ -94,11 +94,11 @@ final class ApiControllerTest extends TestCase
     {
         $this->http->queue(FakeHttpClient::json(200, ['responseStatus' => ['type' => 'INVALID_USERNAME_PASSWORD']]));
 
-        $response = $this->controller()->login('anna@example.org', 'falsch');
+        $response = $this->controller()->login('anna@example.org', 'wrong');
 
         self::assertSame(422, $response->getStatus());
         self::assertSame(['error' => 'INVALID_CREDENTIALS'], $response->getData());
-        self::assertGreaterThan(0, $this->calls->created, 'Der Ersatz-Client wurde nicht verwendet');
+        self::assertGreaterThan(0, $this->calls->created, 'The replacement client was not used');
         self::assertSame('garmin', $this->currentStatus()['setup']['step']);
     }
 
@@ -110,7 +110,7 @@ final class ApiControllerTest extends TestCase
             FakeHttpClient::json(200, ['access_token' => Jwt::make(['client_id' => 'C', 'exp' => time() + 3600]), 'refresh_token' => 'r']),
         );
 
-        $login = $controller->login('anna@example.org', 'geheim');
+        $login = $controller->login('anna@example.org', 'secret');
         self::assertSame(200, $login->getStatus(), json_encode($login->getData()) ?: '');
         self::assertSame('calendar', $login->getData()['setup']['step']);
         self::assertSame('a***@example.org', $login->getData()['setup']['maskedEmail']);
@@ -165,13 +165,13 @@ final class ApiControllerTest extends TestCase
     public function testOtherUsersDataIsNotReachable(): void
     {
         $other = $this->user('wc-api-other-');
-        $foreign = Server::get(CalendarService::class)->createCalendar($other, 'Fremder Kalender');
+        $foreign = Server::get(CalendarService::class)->createCalendar($other, 'Other calendar');
         $this->http->queue(
             FakeHttpClient::json(200, ['responseStatus' => ['type' => 'SUCCESSFUL'], 'serviceTicketId' => 'ST-42']),
             FakeHttpClient::json(200, ['access_token' => Jwt::make(['client_id' => 'C']), 'refresh_token' => 'r']),
         );
         $controller = $this->controller();
-        self::assertSame(200, $controller->login('anna@example.org', 'geheim')->getStatus());
+        self::assertSame(200, $controller->login('anna@example.org', 'secret')->getStatus());
 
         $response = $controller->calendar(calendarId: $foreign->id, confirmed: true);
 
@@ -188,9 +188,9 @@ final class ApiControllerTest extends TestCase
         self::assertSame(400, $controller->history('90')->getStatus());
         // There is no history to choose in the Garmin step yet.
         self::assertSame(400, $controller->history(90)->getStatus());
-        self::assertSame(400, $controller->logout('alles')->getStatus());
-        self::assertSame(400, $controller->reset('alles')->getStatus());
-        self::assertSame(400, $controller->updateSettings(deletionMode: 'weg')->getStatus());
+        self::assertSame(400, $controller->logout('everything')->getStatus());
+        self::assertSame(400, $controller->reset('everything')->getStatus());
+        self::assertSame(400, $controller->updateSettings(deletionMode: 'gone')->getStatus());
         self::assertSame(400, $controller->login('', '')->getStatus());
         self::assertSame([], $this->http->requests);
     }
@@ -211,7 +211,7 @@ final class ApiControllerTest extends TestCase
             FakeHttpClient::json(200, ['access_token' => Jwt::make(['client_id' => 'C']), 'refresh_token' => 'r']),
         );
         $controller = $this->controller();
-        self::assertSame(200, $controller->login('anna@example.org', 'geheim')->getStatus());
+        self::assertSame(200, $controller->login('anna@example.org', 'secret')->getStatus());
 
         $response = $controller->logout('none');
 
