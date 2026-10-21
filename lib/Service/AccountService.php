@@ -17,6 +17,7 @@ use OCA\WorkoutCalendar\Storage\UserStore;
 use OCA\WorkoutCalendar\Sync\SyncState;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
+use Psr\Log\LoggerInterface;
 
 /** Signing in, signing out and resetting a person. Every change runs under the person's lock. */
 final class AccountService
@@ -30,6 +31,7 @@ final class AccountService
         private readonly FailureNotifications $notifications,
         private readonly ITimeFactory $time,
         private readonly PersonLock $lock,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -154,7 +156,16 @@ final class AccountService
                         ]);
                     } catch (\Throwable $e) {
                         // Without a job nobody would clear the marker, and sync and cleanup would stay locked.
-                        $this->users->saveSetup($uid, $setup);
+                        try {
+                            $this->users->saveSetup($uid, $setup);
+                        } catch (\Throwable $restore) {
+                            // WHY: The caller maps the original exception; a failed restore must not replace it.
+                            $this->logger->error('Restoring the setup after a failed queueing failed', [
+                                'uid' => $uid,
+                                'exception' => $restore::class,
+                                'message' => $restore->getMessage(),
+                            ]);
+                        }
 
                         throw $e;
                     }

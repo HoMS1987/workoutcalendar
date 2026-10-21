@@ -565,6 +565,37 @@ final class AccountServiceTest extends TestCase
         self::assertSame($before, $this->store);
     }
 
+    public function testFailedRestoreKeepsOriginalException(): void
+    {
+        $failSetupWrites = false;
+        $this->users = new UserStore($this->memoryUserConfig(
+            $this->store,
+            static function (string $uid, string $key) use (&$failSetupWrites): void {
+                if ($failSetupWrites && $key === 'setup') {
+                    throw new \RuntimeException('Restore failed');
+                }
+            },
+        ));
+        $this->connected();
+        $this->onJobAdded = static function () use (&$failSetupWrites): void {
+            $failSetupWrites = true;
+
+            throw new \RuntimeException('Database unreachable');
+        };
+
+        try {
+            $this->service()->logout(self::UID, Cleanup::Events);
+            self::fail('RuntimeException erwartet');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Database unreachable', $e->getMessage());
+        }
+
+        $errors = $this->logger->byLevel('error');
+        self::assertCount(1, $errors);
+        self::assertSame(\RuntimeException::class, $errors[0]['context']['exception'] ?? null);
+        self::assertSame([], $this->locking->held());
+    }
+
     public function testLifecycleReleasesLock(): void
     {
         $this->connected();
@@ -628,6 +659,7 @@ final class AccountServiceTest extends TestCase
             new FailureNotifications($this->notificationManager(), $time),
             $time,
             new PersonLock($this->locking),
+            $this->logger,
         );
     }
 
