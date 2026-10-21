@@ -71,11 +71,24 @@ das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
 
 `PersonLock` hält eine exklusive Sperre (`ILockingProvider`, Schlüssel
 `workoutcalendar/sync/<md5(uid)>`). Unter ihr laufen der Sync-Lauf und alle Änderungen an
-Anmeldung, Abmeldung, Zurücksetzen, Kalenderwahl, Historie und Einstellungen. Ein Sync-Lauf hält den
-Zustand im Speicher und speichert ihn am Ende; ohne gemeinsame Sperre ginge eine Änderung dazwischen
-verloren. Hält ein Lauf die Sperre, überspringt der Hintergrundjob die Person (`skipped`) und die API
-antwortet mit 409 `busy`. Die Sperre ist nicht wiedereintrittsfähig: Wege, die nach einer Änderung
-einen Lauf starten (Abschluss der Historie), geben sie vorher frei.
+Anmeldung, Abmeldung, Zurücksetzen, Kalenderwahl, Historie und Einstellungen sowie der Abschluss des
+`CalendarMaintenanceJob`. Ein Sync-Lauf hält den Zustand im Speicher und speichert ihn am Ende; ohne
+gemeinsame Sperre ginge eine Änderung dazwischen verloren. Hält ein Lauf die Sperre, überspringt der
+Hintergrundjob die Person (`skipped`) und die API antwortet mit 409 `busy`
+([ADR 0006](adrs/0006-sperre-je-person.md)).
+
+- **Anmeldung:** Die Prüfung der Zugangsdaten bei Garmin läuft innerhalb der Sperre. Ist sie belegt,
+  gibt es keine Anfrage an Garmin.
+- **Sofortiger Lauf:** `POST /api/sync` und der Abschluss der Historie nutzen `SyncRunner::runNow`.
+  Das stellt die Person in die Warteschlange (`next_run_at` = jetzt) und führt den Lauf in derselben
+  Sperre aus. Ist sie belegt, endet der Aufruf mit `skipped` und ändert nichts.
+- **Wartungsjob:** Der Abschluss (Markierung `maintenance` löschen, `maintenanceFailed` setzen)
+  speichert unter der Sperre. Ist sie belegt, reiht sich der Job mit unverändertem Argument neu ein,
+  das zählt nicht als Fehlversuch. Beim Abmelden mit Bereinigung `events` steht `maintenance: "remove"`
+  gespeichert, bevor der Job eingereiht wird.
+- **Nicht wiedereintrittsfähig:** Wer die Sperre hält, ruft `PersonLock::run` für dieselbe Person
+  nicht erneut auf. Der Abschluss der Historie bereitet den Zustand unter der Sperre vor, gibt sie
+  frei und startet dann `runNow`.
 
 ## JSON-API
 
@@ -111,12 +124,14 @@ kommen zur jeweiligen Ansicht hinzu.
 |---|---|---|---|---|
 | beliebig | `false` | beliebig | beliebig | Anmeldeformular; bekannte maskierte E-Mail-Adresse als Vorschlag |
 | `garmin` | `false` | `null` | `maintenance: "move"` oder `"remove"` möglich (Zurücksetzen während der Wartung) | Anmeldeformular und Hinweis, dass die alten Termine noch verschoben bzw. entfernt werden |
+| `garmin` | `false` | `null` | `maintenanceFailed: "move"` oder `"remove"` möglich (Wartungsjob nach dem Zurücksetzen aufgegeben) | Anmeldeformular und Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können |
 | `calendar` | `true` | `null` | `calendarMissing: false` | Kalenderauswahl (Assistent) |
 | `calendar` | `true` | `null` | `calendarMissing: true` | Kalenderauswahl mit Hinweis, dass der bisherige Kalender fehlt |
+| `calendar` | `true` | `null` | `maintenanceFailed: "move"` oder `"remove"` | Kalenderauswahl mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet bei der Wahl eines Kalenders oder einem erfolgreichen Wartungsjob |
 | `history` | `true` | gesetzt | – | Auswahl des Historienzeitraums (Assistent) |
 | `done` | `true` | gesetzt | `maintenance: null`, `maintenanceFailed: null` | Übersicht: Sync-Stand, Einstellungen, „Jetzt synchronisieren“, Kalender wechseln, Abmelden, Zurücksetzen |
 | `done` | `true` | gesetzt | `maintenance: "move"` oder `"remove"` | Übersicht mit Hinweis, dass Termine verschoben bzw. entfernt werden; Kalenderwechsel und Bereinigung beim Abmelden/Zurücksetzen gesperrt |
-| `done` | `true` | gesetzt | `maintenanceFailed: "move"` oder `"remove"` | Übersicht mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet mit der nächsten Kalenderwahl oder einem erfolgreichen Wartungsjob |
+| `done` | `true` | gesetzt | `maintenanceFailed: "move"` oder `"remove"` | Übersicht mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet bei der Wahl eines anderen Kalenders oder einem erfolgreichen Wartungsjob |
 
 Unabhängig vom Schritt: `paused` gesetzt ⇒ Hinweis, dass neue Zugangsdaten nötig sind;
 `failure` gesetzt ⇒ Fehlerhinweis mit Kategorie und Zeitpunkt; `sync.backfill.running` ⇒
