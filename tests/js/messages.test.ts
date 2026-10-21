@@ -3,14 +3,22 @@ import { ApiError } from '../../src/api.ts'
 import { apiErrorText, hintText, loginError } from '../../src/messages.ts'
 import { makeStatus } from './fixtures.ts'
 
-vi.mock('@nextcloud/l10n', () => {
-	const fill = (text: string, vars?: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_m, key: string) => String(vars?.[key] ?? ''))
-	return {
-		t: (_app: string, text: string, vars?: Record<string, string | number>) => fill(text, vars),
-		n: (_app: string, singular: string, plural: string, count: number, vars?: Record<string, string | number>) => fill(count === 1 ? singular : plural, { ...vars, n: count }),
-		getLanguage: () => 'en',
-	}
-})
+type Vars = Record<string, string | number>
+
+// Like the real t(): placeholder values are HTML-escaped unless { escape: false } is passed.
+const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+function fill(text: string, vars: Vars | undefined, options: { escape?: boolean } | undefined) {
+	return text.replace(/\{(\w+)\}/g, (_m, key: string) => {
+		const value = String(vars?.[key] ?? '')
+		return options?.escape === false ? value : escapeHtml(value)
+	})
+}
+
+vi.mock('@nextcloud/l10n', () => ({
+	t: (_app: string, text: string, vars?: Vars, options?: { escape?: boolean }) => fill(text, vars, options),
+	n: (_app: string, singular: string, plural: string, count: number, vars?: Vars, options?: { escape?: boolean }) => fill(count === 1 ? singular : plural, { ...vars, n: count }, options),
+	getLocale: () => 'en',
+}))
 
 describe('loginError', () => {
 	it.each([
@@ -74,12 +82,19 @@ describe('hintText', () => {
 		expect(text).not.toContain('SOMETHING_NEW')
 	})
 
-	it('has a plain text for every other hint', () => {
-		const status = makeStatus({ sync: { backfill: { running: true, reachedDate: '2023-03-02' } }, paused: 'BLOCKED' })
-		for (const hint of ['paused', 'maintenanceMove', 'maintenanceRemove', 'maintenanceFailedMove', 'maintenanceFailedRemove', 'backfill'] as const) {
-			const text = hintText(hint, status)
-			expect(text.length).toBeGreaterThan(10)
-			expect(text).not.toMatch(/\{\w+\}/)
-		}
+	it('does not escape the calendar name a second time', () => {
+		const status = makeStatus({ setup: { calendarMissing: true, calendar: { id: 1, name: 'Garmin & Co', createdByApp: false } } })
+		expect(hintText('calendarMissing', status)).toBe('The calendar "Garmin & Co" no longer exists. Please choose a calendar again.')
+	})
+
+	it('has the exact text for every other hint', () => {
+		const status = makeStatus({ sync: { eventCount: 340, backfill: { running: true, reachedDate: '2023-03-02' } } })
+		expect(hintText('paused', status)).toBe('Syncing is paused. Please sign in to Garmin again to continue.')
+		expect(hintText('maintenanceMove', status)).toBe('Your events are being moved to the new calendar. This can take a few minutes.')
+		expect(hintText('maintenanceRemove', status)).toBe('Your events are being removed from the old calendar. This can take a few minutes.')
+		expect(hintText('maintenanceFailedMove', status)).toBe('Moving the events was given up. Some events may still be in the old calendar.')
+		expect(hintText('maintenanceFailedRemove', status)).toBe('Removing the events was given up. Some events may still be in the old calendar.')
+		expect(hintText('backfill', status)).toBe('Importing your history: 340 activities so far.')
+		expect(hintText('backfill', makeStatus({ sync: { eventCount: 1 } }))).toBe('Importing your history: 1 activity so far.')
 	})
 })

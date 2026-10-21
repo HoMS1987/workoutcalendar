@@ -48,6 +48,10 @@ describe('deriveView, rules below the table', () => {
 		expect(deriveView(makeStatus({ setup: { connected: false } }), true).view).toBe('login')
 	})
 
+	it('falls back to the login form when connected but still at the garmin step', () => {
+		expect(deriveView(makeStatus({ setup: { step: 'garmin', connected: true } }), false).view).toBe('login')
+	})
+
 	it('adds the paused hint in any step', () => {
 		expect(deriveView(makeStatus({ paused: 'INVALID_CREDENTIALS' }), false).hints).toEqual(['paused'])
 	})

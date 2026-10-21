@@ -2,9 +2,12 @@ import type { ApiError } from './api.ts'
 import type { Status } from './types.ts'
 import type { Hint } from './viewState.ts'
 
-import { getLanguage, n, t } from '@nextcloud/l10n'
+import { getLocale, n, t } from '@nextcloud/l10n'
 
 const APP = 'workoutcalendar'
+
+// Vue escapes interpolated text itself, so t()/n() must not escape user values a second time.
+const RAW = { escape: false }
 
 // Text for a failed Garmin sign-in, by failure category.
 export function loginError(code: string): string {
@@ -60,7 +63,7 @@ function failureReason(category: string): string {
 }
 
 function formatDate(unixSeconds: number): string {
-	return new Intl.DateTimeFormat(getLanguage(), { dateStyle: 'medium' }).format(new Date(unixSeconds * 1000))
+	return new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium' }).format(new Date(unixSeconds * 1000))
 }
 
 // Short text for a hint shown next to the current view.
@@ -74,12 +77,12 @@ export function hintText(h: Hint, status: Status): string {
 			if (failure?.since === null || failure?.since === undefined) {
 				return reason
 			}
-			return reason + ' ' + t(APP, 'This has been happening since {date}.', { date: formatDate(failure.since) })
+			return t(APP, '{reason} This has been happening since {date}.', { reason, date: formatDate(failure.since) }, RAW)
 		}
 		case 'calendarMissing': {
 			const name = status.setup.calendar?.name
 			return name
-				? t(APP, 'The calendar "{name}" no longer exists. Please choose a calendar again.', { name })
+				? t(APP, 'The calendar "{name}" no longer exists. Please choose a calendar again.', { name }, RAW)
 				: t(APP, 'The calendar you used before no longer exists. Please choose a calendar again.')
 		}
 		case 'maintenanceMove':
@@ -92,7 +95,7 @@ export function hintText(h: Hint, status: Status): string {
 			return t(APP, 'Removing the events was given up. Some events may still be in the old calendar.')
 		case 'backfill': {
 			const count = status.sync.eventCount
-			return n(APP, 'Importing your history: {n} activity so far.', 'Importing your history: {n} activities so far.', count, { n: count })
+			return n(APP, 'Importing your history: {n} activity so far.', 'Importing your history: {n} activities so far.', count, { n: count }, RAW)
 		}
 	}
 }
