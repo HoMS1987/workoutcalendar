@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Notification;
 
+use OCA\WorkoutCalendar\AppInfo\Application;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Notification\INotification;
@@ -13,7 +14,7 @@ use OCP\Notification\UnknownNotificationException;
 /** Sets title, text and link of the sync failure notification in the person's language. */
 final class Notifier implements INotifier
 {
-    public const APP_ID = 'workoutcalendar';
+    public const APP_ID = Application::APP_ID;
     public const SUBJECT_SYNC_FAILED = 'sync_failed';
 
     public function __construct(

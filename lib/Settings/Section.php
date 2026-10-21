@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Settings;
 
+use OCA\WorkoutCalendar\AppInfo\Application;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Settings\IIconSection;
@@ -36,6 +37,6 @@ final class Section implements IIconSection
 
     public function getIcon(): string
     {
-        return $this->urlGenerator->imagePath('workoutcalendar', 'app-dark.svg');
+        return $this->urlGenerator->imagePath(Application::APP_ID, 'app-dark.svg');
     }
 }

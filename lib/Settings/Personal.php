@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Settings;
 
+use OCA\WorkoutCalendar\AppInfo\Application;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Settings\ISettings;
 
@@ -12,7 +13,7 @@ final class Personal implements ISettings
 {
     public function getForm(): TemplateResponse
     {
-        return new TemplateResponse('workoutcalendar', 'settings-personal', [], '');
+        return new TemplateResponse(Application::APP_ID, 'settings-personal', [], '');
     }
 
     public function getSection(): string
