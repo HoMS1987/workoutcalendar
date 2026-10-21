@@ -3,9 +3,8 @@
 Nextcloud-App (`workoutcalendar`), die Aktivitäten aus Garmin Connect automatisch als Termine in
 einen Nextcloud-Kalender einträgt.
 
-Status: **in Entwicklung.** Garmin-Zugriff, Diagnose-Logging, die Abbildung auf Kalendertermine und
-der Sync-Ablauf sind umgesetzt und getestet. Die Nextcloud-Anbindung (Hintergrundjob, Kalender,
-Einstellungen) folgt.
+Status: **in Entwicklung.** Backend fertig und gegen Nextcloud 33 bis 35 getestet, die
+Einstellungsseite folgt.
 
 - Anforderungen: [docs/anforderungen.md](docs/anforderungen.md)
 - Architektur: [docs/architecture.md](docs/architecture.md)
@@ -41,10 +40,11 @@ composer test
 
 Die Unit-Tests brauchen weder Nextcloud noch einen Garmin-Zugang.
 
-Die Integrationstests (`tests/Integration`) laufen in einem echten Nextcloud-Server. Lokal sind sie
-nicht vorgesehen, die GitHub-Action `tests.yml` führt sie gegen Nextcloud 33, 34 und 35 aus. Wer sie
-selbst starten will, legt die App nach `server/apps/workoutcalendar`, installiert den Server
-(`php occ maintenance:install`), aktiviert die App und ruft in der App `composer test:integration` auf.
+Die Integrationstests (`tests/Integration`) laufen in einem echten Nextcloud-Server. Normalerweise
+führt sie die GitHub-Action `tests.yml` gegen Nextcloud 33, 34 und 35 aus. Sie lassen sich auch in
+einem Server-Checkout starten: App nach `server/apps/workoutcalendar` legen, den Server installieren
+(`php occ maintenance:install`), die App aktivieren und in der App `composer test:integration`
+aufrufen.
 
 ## Beispiele
 
@@ -89,4 +89,5 @@ python -m venv .venv
   der eigenen Instanz (Talos-Cluster) funktioniert er, auf anderen Servern kann Garmin anders
   entscheiden.
 - Garmin-Konten mit Zwei-Faktor-Anmeldung werden nicht unterstützt.
-- Die App ist noch nicht installierbar, die Nextcloud-Anbindung fehlt.
+- Die App ist über die Oberfläche noch nicht nutzbar, weil die Einstellungsseite fehlt. Die
+  Einrichtung läuft bisher nur über die JSON-API.

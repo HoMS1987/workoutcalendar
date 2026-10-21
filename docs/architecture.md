@@ -10,36 +10,73 @@ Klassische Nextcloud-App in PHP (App-ID `workoutcalendar`), siehe
 Nextcloud-Cron
     │
     ▼
-TimedJob (pro Person)                      ── geplant
+SyncJob (alle 5 Minuten)  ──  CalendarMaintenanceJob (Umzug/Entfernen der Termine)
     │
     ▼
-SyncService ──► FailureLog
-    │                       │
-    ▼                       ▼
-GarminClient           ActivityEventMapper ──► IcsSerializer
-    │                                              │
-    ▼                                              ▼
-Authenticator / DiTokenService            DavCalendarTarget ──► CalDavBackend (ADR 0005)
-    │
-    ▼
-LoggingHttpClient ──► CurlHttpClient ──► Garmin Connect           (CurlHttpClient geplant)
+SyncRunner ──► SyncService ──► FailureLog
+    │                │                       │
+    ▼                ▼                       ▼
+FailureNotifications   GarminClient     ActivityEventMapper ──► IcsSerializer
+                       │                                              │
+                       ▼                                              ▼
+        Authenticator / DiTokenService            DavCalendarTarget ──► CalDavBackend (ADR 0005)
+                       │
+                       ▼
+        LoggingHttpClient ──► CurlHttpClient ──► Garmin Connect
+
+ApiController (JSON-API) ──► AccountService, CalendarSetupService, StatusService, SyncRunner
+Einstellungsseite (Vue)  ──► ApiController                                     (geplant)
 ```
 
 ## Module
 
 | Ordner | Inhalt | Stand |
 |---|---|---|
-| `lib/Garmin/Http` | `HttpClient`-Schnittstelle, Anfrage- und Antwortobjekte | ✅ |
 | `lib/Garmin/Diagnostics` | `LoggingHttpClient`, `ResponseClassifier`, `FailureCategory`, `Redactor` (ADR 0004) | ✅ |
 | `lib/Garmin/Auth` | `MobileLogin`, `WidgetLogin`, `Authenticator`, `DiTokenService`, `GarminTokens`, `TokenStore` | ✅ |
 | `lib/Garmin` | `GarminClient`: Aktivitäten abrufen, Tokens erneuern, bei Bedarf neu anmelden | ✅ |
 | `lib/Calendar` | `ActivityEventMapper`, `CalendarEvent` (mit Fingerabdruck), `IcsSerializer`, `IcsReader`, `DeletedMarker` | ✅ |
 | `lib/Sync` | `SyncService`, `SyncSettings`, `SyncState`, `FailureLog` (gedrosseltes Fehler-Log), `CalendarTarget` | ✅ |
 | `lib/CalDav` | `CalendarObjects` mit `DavCalendarObjects` (einzige Klasse mit `OCA\DAV`), `DavCalendarTarget`, `CalendarService` (ADR 0005) | ✅ |
-| `lib/BackgroundJob`, `lib/Settings`, `lib/Service` | Nextcloud-Anbindung: Hintergrundjob, Einstellungen, verschlüsselte Ablage | geplant |
+| `lib/Garmin/Http` (auch `CurlHttpClient`) | `HttpClient`-Schnittstelle, Anfrage- und Antwortobjekte, cURL-Umsetzung | ✅ |
+| `lib/AppInfo` | `Application`: Registrierung von Diensten, Hintergrundjobs und Benachrichtigungen | ✅ |
+| `lib/BackgroundJob` | `SyncJob`, `CalendarMaintenanceJob` | ✅ |
+| `lib/Controller` | `ApiController`: JSON-API der Einstellungsseite | ✅ |
+| `lib/Notification` | `Notifier`, `FailureNotifications`: Benachrichtigung bei Fehlern, die nur die Person beheben kann | ✅ |
+| `lib/Service` | `SyncRunner`, `AccountService`, `CalendarSetupService`, `StatusService`, `GarminClientFactory`, `Cleanup` u. a. | ✅ |
+| `lib/Storage` | `UserStore`, `SecretStore`, `UserTokenStore`, `SetupState`: Einstellungen und verschlüsselte Zugangsdaten in `IUserConfig` | ✅ |
+| Einstellungsseite (Vue) | Frontend für die JSON-API | geplant |
 
 Der Kern (`lib/Garmin`, `lib/Calendar`, `lib/Sync`) nutzt keine Nextcloud-Klassen, nur PSR-3 für
 das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
+
+## Hintergrundjob und Warteschlange
+
+- `SyncJob` läuft alle 5 Minuten und bearbeitet pro Aufruf höchstens 10 Personen.
+- Die Warteschlange ist `next_run_at` je Person in `IUserConfig`. Fällig sind Personen mit
+  erreichtem `next_run_at`, die am längsten wartende zuerst.
+- Personen, für die kein Lauf möglich ist (Einrichtung unvollständig, Zugangsdaten abgelehnt,
+  Kalender fehlt), verlassen die Warteschlange, bis sie etwas ändern.
+- Der Historien-Import läuft bei jedem Cron-Lauf in Etappen weiter, bis er fertig ist.
+- `CalendarMaintenanceJob` zieht Termine beim Kalenderwechsel um oder entfernt sie, in Etappen à 200
+  Termine. Bei Fehlern oder ohne Fortschritt versucht er es bis zu 5 Mal erneut und gibt dann auf.
+
+## JSON-API
+
+Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`). Garmin-Fehler
+liefern 422 mit Fehlerkategorie, ungültige Anfragen 400, alles andere 500.
+
+| Route | Zweck |
+|---|---|
+| `GET /api/status` | Stand von Einrichtung und Sync |
+| `POST /api/login` | Garmin-Zugangsdaten prüfen und speichern (Rate-Limit 10 pro Stunde) |
+| `GET /api/calendars` | Kalender zur Auswahl |
+| `POST /api/calendar` | Kalender wählen oder wechseln, mit oder ohne Umzug der Termine |
+| `POST /api/history` | Historienzeitraum wählen (30, 90, 365 Tage oder komplett), schließt die Einrichtung ab |
+| `PUT /api/settings` | Intervall, Streuung, Umgang mit gelöschten Aktivitäten, Prüfzeitraum |
+| `POST /api/sync` | Sync sofort ausführen |
+| `POST /api/logout` | Von Garmin abmelden |
+| `POST /api/reset` | Einstellungen zurücksetzen |
 
 ## Garmin-Zugriff
 
