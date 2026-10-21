@@ -321,6 +321,7 @@ die Einstellungsseite.
 | Abmelden ohne Bereinigung | ✅ Termine bleiben, die Seite zeigt wieder die Anmeldung |
 | Anmeldung mit falschem Passwort | ✅ verständliche Meldung, Seite bleibt bei der Anmeldung |
 | Erneute Anmeldung | ✅ weiter mit bisherigem Kalender und Einstellungen, ohne Assistent (wie im Entwurf) |
+| Einstellungsseite auf dem Smartphone | ✅ Darstellung passt |
 | Hintergrundlauf über den Cron | ⚠️ zunächst nur jeder zweite Cron-Aufruf, behoben (siehe unten) |
 
 Befund: Der `SyncJob` lief nur alle 10 statt alle 5 Minuten. `TimedJob` startet erst, wenn mehr als
