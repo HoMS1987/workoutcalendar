@@ -63,7 +63,7 @@ final class GarminClient
         $tokens = $this->validTokens();
         $response = $this->get($step, $url, $tokens);
         if ($response->status === 401) {
-            $this->logger->info('Garmin lehnt Access-Token ab, erneuere ihn', ['step' => $step]);
+            $this->logger->info('Garmin rejected the access token, renewing it', ['step' => $step]);
             $response = $this->get($step, $url, $this->renew($tokens));
         }
 
@@ -73,7 +73,7 @@ final class GarminClient
         }
         $data = $response->json();
         if ($data === null || !array_is_list($data)) {
-            throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Antwort ist keine Liste von Aktivitäten', $response);
+            throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Response is not a list of activities', $response);
         }
 
         return $data;
@@ -109,7 +109,7 @@ final class GarminClient
             if ($e->category !== FailureCategory::TokenRejected) {
                 throw $e;
             }
-            $this->logger->info('Garmin-Refresh-Token abgelehnt, melde neu an', $e->logContext());
+            $this->logger->info('Garmin rejected the refresh token, signing in again', $e->logContext());
 
             return $this->login();
         }

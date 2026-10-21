@@ -62,7 +62,7 @@ final class SyncService
         }
 
         $level = $result->hasChanges() ? 'info' : 'debug';
-        $this->logger->log($level, 'Garmin-Sync-Lauf', $result->toArray());
+        $this->logger->log($level, 'Garmin sync run', $result->toArray());
 
         return $result;
     }
@@ -114,7 +114,7 @@ final class SyncService
         $activities = [];
         for ($page = 0; ; $page++) {
             if ($page >= self::MAX_RECENT_PAGES) {
-                throw new GarminException(FailureCategory::ProtocolChanged, 'api.activities', 'Paginierung endet nicht');
+                throw new GarminException(FailureCategory::ProtocolChanged, 'api.activities', 'Pagination does not end');
             }
             $batch = $this->garmin->activities($page * SyncSettings::PAGE_SIZE, SyncSettings::PAGE_SIZE, $startDate);
             array_push($activities, ...$batch);
@@ -165,7 +165,7 @@ final class SyncService
             $oldest = min(array_map(self::localDate(...), $page));
             if ($oldest === null || $oldest >= (string)$state->backfillBefore) {
                 $oldest = (new \DateTimeImmutable((string)$state->backfillBefore))->modify('-1 day')->format('Y-m-d');
-                $this->logger->debug('Historien-Import: Seite liegt auf einem Tag, gehe einen Tag zurück', ['date' => $oldest]);
+                $this->logger->debug('History import: page falls on a single day, stepping back one day', ['date' => $oldest]);
             }
             $state->backfillBefore = $oldest;
             if ($state->backfillUntil !== null && $state->backfillBefore < $state->backfillUntil) {
@@ -192,7 +192,7 @@ final class SyncService
                 }
             } catch (\InvalidArgumentException $e) {
                 $result->skipped++;
-                $this->logger->debug('Garmin-Aktivität übersprungen', ['reason' => $e->getMessage()]);
+                $this->logger->debug('Garmin activity skipped', ['reason' => $e->getMessage()]);
             }
         }
 

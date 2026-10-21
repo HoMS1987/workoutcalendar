@@ -37,7 +37,7 @@ final class LoggingHttpClient implements HttpClient
             $response = $this->inner->send($request);
         } catch (NetworkException $e) {
             // WHY: debug instead of warning; the throttled warning is written by the sync flow (ADR 0004, F-43).
-            $this->logger->debug('Garmin-Anfrage ohne Antwort', $context + [
+            $this->logger->debug('Garmin request without response', $context + [
                 'category' => FailureCategory::Network->value,
                 'error' => $this->redactor->redact($e->getMessage()),
                 'durationMs' => self::elapsedMs($started),
@@ -45,7 +45,7 @@ final class LoggingHttpClient implements HttpClient
             throw $e;
         }
 
-        $this->logger->debug('Garmin-Anfrage', $context + [
+        $this->logger->debug('Garmin request', $context + [
             'status' => $response->status,
             'durationMs' => self::elapsedMs($started),
             'cloudflare' => $this->classifier->cloudflareMarkers($response),

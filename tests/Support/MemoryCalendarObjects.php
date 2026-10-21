@@ -65,7 +65,7 @@ final class MemoryCalendarObjects implements CalendarObjects
     public function createCalendar(string $uid, string $uri, string $name): int
     {
         if (in_array($uri, $this->usedCalendarUris($uid), true)) {
-            throw new \RuntimeException("Kalender-URI $uri ist belegt");
+            throw new \RuntimeException("Calendar URI $uri is taken");
         }
         $this->writes[] = "createCalendar:$uri";
 
@@ -111,7 +111,7 @@ final class MemoryCalendarObjects implements CalendarObjects
     public function create(int $calendarId, string $uri, string $ics): void
     {
         if (isset($this->objects[$calendarId][$uri])) {
-            throw new \RuntimeException("Objekt $uri existiert bereits");
+            throw new \RuntimeException("Object $uri already exists");
         }
         $this->writes[] = "create:$calendarId:$uri";
         $this->objects[$calendarId][$uri] = $ics;
@@ -120,7 +120,7 @@ final class MemoryCalendarObjects implements CalendarObjects
     public function update(int $calendarId, string $uri, string $ics): void
     {
         if (!isset($this->objects[$calendarId][$uri])) {
-            throw new \RuntimeException("Objekt $uri fehlt");
+            throw new \RuntimeException("Object $uri is missing");
         }
         $this->writes[] = "update:$calendarId:$uri";
         $this->objects[$calendarId][$uri] = $ics;

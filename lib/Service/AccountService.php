@@ -112,11 +112,11 @@ final class AccountService
     {
         $setup = $this->users->setup($uid);
         if ($cleanup === Cleanup::Calendar && !$setup->calendarCreatedByApp) {
-            throw new \InvalidArgumentException('Nur ein von der App angelegter Kalender kann gelöscht werden');
+            throw new \InvalidArgumentException('Only a calendar created by the app can be deleted');
         }
         if ($cleanup !== Cleanup::None && $setup->maintenance !== null) {
             // WHY: A second maintenance job or deleting the calendar would overtake the running move or removal.
-            throw new \InvalidArgumentException('Verschieben oder Entfernen der Termine läuft noch');
+            throw new \InvalidArgumentException('Moving or removing the events is still running');
         }
 
         $state = $this->users->state($uid);

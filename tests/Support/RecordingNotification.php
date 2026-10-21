@@ -226,12 +226,12 @@ final class RecordingNotification implements INotification
 
     public function createAction(): IAction
     {
-        throw new \LogicException('Aktionen werden in den Tests nicht benötigt.');
+        throw new \LogicException('Actions are not needed in the tests');
     }
 
     public function addAction(IAction $action): INotification
     {
-        throw new \LogicException('Aktionen werden in den Tests nicht benötigt.');
+        throw new \LogicException('Actions are not needed in the tests');
     }
 
     public function getActions(): array
@@ -241,7 +241,7 @@ final class RecordingNotification implements INotification
 
     public function addParsedAction(IAction $action): INotification
     {
-        throw new \LogicException('Aktionen werden in den Tests nicht benötigt.');
+        throw new \LogicException('Actions are not needed in the tests');
     }
 
     public function getParsedActions(): array

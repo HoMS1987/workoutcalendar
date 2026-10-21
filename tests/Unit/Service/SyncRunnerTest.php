@@ -283,13 +283,13 @@ final class SyncRunnerTest extends TestCase
     public function testLockIsReleasedAfterException(): void
     {
         $this->connect();
-        $this->http->queue(new \RuntimeException('kaputt'));
+        $this->http->queue(new \RuntimeException('broken'));
 
         try {
             $this->runner()->run(self::UID, $this->now);
             self::fail('Exception erwartet');
         } catch (\RuntimeException $e) {
-            self::assertSame('kaputt', $e->getMessage());
+            self::assertSame('broken', $e->getMessage());
         }
 
         self::assertSame(['acquire:' . self::LOCK, 'release:' . self::LOCK], $this->lockCalls);
@@ -343,7 +343,7 @@ final class SyncRunnerTest extends TestCase
     {
         $this->connect();
         $this->queued($this->users->state(self::UID));
-        $this->http->queue(new \RuntimeException('kaputt'));
+        $this->http->queue(new \RuntimeException('broken'));
 
         try {
             $this->runner()->run(self::UID, $this->now);

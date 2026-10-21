@@ -87,7 +87,7 @@ final class SyncRunner
                 }
             });
         } catch (PersonBusyException) {
-            $this->logger->debug('Sync-Lauf übersprungen, ein anderer Vorgang hält die Sperre', ['uid' => $uid]);
+            $this->logger->debug('Sync run skipped, another operation holds the lock', ['uid' => $uid]);
 
             return RunOutcome::Skipped;
         }
@@ -117,7 +117,7 @@ final class SyncRunner
             $state->nextRunAt = $this->users->settings($uid)->nextRunAt($now->getTimestamp());
             $this->users->saveState($uid, $state);
         } catch (\Throwable $e) {
-            $this->logger->error('Nächster Sync-Lauf ließ sich nicht planen', ['uid' => $uid, 'exception' => $e]);
+            $this->logger->error('Next sync run could not be scheduled', ['uid' => $uid, 'exception' => $e]);
         }
     }
 
@@ -150,7 +150,7 @@ final class SyncRunner
             return RunOutcome::CalendarMissing;
         }
         if (!$this->calendarExists($uid, $setup->calendarId)) {
-            $this->logger->info('Zielkalender fehlt, Einrichtung springt zur Kalenderauswahl', ['uid' => $uid, 'calendarId' => $setup->calendarId]);
+            $this->logger->info('Target calendar missing, setup returns to the calendar choice', ['uid' => $uid, 'calendarId' => $setup->calendarId]);
             $this->users->saveSetup($uid, new SetupState(
                 SetupStep::Calendar,
                 $setup->connected,

@@ -36,7 +36,7 @@ final class SyncJob extends TimedJob
                 $this->runner->run($uid, $now);
             } catch (\Throwable $e) {
                 // Only the uid plus the exception's class and message: Garmin messages are already sanitized in the lower layers.
-                $this->logger->error('Sync-Lauf fehlgeschlagen', [
+                $this->logger->error('Sync run failed', [
                     'uid' => $uid,
                     'exception' => $e::class,
                     'message' => $e->getMessage(),

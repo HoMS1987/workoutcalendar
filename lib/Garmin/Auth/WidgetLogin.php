@@ -59,7 +59,7 @@ final class WidgetLogin implements LoginStrategy
         $this->failures->assertOk($response, $step);
         $csrf = self::csrf($response->body);
         if ($csrf === null) {
-            throw $this->failures->create(FailureCategory::ProtocolChanged, $step, 'Kein CSRF-Token im Anmeldeformular', $response);
+            throw $this->failures->create(FailureCategory::ProtocolChanged, $step, 'No CSRF token in the sign-in form', $response);
         }
 
         // WHY: python-garminconnect also waits 3-8 s; submitting immediately looks like a bot.
@@ -86,10 +86,10 @@ final class WidgetLogin implements LoginStrategy
                 self::csrf($response->body) !== null => FailureCategory::InvalidCredentials,
                 default => FailureCategory::ProtocolChanged,
             };
-            throw $this->failures->create($category, $step, "Unerwarteter Seitentitel: '$title'", $response);
+            throw $this->failures->create($category, $step, "Unexpected page title: '$title'", $response);
         }
         if (!preg_match('/[?&]ticket=(ST-[^"&\s\\\\]+)/', $response->body, $ticket)) {
-            throw $this->failures->create(FailureCategory::ProtocolChanged, $step, 'Kein Service-Ticket auf der Erfolgsseite', $response);
+            throw $this->failures->create(FailureCategory::ProtocolChanged, $step, 'No service ticket on the success page', $response);
         }
 
         return $this->tokens->exchangeTicket($ticket[1], self::EMBED, $this->name());

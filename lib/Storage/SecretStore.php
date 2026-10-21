@@ -109,6 +109,6 @@ final class SecretStore
     /** Warning without the value: only person and key name. */
     private function warn(string $uid, string $key): void
     {
-        $this->logger->warning('Gespeicherte Zugangsdaten sind nicht lesbar und gelten als nicht vorhanden', ['uid' => $uid, 'key' => $key]);
+        $this->logger->warning('Stored credentials are unreadable and treated as missing', ['uid' => $uid, 'key' => $key]);
     }
 }

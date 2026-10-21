@@ -72,7 +72,7 @@ final class FailureLogTest extends TestCase
 
         self::assertSame(['warning', 'debug', 'warning', 'debug'], $this->levels());
         $reminder = $this->logger->records[2];
-        self::assertStringContainsString('hält an', $reminder['message']);
+        self::assertStringContainsString('persists',$reminder['message']);
         self::assertSame(3, $reminder['context']['failedRuns']);
         self::assertSame(self::T0, $reminder['context']['since']);
     }
@@ -82,7 +82,7 @@ final class FailureLogTest extends TestCase
         $this->log->recordFailure($this->state, self::blocked(), self::T0);
         $this->log->recordFailure(
             $this->state,
-            new GarminException(FailureCategory::ProtocolChanged, 'widget.signin-page', 'Kein CSRF-Token'),
+            new GarminException(FailureCategory::ProtocolChanged, 'widget.signin-page', 'No CSRF token'),
             self::T0 + self::HOUR,
         );
 
@@ -94,7 +94,7 @@ final class FailureLogTest extends TestCase
 
     public function testFailuresNeedingActionAreErrors(): void
     {
-        $this->log->recordFailure($this->state, new GarminException(FailureCategory::InvalidCredentials, 'mobile.login', 'abgelehnt'), self::T0);
+        $this->log->recordFailure($this->state, new GarminException(FailureCategory::InvalidCredentials, 'mobile.login', 'rejected'), self::T0);
 
         self::assertSame(['error'], $this->levels());
     }

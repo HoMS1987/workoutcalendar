@@ -138,7 +138,7 @@ final class SyncJobTest extends TestCase
             foreach ($this->known as $uid) {
                 if ($path === 'workoutcalendar/sync/' . md5($uid)) {
                     if ($uid === $this->failingUid) {
-                        throw new \RuntimeException('Sperre nicht verfügbar');
+                        throw new \RuntimeException('Lock not available');
                     }
                     $this->locked[] = $uid;
                 }

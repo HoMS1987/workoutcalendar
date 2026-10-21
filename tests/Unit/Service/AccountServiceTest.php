@@ -333,7 +333,7 @@ final class AccountServiceTest extends TestCase
     {
         $this->connected(createdByApp: true);
         $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
-        $this->objects->deleteCalendarFailure = new \RuntimeException('CalDAV nicht erreichbar');
+        $this->objects->deleteCalendarFailure = new \RuntimeException('CalDAV unreachable');
 
         try {
             $this->service()->logout(self::UID, Cleanup::Calendar);
@@ -553,7 +553,7 @@ final class AccountServiceTest extends TestCase
         $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
         $before = $this->store;
         $this->onJobAdded = static function (): void {
-            throw new \RuntimeException('Datenbank nicht erreichbar');
+            throw new \RuntimeException('Database unreachable');
         };
 
         try {

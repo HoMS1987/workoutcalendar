@@ -49,26 +49,26 @@ final class CalendarSetupService
     private function chooseLocked(string $uid, ?string $newName, ?int $calendarId, bool $confirmed, bool $moveEvents): CalendarChoice
     {
         if (($newName === null) === ($calendarId === null)) {
-            throw new \InvalidArgumentException('Entweder ein Name oder ein Kalender ist anzugeben');
+            throw new \InvalidArgumentException('Either a name or a calendar is required');
         }
         $name = $newName === null ? null : trim($newName);
         if ($name === '') {
-            throw new \InvalidArgumentException('Der Kalendername darf nicht leer sein');
+            throw new \InvalidArgumentException('Calendar name must not be empty');
         }
         $setup = $this->users->setup($uid);
         if ($setup->step === SetupStep::Garmin) {
-            throw new \InvalidArgumentException('Zuerst bei Garmin anmelden');
+            throw new \InvalidArgumentException('Sign in to Garmin first');
         }
 
         if ($setup->step === SetupStep::Done && $setup->maintenance !== null) {
-            throw new \InvalidArgumentException('Kalenderwechsel läuft noch');
+            throw new \InvalidArgumentException('Calendar change is still running');
         }
 
         $existing = null;
         if ($calendarId !== null) {
             $existing = $this->ownCalendar($uid, $calendarId);
             if ($existing === null) {
-                throw new \InvalidArgumentException('Unbekannter Kalender');
+                throw new \InvalidArgumentException('Unknown calendar');
             }
         } elseif ($name !== null) {
             $existing = $this->calendars->findByName($uid, $name);
