@@ -20,7 +20,7 @@
 			</div>
 			<div class="tiles__tile" data-test="tile-last">
 				<span class="tiles__label">{{ t('workoutcalendar', 'Last sync') }}</span>
-				<strong>{{ status.sync.lastSuccessAt === null ? t('workoutcalendar', 'Not yet') : formatRelative(status.sync.lastSuccessAt) }}</strong>
+				<strong>{{ status.sync.lastSuccessAt === null ? t('workoutcalendar', 'Not yet') : formatRelative(status.sync.lastSuccessAt, now) }}</strong>
 			</div>
 			<div class="tiles__tile" data-test="tile-next">
 				<span class="tiles__label">{{ t('workoutcalendar', 'Next sync') }}</span>
@@ -53,6 +53,7 @@ import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { ApiError, syncNow } from '../../api.ts'
 import { apiErrorText } from '../../messages.ts'
+import { useNow } from '../../useNow.ts'
 import { hintSeverity } from '../../viewState.ts'
 import { formatMonthYear, formatRelative } from './relativeTime.ts'
 
@@ -62,6 +63,7 @@ const emit = defineEmits<{ status: [status: Status] }>()
 
 const busy = ref(false)
 const result = ref('')
+const now = useNow()
 
 // The marker takes the colour of the hint that explains the problem; the text says the same in words.
 const connectionSeverity = computed<Severity | 'success'>(() => {
@@ -83,7 +85,7 @@ const nextText = computed(() => {
 		return t('workoutcalendar', 'Not scheduled')
 	}
 	// A run that is overdue is due now; a past relative time would read like a stale value.
-	return next <= Date.now() / 1000 ? t('workoutcalendar', 'Due') : formatRelative(next)
+	return next <= now.value / 1000 ? t('workoutcalendar', 'Due') : formatRelative(next, now.value)
 })
 
 function outcomeText(outcome: RunOutcome): string {
