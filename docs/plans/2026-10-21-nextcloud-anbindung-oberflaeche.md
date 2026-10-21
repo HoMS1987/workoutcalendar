@@ -23,6 +23,8 @@ getestet, die Komponenten mit `@vue/test-utils`.
 
 - Alle Vorgaben aus Teil A gelten weiter (NF-01 bis NF-07, nur eigene Objekte, keine Geheimnisse in
   Ausgaben, PHP ab 8.2, Nextcloud 33 bis 35).
+- Kommentare im Code (PHP, TypeScript, Vue, Tests, Doc-Kommentare) auf **Englisch**. Neue und
+  geänderte Kommentare sofort, alle übrigen in Task 8.
 - Commit-Nachrichten und PRs auf **Englisch**, Format `[TYPE] Description`, bei Bugfixes Body mit
   `Cause:`, `5-Why:`, `Test:`. Keine Co-Authored-By-Zeile, keine KI-Hinweise.
 - Texte der Oberfläche: englische Quelltexte über `t('workoutcalendar', …)`, deutsche Übersetzung in
@@ -354,7 +356,34 @@ it('shows busy without changing the view', ...)
 
 `[FEATURE] German translation of the settings page`
 
-### Task 8: Test von Hand auf der eigenen Instanz und Doku
+### Task 8: Code-Kommentare auf Englisch
+
+**Files:**
+- Modify: alle Dateien unter `lib/`, `tests/`, `src/`, `templates/`, `appinfo/`, `php-test/` und die
+  Konfigurationsdateien mit deutschen Kommentaren
+
+**Interfaces:**
+- Produces: Alle Kommentare (Zeilen-, Block- und Doc-Kommentare, `WHY:`-Markierungen, Kommentare in
+  Tests) sind englisch und sinngemäß übersetzt. Code, Bezeichner, Texte für Nutzer, Übersetzungs-
+  dateien, Testdaten und Testerwartungen bleiben unverändert. Markdown-Doku bleibt deutsch.
+
+- [ ] **Step 1: Bestand erfassen**
+
+Run: Suche nach deutschen Kommentaren (Umlaute, ß und typische deutsche Wörter in Kommentarzeilen).
+Expected: Liste der betroffenen Dateien im Bericht.
+
+- [ ] **Step 2: Übersetzen**, ohne Code zu ändern.
+- [ ] **Step 3: Prüfen**
+
+Run: `git diff --stat`, `git diff -w | grep '^[+-]' | grep -vE '^\S\s*(//|\*|/\*|#)'` zeigt keine geänderten
+Codezeilen; `composer test`, `npm run lint`, `npm test`, Push, CI grün.
+Expected: nur Kommentarzeilen geändert, alle Tests grün, keine deutschen Kommentare mehr.
+
+- [ ] **Step 4: Commit**
+
+`[STYLE] Code comments are written in English`
+
+### Task 9: Test von Hand auf der eigenen Instanz und Doku
 
 **Files:**
 - Modify: `docs/architecture.md` (Frontend ✅), `README.md` (Installation von Hand, Status), `MACHBARKEIT.md` (Testergebnis)
