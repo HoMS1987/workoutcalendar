@@ -35,3 +35,6 @@ Thumbs.db
 # Frontend build output
 /js/
 /css/
+
+# Release archive (scripts/package.sh)
+/build/
