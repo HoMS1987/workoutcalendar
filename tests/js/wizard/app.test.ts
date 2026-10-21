@@ -3,6 +3,7 @@ import type * as ApiModule from '../../../src/api.ts'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../../src/App.vue'
+import StepGarmin from '../../../src/components/wizard/StepGarmin.vue'
 import { makeStatus } from '../fixtures.ts'
 
 vi.mock('@nextcloud/l10n', async (importOriginal) => (await import('./l10nMock.ts')).l10nFactory(importOriginal))
@@ -96,7 +97,21 @@ describe('App wizard flow', () => {
 		const wrapper = await mountApp()
 
 		expect(wrapper.text()).toContain('Last connected as a***@example.org.')
+		expect(wrapper.findComponent(StepGarmin).props('maskedEmail')).toBe('a***@example.org')
 		expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe('')
+		wrapper.unmount()
+	})
+
+	it('passes no masked address to the login form while the account is connected', async () => {
+		vi.mocked(api.getStatus).mockResolvedValue(atCalendar)
+		expect(atCalendar.setup.maskedEmail).toBe('a***@example.org')
+		const wrapper = await mountApp()
+
+		await clickTest(wrapper, 'back')
+
+		expect(wrapper.text()).toContain('Sign in to Garmin')
+		expect(wrapper.findComponent(StepGarmin).props('maskedEmail')).toBeNull()
+		expect(wrapper.text()).not.toContain('Last connected as')
 		wrapper.unmount()
 	})
 
