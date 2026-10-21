@@ -86,6 +86,7 @@ final class AccountService
 
     /**
      * @throws \InvalidArgumentException bei Cleanup::Calendar für einen Kalender, den die App nicht angelegt hat
+     *         und bei Cleanup::Events oder Cleanup::Calendar, solange ein Wartungsjob läuft
      * @throws PersonBusyException wenn gerade ein Sync läuft
      */
     public function logout(string $uid, Cleanup $cleanup): void
@@ -98,6 +99,10 @@ final class AccountService
         $setup = $this->users->setup($uid);
         if ($cleanup === Cleanup::Calendar && !$setup->calendarCreatedByApp) {
             throw new \InvalidArgumentException('Nur ein von der App angelegter Kalender kann gelöscht werden');
+        }
+        if ($cleanup !== Cleanup::None && $setup->maintenance !== null) {
+            // WHY: Ein zweiter Wartungsjob oder das Löschen des Kalenders würde den laufenden Umzug oder das Entfernen überholen.
+            throw new \InvalidArgumentException('Verschieben oder Entfernen der Termine läuft noch');
         }
 
         $this->secrets->clear($uid);
@@ -151,13 +156,14 @@ final class AccountService
     public function reset(string $uid, Cleanup $cleanup): void
     {
         $this->lock->run($uid, function () use ($uid, $cleanup): void {
-            $removalQueued = $cleanup === Cleanup::Events && $this->users->setup($uid)->calendarId !== null;
             $this->disconnect($uid, $cleanup);
+            $maintenance = $this->users->setup($uid)->maintenance;
             $this->users->clear($uid);
             $this->secrets->clear($uid);
-            if ($removalQueued) {
-                // Der Wartungsjob löscht die Markierung am Ende; bis dahin darf kein Sync neue Termine anlegen.
-                $this->users->saveSetup($uid, new SetupState(maintenance: 'remove'));
+            if ($maintenance !== null) {
+                // Der Wartungsjob löscht die Markierung am Ende; bis dahin darf kein Sync neue Termine anlegen
+                // und keine Bereinigung den laufenden Job überholen.
+                $this->users->saveSetup($uid, new SetupState(maintenance: $maintenance));
             }
         });
     }

@@ -369,6 +369,46 @@ final class AccountServiceTest extends TestCase
         self::assertSame(['markProcessed:' . self::UID, 'markProcessed:' . self::UID], $this->notificationCalls);
     }
 
+    public function testCleanupDuringMaintenanceIsRejected(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $this->key(), 'a***@b.de', $this->calendarId, true, 'move'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $before = $this->store;
+        $service = $this->service();
+
+        foreach ([
+            fn () => $service->logout(self::UID, Cleanup::Events),
+            fn () => $service->logout(self::UID, Cleanup::Calendar),
+            fn () => $service->reset(self::UID, Cleanup::Events),
+            fn () => $service->reset(self::UID, Cleanup::Calendar),
+        ] as $call) {
+            try {
+                $call();
+                self::fail('InvalidArgumentException erwartet');
+            } catch (\InvalidArgumentException) {
+            }
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->jobs);
+        self::assertFalse($this->objects->calendars[$this->calendarId]['trashed']);
+        self::assertSame([], $this->notificationCalls);
+    }
+
+    public function testResetWithoutCleanupKeepsMaintenanceMarker(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $this->key(), 'a***@b.de', $this->calendarId, true, 'move'));
+
+        $this->service()->reset(self::UID, Cleanup::None);
+
+        $setup = $this->users->setup(self::UID);
+        self::assertSame('move', $setup->maintenance);
+        self::assertSame(SetupStep::Garmin, $setup->step);
+        self::assertFalse($setup->connected);
+        self::assertNull($setup->calendarId);
+        self::assertNull($setup->accountKey);
+    }
+
     public function testLifecycleWaitsForRunningSync(): void
     {
         $this->connected();
