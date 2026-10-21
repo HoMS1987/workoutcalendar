@@ -16,6 +16,7 @@ use OCA\WorkoutCalendar\Sync\SyncState;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
@@ -35,12 +36,16 @@ final class CalendarSetupServiceTest extends TestCase
     private MemoryLockingProvider $locking;
     /** @var list<array{string, mixed}> */
     private array $jobs = [];
+    /** @var ?\Closure(): void */
+    private ?\Closure $onJobAdded = null;
+    private MemoryLogger $logger;
 
     protected function setUp(): void
     {
         $this->users = new UserStore($this->memoryUserConfig($this->store));
         $this->objects = new MemoryCalendarObjects();
         $this->locking = new MemoryLockingProvider();
+        $this->logger = new MemoryLogger();
     }
 
     public function testDefaultNameIsTranslated(): void
@@ -193,6 +198,72 @@ final class CalendarSetupServiceTest extends TestCase
         self::assertTrue($this->users->state(self::UID)->initialized);
     }
 
+    public function testChangeWithMoveSavesMarkerBeforeQueueing(): void
+    {
+        $this->done();
+        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $setupWhenQueued = [];
+        $this->onJobAdded = function () use (&$setupWhenQueued): void {
+            $setup = $this->users->setup(self::UID);
+            $setupWhenQueued[] = [$setup->maintenance, $setup->calendarId];
+        };
+
+        $this->service()->choose(self::UID, null, $new, true, true);
+
+        self::assertSame([['move', $new]], $setupWhenQueued);
+    }
+
+    public function testFailedMoveQueueingRestoresSetupAndState(): void
+    {
+        $this->done();
+        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $before = $this->store;
+        $this->onJobAdded = static function (): void {
+            throw new \RuntimeException('Database unreachable');
+        };
+
+        try {
+            $this->service()->choose(self::UID, null, $new, true, true);
+            self::fail('RuntimeException erwartet');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Database unreachable', $e->getMessage());
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->locking->held());
+    }
+
+    public function testFailedRestoreKeepsOriginalQueueingException(): void
+    {
+        $failSetupWrites = false;
+        $this->users = new UserStore($this->memoryUserConfig(
+            $this->store,
+            static function (string $uid, string $key) use (&$failSetupWrites): void {
+                if ($failSetupWrites && $key === 'setup') {
+                    throw new \RuntimeException('Restore failed');
+                }
+            },
+        ));
+        $this->done();
+        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $this->onJobAdded = static function () use (&$failSetupWrites): void {
+            $failSetupWrites = true;
+
+            throw new \RuntimeException('Database unreachable');
+        };
+
+        try {
+            $this->service()->choose(self::UID, null, $new, true, true);
+            self::fail('RuntimeException erwartet');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Database unreachable', $e->getMessage());
+        }
+
+        $errors = $this->logger->byLevel('error');
+        self::assertCount(1, $errors);
+        self::assertSame(\RuntimeException::class, $errors[0]['context']['exception'] ?? null);
+    }
+
     public function testChangeWithoutMoveRestartsHistory(): void
     {
         $this->done();
@@ -327,12 +398,15 @@ final class CalendarSetupServiceTest extends TestCase
         $jobList = $this->createMock(IJobList::class);
         $jobList->method('add')->willReturnCallback(function (string $job, $argument = null): void {
             $this->jobs[] = [$job, $argument];
+            if ($this->onJobAdded !== null) {
+                ($this->onJobAdded)();
+            }
         });
         $time = $this->createStub(ITimeFactory::class);
         $time->method('getTime')->willReturn(self::NOW);
         $l = $this->createStub(IL10N::class);
         $l->method('t')->willReturnCallback(static fn (string $text): string => $text === 'Garmin activities' ? 'Garmin-Aktivitäten' : $text);
 
-        return new CalendarSetupService(new CalendarService($this->objects), $this->users, $jobList, $time, $l, new PersonLock($this->locking));
+        return new CalendarSetupService(new CalendarService($this->objects), $this->users, $jobList, $time, $l, new PersonLock($this->locking), $this->logger);
     }
 }

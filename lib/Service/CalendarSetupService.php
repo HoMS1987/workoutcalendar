@@ -14,6 +14,7 @@ use OCA\WorkoutCalendar\Sync\SyncState;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
+use Psr\Log\LoggerInterface;
 
 /** Choosing a calendar (wizard) and switching it (after the setup). */
 final class CalendarSetupService
@@ -25,6 +26,7 @@ final class CalendarSetupService
         private readonly ITimeFactory $time,
         private readonly IL10N $l,
         private readonly PersonLock $lock,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -109,22 +111,19 @@ final class CalendarSetupService
         $previous = $setup->calendarId;
         $maintenance = $setup->maintenance;
         $state = $this->users->state($uid);
+        $move = !$wizard && $previous !== null && $moveEvents;
 
         if (!$wizard) {
-            if ($previous !== null && $moveEvents) {
+            if ($move) {
                 $maintenance = 'move';
-                $this->jobs->add(CalendarMaintenanceJob::class, [
-                    'uid' => $uid,
-                    'action' => 'move',
-                    'from' => $previous,
-                    'to' => $calendar->id,
-                ]);
             } else {
                 $state = new SyncState();
             }
             $state->nextRunAt = $this->time->getTime();
         }
 
+        // WHY save first: The job can start immediately. This way the marker is set before
+        // there is a job that clears it on completion.
         $this->users->saveSetup($uid, new SetupState(
             $wizard ? SetupStep::History : $setup->step,
             $setup->connected,
@@ -137,6 +136,30 @@ final class CalendarSetupService
             null,
             false,
         ));
+        if ($move) {
+            try {
+                $this->jobs->add(CalendarMaintenanceJob::class, [
+                    'uid' => $uid,
+                    'action' => 'move',
+                    'from' => $previous,
+                    'to' => $calendar->id,
+                ]);
+            } catch (\Throwable $e) {
+                // Without a job nobody would clear the marker, and sync and calendar changes would stay locked.
+                try {
+                    $this->users->saveSetup($uid, $setup);
+                } catch (\Throwable $restore) {
+                    // WHY: The caller maps the original exception; a failed restore must not replace it.
+                    $this->logger->error('Restoring the setup after a failed queueing failed', [
+                        'uid' => $uid,
+                        'exception' => $restore::class,
+                        'message' => $restore->getMessage(),
+                    ]);
+                }
+
+                throw $e;
+            }
+        }
         if (!$wizard) {
             $this->users->saveState($uid, $state);
         }

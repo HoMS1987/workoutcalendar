@@ -476,7 +476,7 @@ final class ApiControllerTest extends TestCase
             $request,
             $session,
             new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock, new MemoryLogger()),
-            new CalendarSetupService($calendars, $this->users, $jobs, $time, $l, $lock),
+            new CalendarSetupService($calendars, $this->users, $jobs, $time, $l, $lock, new MemoryLogger()),
             $calendars,
             new SyncRunner(
                 $this->users,
