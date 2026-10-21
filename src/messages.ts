@@ -2,7 +2,7 @@ import type { ApiError } from './api.ts'
 import type { Status } from './types.ts'
 import type { Hint } from './viewState.ts'
 
-import { getLocale, n, t } from '@nextcloud/l10n'
+import { getCanonicalLocale, n, t } from '@nextcloud/l10n'
 
 const APP = 'workoutcalendar'
 
@@ -63,7 +63,7 @@ function failureReason(category: string): string {
 }
 
 function formatDate(unixSeconds: number): string {
-	return new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium' }).format(new Date(unixSeconds * 1000))
+	return new Intl.DateTimeFormat(getCanonicalLocale(), { dateStyle: 'medium' }).format(new Date(unixSeconds * 1000))
 }
 
 // Short text for a hint shown next to the current view.
