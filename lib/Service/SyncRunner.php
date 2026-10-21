@@ -133,6 +133,8 @@ final class SyncRunner
                 null,
                 $setup->calendarCreatedByApp,
                 $setup->maintenance,
+                $setup->maintenanceFailed,
+                true,
             ));
 
             return RunOutcome::CalendarMissing;

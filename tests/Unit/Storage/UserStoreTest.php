@@ -104,6 +104,28 @@ final class UserStoreTest extends TestCase
         self::assertEquals($setup, $store->setup('anna'));
     }
 
+    public function testSetupRoundTripKeepsFailureMarkers(): void
+    {
+        $store = $this->store();
+        $setup = new SetupState(SetupStep::Calendar, true, 'abcd1234abcd1234', 'a***@example.org', null, false, null, 'remove', true);
+
+        $store->saveSetup('anna', $setup);
+
+        self::assertEquals($setup, $store->setup('anna'));
+        self::assertSame('remove', $store->setup('anna')->maintenanceFailed);
+        self::assertTrue($store->setup('anna')->calendarMissing);
+    }
+
+    public function testUnknownMaintenanceFailureIsIgnored(): void
+    {
+        $this->data = ['anna' => ['setup' => '{"maintenanceFailed":"wipe","calendarMissing":"ja"}']];
+
+        $setup = $this->store()->setup('anna');
+
+        self::assertNull($setup->maintenanceFailed);
+        self::assertFalse($setup->calendarMissing);
+    }
+
     public function testDueUsersAreOldestFirstAndLimited(): void
     {
         $this->data = ['a' => ['next_run_at' => 300], 'b' => ['next_run_at' => 100], 'c' => ['next_run_at' => 900]];

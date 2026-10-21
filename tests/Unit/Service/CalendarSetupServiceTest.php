@@ -267,6 +267,30 @@ final class CalendarSetupServiceTest extends TestCase
         self::assertSame(self::NOW, $this->users->state(self::UID)->nextRunAt);
     }
 
+    public function testChoiceClearsFailureMarkers(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, 'abc', 'a***@b.de', null, false, null, 'move', true));
+
+        $this->service()->choose(self::UID, 'Neu', null, false, false);
+
+        $setup = $this->users->setup(self::UID);
+        self::assertNull($setup->maintenanceFailed);
+        self::assertFalse($setup->calendarMissing);
+        self::assertSame(SetupStep::History, $setup->step);
+    }
+
+    public function testChangeAfterFailedMaintenanceClearsMarker(): void
+    {
+        $old = $this->objects->addCalendar(self::UID, 'x', 'Alt');
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', 'a***@b.de', $old, false, null, 'move'));
+        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+
+        $this->service()->choose(self::UID, null, $new, true, false);
+
+        self::assertNull($this->users->setup(self::UID)->maintenanceFailed);
+        self::assertSame($new, $this->users->setup(self::UID)->calendarId);
+    }
+
     public function testChoiceWaitsForRunningSync(): void
     {
         $old = $this->done();

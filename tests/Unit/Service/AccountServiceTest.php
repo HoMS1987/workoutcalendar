@@ -301,6 +301,45 @@ final class AccountServiceTest extends TestCase
         self::assertEquals(new SyncState(), $this->users->state(self::UID));
     }
 
+    public function testFailedCalendarCleanupKeepsConnection(): void
+    {
+        $this->connected(createdByApp: true);
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->objects->deleteCalendarFailure = new \RuntimeException('CalDAV nicht erreichbar');
+
+        try {
+            $this->service()->logout(self::UID, Cleanup::Calendar);
+            self::fail('RuntimeException erwartet');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertNotNull($this->secrets->credentials(self::UID));
+        self::assertTrue($this->users->setup(self::UID)->connected);
+        self::assertSame($this->calendarId, $this->users->setup(self::UID)->calendarId);
+        self::assertSame([], $this->notificationCalls);
+    }
+
+    public function testLogoutKeepsFailureMarkers(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $this->key(), 'a***@b.de', $this->calendarId, true, null, 'move', true));
+
+        $this->service()->logout(self::UID, Cleanup::None);
+
+        self::assertSame('move', $this->users->setup(self::UID)->maintenanceFailed);
+        self::assertTrue($this->users->setup(self::UID)->calendarMissing);
+    }
+
+    public function testLoginKeepsFailureMarkers(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, false, $this->key(), 'a***@b.de', null, false, null, 'remove', true));
+        $this->queueSuccessfulLogin();
+
+        $setup = $this->service()->login(self::UID, 'a@b.de', 'geheim');
+
+        self::assertSame('remove', $setup->maintenanceFailed);
+        self::assertTrue($setup->calendarMissing);
+    }
+
     public function testResetStartsWizardFromBeginning(): void
     {
         $this->connected(createdByApp: true);

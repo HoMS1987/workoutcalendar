@@ -173,6 +173,20 @@ final class SyncRunnerTest extends TestCase
         self::assertSame([], $this->http->requests);
     }
 
+    public function testDeletedCalendarSetsMarkerAndKeepsOtherFields(): void
+    {
+        $this->connect();
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@b.de', $this->calendarId, true, 'move', 'remove'));
+        $this->objects->deleteCalendar($this->calendarId);
+
+        self::assertSame(RunOutcome::CalendarMissing, $this->runner()->run(self::UID, $this->now));
+
+        $setup = $this->users->setup(self::UID);
+        self::assertTrue($setup->calendarMissing);
+        self::assertSame('move', $setup->maintenance);
+        self::assertSame('remove', $setup->maintenanceFailed);
+    }
+
     public function testUnfinishedSetupIsNotReadyAndLeavesQueue(): void
     {
         $this->connect();

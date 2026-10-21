@@ -160,6 +160,8 @@ final class ApiController extends Controller
                 $setup->calendarId,
                 $setup->calendarCreatedByApp,
                 $setup->maintenance,
+                $setup->maintenanceFailed,
+                $setup->calendarMissing,
             ));
             // WHY: Nach einem fehlenden Kalender stünde sonst der alte Zustand da (Historie fertig,
             // letzter Erfolg), der neue Kalender bekäme keinen Import. Die Pause bleibt: ohne neue

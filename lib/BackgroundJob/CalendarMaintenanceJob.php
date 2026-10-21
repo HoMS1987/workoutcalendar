@@ -19,7 +19,8 @@ use Psr\Log\LoggerInterface;
  * Argument: `['uid' => string, 'action' => 'move'|'remove', 'from' => int, 'to' => ?int]`, optional
  * `'attempt' => int` (fehlgeschlagene Läufe in Folge) und `'rest' => int` (Rest nach dem letzten Lauf).
  * Nach einem Fehler oder ohne Fortschritt reiht sich der Job bis MAX_ATTEMPTS erneut ein, danach
- * gibt er auf und löst die Sperre `maintenance`.
+ * gibt er auf, löst die Sperre `maintenance` und merkt die Aktion in `maintenanceFailed` für die
+ * Einstellungsseite. Ein erfolgreicher Abschluss löscht diese Markierung.
  */
 final class CalendarMaintenanceJob extends QueuedJob
 {
@@ -98,7 +99,7 @@ final class CalendarMaintenanceJob extends QueuedJob
                 'action' => $action,
                 'attempts' => $attempt + 1,
             ]);
-            $this->finish($uid);
+            $this->finish($uid, $action);
 
             return;
         }
@@ -111,7 +112,8 @@ final class CalendarMaintenanceJob extends QueuedJob
         $this->jobList->add(self::class, $retry);
     }
 
-    private function finish(string $uid): void
+    /** @param ?string $failed Aktion, mit der der Job aufgegeben hat, null bei Erfolg */
+    private function finish(string $uid, ?string $failed = null): void
     {
         $setup = $this->users->setup($uid);
         $this->users->saveSetup($uid, new SetupState(
@@ -122,6 +124,8 @@ final class CalendarMaintenanceJob extends QueuedJob
             $setup->calendarId,
             $setup->calendarCreatedByApp,
             null,
+            $failed,
+            $setup->calendarMissing,
         ));
     }
 }

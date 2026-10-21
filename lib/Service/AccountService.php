@@ -76,6 +76,8 @@ final class AccountService
             $previous->calendarId,
             $previous->calendarCreatedByApp,
             $previous->maintenance,
+            $previous->maintenanceFailed,
+            $previous->calendarMissing,
         );
         $this->users->saveSetup($uid, $setup);
         $this->users->saveState($uid, $state);
@@ -104,9 +106,6 @@ final class AccountService
             // WHY: Ein zweiter Wartungsjob oder das Löschen des Kalenders würde den laufenden Umzug oder das Entfernen überholen.
             throw new \InvalidArgumentException('Verschieben oder Entfernen der Termine läuft noch');
         }
-
-        $this->secrets->clear($uid);
-        $this->notifications->dismiss($uid);
 
         $state = $this->users->state($uid);
         $state->notifiedCategory = null;
@@ -140,6 +139,10 @@ final class AccountService
                 break;
         }
 
+        // WHY erst jetzt: Scheitert die Bereinigung, bleibt die Person angemeldet und kann es erneut versuchen.
+        $this->secrets->clear($uid);
+        $this->notifications->dismiss($uid);
+
         $this->users->saveSetup($uid, new SetupState(
             $setup->step,
             false,
@@ -148,6 +151,8 @@ final class AccountService
             $calendarId,
             $createdByApp,
             $maintenance,
+            $setup->maintenanceFailed,
+            $setup->calendarMissing,
         ));
         $this->users->saveState($uid, $state);
     }
