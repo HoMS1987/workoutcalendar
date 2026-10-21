@@ -72,6 +72,26 @@ describe('App wizard flow', () => {
 		wrapper.unmount()
 	})
 
+	it('keeps the typed email address, but not the password, when going back to the login form', async () => {
+		const wrapper = await mountApp()
+		await submitLogin(wrapper)
+
+		await clickTest(wrapper, 'back')
+
+		expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe('me@example.org')
+		expect((wrapper.find('input[type="password"]').element as HTMLInputElement).value).toBe('')
+		wrapper.unmount()
+	})
+
+	it('keeps the masked address of an earlier account as a hint only', async () => {
+		vi.mocked(api.getStatus).mockResolvedValue(makeStatus({ setup: { connected: false, step: 'garmin', maskedEmail: 'a***@example.org', calendar: null } }))
+		const wrapper = await mountApp()
+
+		expect(wrapper.text()).toContain('Last connected as a***@example.org.')
+		expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe('')
+		wrapper.unmount()
+	})
+
 	it('keeps the progress visible after the start, then shows done, then the overview', async () => {
 		vi.mocked(api.getStatus).mockResolvedValue(atHistory)
 		const wrapper = await mountApp()
