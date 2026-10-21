@@ -1,0 +1,5 @@
+# Keep LF in the working tree on every platform: eslint enforces LF, and a
+# system-wide core.autocrlf=true would otherwise check files out with CRLF.
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf
