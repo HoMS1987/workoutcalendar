@@ -39,7 +39,7 @@ Einstellungsseite (Vue)  ──► ApiController                                
 | `lib/Sync` | `SyncService`, `SyncSettings`, `SyncState`, `FailureLog` (gedrosseltes Fehler-Log), `CalendarTarget` | ✅ |
 | `lib/CalDav` | `CalendarObjects` mit `DavCalendarObjects` (einzige Klasse mit `OCA\DAV`), `DavCalendarTarget`, `CalendarService` (ADR 0005) | ✅ |
 | `lib/Garmin/Http` (auch `CurlHttpClient`) | `HttpClient`-Schnittstelle, Anfrage- und Antwortobjekte, cURL-Umsetzung | ✅ |
-| `lib/AppInfo` | `Application`: Registrierung von Diensten, Hintergrundjobs und Benachrichtigungen | ✅ |
+| `lib/AppInfo` | `Application`: Registrierung von Diensten und Benachrichtigungen; der `SyncJob` steht in `appinfo/info.xml`, der `CalendarMaintenanceJob` wird bei Bedarf eingereiht | ✅ |
 | `lib/BackgroundJob` | `SyncJob`, `CalendarMaintenanceJob` | ✅ |
 | `lib/Controller` | `ApiController`: JSON-API der Einstellungsseite | ✅ |
 | `lib/Notification` | `Notifier`, `FailureNotifications`: Benachrichtigung bei Fehlern, die nur die Person beheben kann | ✅ |
@@ -56,7 +56,8 @@ das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
 - Die Warteschlange ist `next_run_at` je Person in `IUserConfig`. Fällig sind Personen mit
   erreichtem `next_run_at`, die am längsten wartende zuerst.
 - Personen, für die kein Lauf möglich ist (Einrichtung unvollständig, Zugangsdaten abgelehnt,
-  Kalender fehlt), verlassen die Warteschlange, bis sie etwas ändern.
+  Kalender fehlt), verlassen die Warteschlange, bis sie etwas ändern. Läuft gerade das Entfernen der
+  Termine (Wartung `remove`), wird die Person nur verschoben und bleibt in der Warteschlange.
 - Der Historien-Import läuft bei jedem Cron-Lauf in Etappen weiter, bis er fertig ist.
 - `CalendarMaintenanceJob` zieht Termine beim Kalenderwechsel um oder entfernt sie, in Etappen à 200
   Termine. Bei Fehlern oder ohne Fortschritt versucht er es bis zu 5 Mal erneut und gibt dann auf.
@@ -64,7 +65,7 @@ das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
 ## JSON-API
 
 Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`). Garmin-Fehler
-liefern 422 mit Fehlerkategorie, ungültige Anfragen 400, alles andere 500.
+liefern 422 mit Fehlerkategorie, ungültige Anfragen 400, ohne angemeldete Person 401, alles andere 500.
 
 | Route | Zweck |
 |---|---|
