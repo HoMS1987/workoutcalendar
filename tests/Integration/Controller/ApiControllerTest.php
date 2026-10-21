@@ -142,6 +142,8 @@ final class ApiControllerTest extends TestCase
         self::assertSame(90, $status['settings']['historyDays']);
         self::assertSame(1, $status['sync']['eventCount']);
         self::assertNotNull($status['sync']['lastSuccessAt']);
+        // The first run has happened, so the import no longer waits for it.
+        self::assertFalse($status['sync']['backfill']['pending']);
         self::assertSame(1, Server::get(CalendarService::class)->countAppEvents($calendarId));
         self::assertSame(['mobile.login', 'mobile.di-exchange', 'api.activities', 'api.activities'], $this->http->steps());
     }

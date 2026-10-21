@@ -34,7 +34,8 @@ export interface Status {
 		nextRunAt: number | null
 		eventCount: number
 		oldestActivityDate: string | null
-		backfill: { running: boolean, reachedDate: string | null }
+		/** pending: the import for the current calendar is requested but has not had its first run yet. */
+		backfill: { running: boolean, reachedDate: string | null, pending: boolean }
 	}
 	failure: { category: string, since: number | null, count: number } | null
 	paused: string | null

@@ -27,7 +27,7 @@ export function makeStatus(overrides: StatusOverrides = {}): Status {
 			eventCount: 340,
 			oldestActivityDate: '2023-03-02',
 			...overrides.sync,
-			backfill: { running: false, reachedDate: null, ...overrides.sync?.backfill },
+			backfill: { running: false, reachedDate: null, pending: false, ...overrides.sync?.backfill },
 		},
 		failure: overrides.failure ?? null,
 		paused: overrides.paused ?? null,

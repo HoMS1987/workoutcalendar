@@ -95,16 +95,13 @@ describe('deriveView, rules below the table', () => {
 	})
 
 	it('polls while the import for a newly chosen calendar waits for its first run', () => {
-		// A calendar change without moving events starts over: no run yet, the next cron run imports.
-		const pending = { sync: { lastRunAt: null, lastSuccessAt: null, eventCount: 0, oldestActivityDate: null } }
-		expect(deriveView(makeStatus(pending), false).polling).toBe(true)
+		// A calendar change without moving events starts over: the backend reports the import as pending.
+		expect(deriveView(makeStatus({ sync: { backfill: { pending: true } } }), false).polling).toBe(true)
 	})
 
-	it('does not wait for a first run that cannot happen', () => {
-		const pending = { lastRunAt: null, lastSuccessAt: null, eventCount: 0, oldestActivityDate: null }
-		expect(deriveView(makeStatus({ sync: pending, paused: 'INVALID_CREDENTIALS' }), false).polling).toBe(false)
-		expect(deriveView(makeStatus({ sync: pending, setup: { calendarMissing: true } }), false).polling).toBe(false)
-		expect(deriveView(makeStatus({ sync: pending, setup: { connected: false } }), false).polling).toBe(false)
-		expect(deriveView(makeStatus({ sync: pending, setup: { step: 'history' } }), false).polling).toBe(false)
+	it('leaves the decision about a pending import to the backend', () => {
+		// The backend already excludes runs that cannot happen (paused, calendar missing, not connected).
+		const noRun = { lastRunAt: null, lastSuccessAt: null, eventCount: 0, oldestActivityDate: null }
+		expect(deriveView(makeStatus({ sync: { ...noRun, backfill: { pending: false } } }), false).polling).toBe(false)
 	})
 })
