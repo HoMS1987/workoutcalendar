@@ -1,37 +1,39 @@
 # Workout Calendar
 
-Nextcloud-App (`workoutcalendar`), die Aktivitäten aus Garmin Connect automatisch als Termine in
-einen Nextcloud-Kalender einträgt.
+Nextcloud app (`workoutcalendar`) that automatically adds activities from Garmin Connect as events
+to a Nextcloud calendar.
 
-Status: **in Entwicklung.** Backend fertig und gegen Nextcloud 33 bis 35 getestet, die
-Einstellungsseite folgt.
+Status: **in development.** Backend and settings page are built and tested against Nextcloud 33 to
+35. The manual test on a real instance is pending.
 
-- Anforderungen: [docs/anforderungen.md](docs/anforderungen.md)
-- Architektur: [docs/architecture.md](docs/architecture.md)
-- Entscheidungen: [docs/adrs/](docs/adrs/)
-- Machbarkeit und Testergebnisse: [MACHBARKEIT.md](MACHBARKEIT.md)
+The project documentation is written in German:
 
-## Haftungsausschluss
+- Requirements: [docs/anforderungen.md](docs/anforderungen.md)
+- Architecture: [docs/architecture.md](docs/architecture.md)
+- Decisions: [docs/adrs/](docs/adrs/)
+- Feasibility and test results: [MACHBARKEIT.md](MACHBARKEIT.md)
 
-Die Nutzung erfolgt auf eigene Gefahr. Garmin bietet Privatpersonen keine offizielle API, die App
-nutzt dieselben inoffiziellen Schnittstellen wie die Garmin-Connect-App. Garmin kann sie jederzeit
-ändern oder sperren, im ungünstigen Fall auch das Konto einschränken. Das Projekt steht in keiner
-Verbindung zu Garmin.
+## Disclaimer
 
-## Lizenz
+Use at your own risk. Garmin offers no official API for individuals; the app uses the same
+unofficial interfaces as the Garmin Connect app. Garmin can change or block them at any time, and in
+the worst case restrict the account. The project is not affiliated with Garmin.
 
-[AGPL-3.0-or-later](LICENSE). Die Software wird ohne Gewährleistung bereitgestellt, siehe
-Abschnitte 15 und 16 der Lizenz.
+## License
 
-## Voraussetzungen
+[AGPL-3.0-or-later](LICENSE). The software is provided without warranty, see sections 15 and 16 of
+the license.
 
-- Nextcloud 33 bis 35 mit aktivierter Kalender-App
-- PHP 8.2 oder neuer mit `ext-curl`
-- Garmin-Connect-Konto ohne Zwei-Faktor-Anmeldung
+## Requirements
 
-Für die Entwicklung zusätzlich Composer und Node.js 24 mit npm 11. Für die Diagnose-Skripte optional Python 3.13.
+- Nextcloud 33 to 35 with the Calendar app enabled
+- PHP 8.2 or newer with `ext-curl`
+- Garmin Connect account without two-factor authentication
 
-## Setup für die Entwicklung
+For development, additionally Composer and Node.js 24 with npm 11. Python 3.13 is optional for the
+diagnostic scripts.
+
+## Development setup
 
 ```powershell
 composer install
@@ -40,47 +42,47 @@ npm ci
 npm run build
 ```
 
-Die Unit-Tests brauchen weder Nextcloud noch einen Garmin-Zugang.
+The unit tests need neither Nextcloud nor a Garmin account.
 
-Die Einstellungsseite ist eine Vue-3-Oberfläche in `src/`. `npm run build` schreibt sie nach `js/`
-und `css/` (nicht eingecheckt, das Bauen ist Teil jedes Releases). `npm run lint` und `npm test`
-prüfen den Quelltext, `npm run watch` baut bei Änderungen neu.
+The settings page is a Vue 3 interface in `src/`. `npm run build` writes it to `js/` and `css/`
+(not checked in; building is part of every release). `npm run lint` and `npm test` check the
+sources, `npm run watch` rebuilds on changes.
 
-Die Integrationstests (`tests/Integration`) laufen in einem echten Nextcloud-Server. Normalerweise
-führt sie die GitHub-Action `tests.yml` gegen Nextcloud 33, 34 und 35 aus. Sie lassen sich auch in
-einem Server-Checkout starten: App nach `server/apps/workoutcalendar` legen, den Server installieren
-(`php occ maintenance:install`), die App aktivieren und in der App `composer test:integration`
-aufrufen.
+The integration tests (`tests/Integration`) run inside a real Nextcloud server. Usually the GitHub
+Action `tests.yml` runs them against Nextcloud 33, 34 and 35. They can also be started in a server
+checkout: put the app into `server/apps/workoutcalendar`, install the server
+(`php occ maintenance:install`), enable the app and run `composer test:integration` inside the app.
 
-## Beispiele
+## Examples
 
-### Tests ausführen
-
-```powershell
-composer test                                  # alle Unit-Tests
-composer test:integration                      # nur innerhalb eines Nextcloud-Servers
-vendor\bin\phpunit tests\Unit\Calendar         # nur die Termin-Abbildung
-```
-
-### Garmin-Zugriff von Hand prüfen
-
-Die Skripte in `php-test/` und `test_garmin.py` prüfen die Garmin-Zugriffe außerhalb von
-Nextcloud. Sie lesen die Zugangsdaten aus `.env`:
+### Running tests
 
 ```powershell
-Copy-Item .env.example .env   # danach GARMIN_EMAIL und GARMIN_PASSWORD eintragen
+composer test                                  # all unit tests
+composer test:integration                      # only inside a Nextcloud server
+vendor\bin\phpunit tests\Unit\Calendar         # event mapping only
+npm test                                       # frontend tests
 ```
 
-`.env` und die Token-Ablage `.garminconnect/` sind in `.gitignore` eingetragen.
+### Checking Garmin access by hand
+
+The scripts in `php-test/` and `test_garmin.py` check Garmin access outside of Nextcloud. They
+read the credentials from `.env`:
 
 ```powershell
-php-test\run.ps1 -Mode login-mobile    # Login wie die iOS-App, Tokens nach .garminconnect/php_tokens.json
-php-test\run.ps1 -Mode login-widget    # Login über das SSO-Widget
-php-test\run.ps1 -Mode refresh         # Token erneuern
-php-test\run.ps1 -Mode api -PhpToken   # Aktivitäten mit dem PHP-Token abrufen
+Copy-Item .env.example .env   # then fill in GARMIN_EMAIL and GARMIN_PASSWORD
 ```
 
-Die Python-Variante nutzt `python-garminconnect`:
+`.env` and the token store `.garminconnect/` are listed in `.gitignore`.
+
+```powershell
+php-test\run.ps1 -Mode login-mobile    # login like the iOS app, tokens go to .garminconnect/php_tokens.json
+php-test\run.ps1 -Mode login-widget    # login via the SSO widget
+php-test\run.ps1 -Mode refresh         # refresh the token
+php-test\run.ps1 -Mode api -PhpToken   # fetch activities with the PHP token
+```
+
+The Python variant uses `python-garminconnect`:
 
 ```powershell
 python -m venv .venv
@@ -88,12 +90,11 @@ python -m venv .venv
 .venv\Scripts\python.exe test_garmin.py
 ```
 
-## Limitationen
+## Limitations
 
-- Der Garmin-Zugriff läuft über inoffizielle Schnittstellen und kann jederzeit ausfallen.
-- Ob der Login aus einem Server-Container funktioniert, hängt von IP und TLS-Fingerprint ab. Auf
-  der eigenen Instanz (Talos-Cluster) funktioniert er, auf anderen Servern kann Garmin anders
-  entscheiden.
-- Garmin-Konten mit Zwei-Faktor-Anmeldung werden nicht unterstützt.
-- Die App ist über die Oberfläche noch nicht nutzbar, weil die Einstellungsseite fehlt. Die
-  Einrichtung läuft bisher nur über die JSON-API.
+- Garmin access runs over unofficial interfaces and can break at any time.
+- Whether the login works from a server container depends on IP address and TLS fingerprint. It
+  works on the author's own instance (Talos cluster); Garmin may decide differently for other
+  servers.
+- Garmin accounts with two-factor authentication are not supported.
+- The settings page has not yet been tested on a real instance.
