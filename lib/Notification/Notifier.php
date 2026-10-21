@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Notification;
 
 use OCA\WorkoutCalendar\AppInfo\Application;
+use OCA\WorkoutCalendar\Settings\Section;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Notification\INotification;
@@ -55,7 +56,7 @@ final class Notifier implements INotifier
             ))
             ->setLink($this->urlGenerator->linkToRouteAbsolute(
                 'settings.PersonalSettings.index',
-                ['section' => self::APP_ID],
+                ['section' => Section::ID],
             ));
 
         return $notification;
