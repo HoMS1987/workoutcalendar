@@ -52,7 +52,7 @@ final class StatusServiceTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true));
         $state = $this->users->state(self::UID);
         $state->failureCategory = 'INVALID_CREDENTIALS';
-        $state->failureMessage = 'Garmin lehnt ' . self::EMAIL . ' ab';
+        $state->failureMessage = 'Garmin rejects ' . self::EMAIL;
         $state->failureSince = 1_792_497_600;
         $state->failureCount = 2;
         $state->pausedFor = 'INVALID_CREDENTIALS';

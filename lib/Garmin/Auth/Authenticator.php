@@ -36,7 +36,7 @@ final class Authenticator
         foreach ($this->strategies as $strategy) {
             try {
                 $tokens = $strategy->login($credentials);
-                $this->logger->info('Garmin-Login erfolgreich', [
+                $this->logger->info('Garmin login succeeded', [
                     'strategy' => $strategy->name(),
                     'failedBefore' => array_keys($attempts),
                 ]);
@@ -49,14 +49,14 @@ final class Authenticator
             }
 
             $attempts[$strategy->name()] = "{$last->category->value} @ {$last->step}";
-            $this->logger->debug('Garmin-Login-Versuch fehlgeschlagen', ['strategy' => $strategy->name()] + self::redactedContext($last, $redactor));
+            $this->logger->debug('Garmin login attempt failed', ['strategy' => $strategy->name()] + self::redactedContext($last, $redactor));
             if (in_array($last->category, self::FINAL_CATEGORIES, true)) {
                 throw $last->withAttempts($attempts);
             }
         }
 
         throw $last?->withAttempts($attempts)
-            ?? new GarminException(FailureCategory::ProtocolChanged, 'login', 'Keine Login-Strategie konfiguriert');
+            ?? new GarminException(FailureCategory::ProtocolChanged, 'login', 'No login strategy configured');
     }
 
     /** @return array<string, mixed> */

@@ -54,18 +54,18 @@ final class DiTokenService
                 return new GarminTokens($access, is_string($refresh) ? $refresh : null, GarminTokens::clientIdFromJwt($access) ?? $clientId);
             }
             if ($this->classifier->classify($last) === FailureCategory::Blocked) {
-                throw $this->failure(FailureCategory::Blocked, $step, 'Ticket-Tausch blockiert', $last);
+                throw $this->failure(FailureCategory::Blocked, $step, 'Ticket exchange blocked', $last);
             }
         }
 
-        throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Ticket-Tausch für keine bekannte Client-ID erfolgreich', $last);
+        throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Ticket exchange failed for every known client ID', $last);
     }
 
     public function refresh(GarminTokens $tokens): GarminTokens
     {
         $step = 'refresh';
         if ($tokens->refreshToken === null) {
-            throw new GarminException(FailureCategory::TokenRejected, $step, 'Kein Refresh-Token vorhanden');
+            throw new GarminException(FailureCategory::TokenRejected, $step, 'No refresh token available');
         }
         $response = $this->post($step, $tokens->clientId, [
             'grant_type' => 'refresh_token',
@@ -76,7 +76,7 @@ final class DiTokenService
             $category = in_array($response->status, [400, 401], true)
                 ? FailureCategory::TokenRejected
                 : ($this->classifier->classify($response) ?? FailureCategory::ProtocolChanged);
-            throw $this->failure($category, $step, 'Token-Refresh fehlgeschlagen', $response);
+            throw $this->failure($category, $step, 'Token refresh failed', $response);
         }
         $access = $this->accessTokenFrom($response, $step);
         $refresh = $response->json()['refresh_token'] ?? null;
@@ -103,7 +103,7 @@ final class DiTokenService
     {
         $access = $response->json()['access_token'] ?? null;
         if (!is_string($access) || $access === '') {
-            throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Antwort ohne access_token', $response);
+            throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Response without access_token', $response);
         }
 
         return $access;

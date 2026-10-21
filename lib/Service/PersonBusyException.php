@@ -9,6 +9,6 @@ final class PersonBusyException extends \RuntimeException
 {
     public function __construct()
     {
-        parent::__construct('Für die Person läuft gerade ein Sync oder eine andere Änderung');
+        parent::__construct('A sync run or another change is currently running for the person');
     }
 }

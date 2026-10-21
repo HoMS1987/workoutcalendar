@@ -22,7 +22,7 @@ final class GarminTokens
         $access = $data['di_token'] ?? null;
         $client = $data['di_client_id'] ?? null;
         if (!is_string($access) || $access === '' || !is_string($client) || $client === '') {
-            throw new \InvalidArgumentException('Token-Daten unvollständig');
+            throw new \InvalidArgumentException('Token data incomplete');
         }
         $refresh = $data['di_refresh_token'] ?? null;
 

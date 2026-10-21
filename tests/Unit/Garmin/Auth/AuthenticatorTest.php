@@ -51,7 +51,7 @@ final class AuthenticatorTest extends TestCase
     {
         $tokens = new GarminTokens('a', 'r', 'C');
         $authenticator = new Authenticator([
-            self::strategy('mobile', new GarminException(FailureCategory::Blocked, 'mobile.login', 'blockiert', 429)),
+            self::strategy('mobile', new GarminException(FailureCategory::Blocked, 'mobile.login', 'blocked', 429)),
             self::strategy('widget', $tokens),
         ], $this->logger);
 
@@ -72,7 +72,7 @@ final class AuthenticatorTest extends TestCase
     {
         $widgetCalls = 0;
         $authenticator = new Authenticator([
-            self::strategy('mobile', new GarminException(FailureCategory::InvalidCredentials, 'mobile.login', 'abgelehnt')),
+            self::strategy('mobile', new GarminException(FailureCategory::InvalidCredentials, 'mobile.login', 'rejected')),
             self::strategy('widget', new GarminTokens('a', 'r', 'C'), $widgetCalls),
         ], $this->logger);
 
@@ -89,7 +89,7 @@ final class AuthenticatorTest extends TestCase
     {
         $authenticator = new Authenticator([
             self::strategy('mobile', new GarminException(FailureCategory::Blocked, 'mobile.login', 'x', 429)),
-            self::strategy('widget', new GarminException(FailureCategory::ProtocolChanged, 'widget.signin-page', 'kein CSRF')),
+            self::strategy('widget', new GarminException(FailureCategory::ProtocolChanged, 'widget.signin-page', 'no CSRF')),
         ], $this->logger);
 
         try {
@@ -110,7 +110,7 @@ final class AuthenticatorTest extends TestCase
     {
         $authenticator = new Authenticator([
             self::strategy('mobile', new GarminException(FailureCategory::Blocked, 'mobile.login', 'x', 429)),
-            self::strategy('widget', new GarminException(FailureCategory::InvalidCredentials, 'widget.signin-post', 'abgelehnt')),
+            self::strategy('widget', new GarminException(FailureCategory::InvalidCredentials, 'widget.signin-post', 'rejected')),
         ], $this->logger);
 
         try {

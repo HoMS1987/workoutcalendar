@@ -53,11 +53,11 @@ final class PersonLockTest extends TestCase
 
         try {
             (new PersonLock($locking))->run('anna', static function (): void {
-                throw new \RuntimeException('kaputt');
+                throw new \RuntimeException('broken');
             });
             self::fail('RuntimeException erwartet');
         } catch (\RuntimeException $e) {
-            self::assertSame('kaputt', $e->getMessage());
+            self::assertSame('broken', $e->getMessage());
         }
 
         self::assertSame([], $locking->held());

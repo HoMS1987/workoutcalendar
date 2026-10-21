@@ -253,19 +253,19 @@ final class ApiControllerTest extends TestCase
     {
         $this->done();
         $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
-        $this->http->queue(new \RuntimeException('Kalender kaputt'));
+        $this->http->queue(new \RuntimeException('Calendar broken'));
 
         $response = $this->controller()->sync();
 
         self::assertSame(500, $response->getStatus());
         self::assertSame(['error' => 'internal'], $response->getData());
         self::assertCount(1, $this->logger->records);
-        self::assertSame(['exceptionClass' => \RuntimeException::class, 'message' => 'Kalender kaputt'], $this->logger->records[0]['context']);
+        self::assertSame(['exceptionClass' => \RuntimeException::class, 'message' => 'Calendar broken'], $this->logger->records[0]['context']);
     }
 
     public function testUnexpectedLoginErrorIsLoggedWithoutDetails(): void
     {
-        $this->http->queue(new \RuntimeException('Geheim anna@example.org'));
+        $this->http->queue(new \RuntimeException('Secret anna@example.org'));
 
         $response = $this->controller()->login('anna@example.org', 'geheim');
 
@@ -273,7 +273,7 @@ final class ApiControllerTest extends TestCase
         self::assertSame(['error' => 'internal'], $response->getData());
         self::assertCount(1, $this->logger->records);
         self::assertSame(['exceptionClass' => \RuntimeException::class], $this->logger->records[0]['context']);
-        self::assertStringNotContainsString('Geheim', $this->logger->dump());
+        self::assertStringNotContainsString('Secret', $this->logger->dump());
     }
 
     public function testSyncIsRateLimited(): void

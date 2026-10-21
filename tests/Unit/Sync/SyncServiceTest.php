@@ -68,7 +68,7 @@ final class SyncServiceTest extends TestCase
 
                 public function login(\OCA\WorkoutCalendar\Garmin\Auth\Credentials $credentials): GarminTokens
                 {
-                    throw new GarminException($this->category, 'fake.login', 'abgelehnt');
+                    throw new GarminException($this->category, 'fake.login', 'rejected');
                 }
             };
         }
@@ -357,7 +357,7 @@ final class SyncServiceTest extends TestCase
         $this->sync();
 
         self::assertSame(0, $this->state->failureCount);
-        self::assertSame('Garmin-Sync wieder erfolgreich', $this->logger->byLevel('info')[0]['message']);
+        self::assertSame('Garmin sync succeeded again',$this->logger->byLevel('info')[0]['message']);
     }
 
     public function testBackfillFailureKeepsRecentProgress(): void

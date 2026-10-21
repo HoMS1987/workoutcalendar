@@ -53,7 +53,7 @@ final class CalendarMaintenanceJob extends QueuedJob
         $valid = is_string($uid) && $uid !== '' && is_int($from)
             && (($action === 'move' && is_int($to)) || ($action === 'remove'));
         if (!$valid) {
-            $this->logger->warning('Wartungsjob mit ungültigem Argument übersprungen');
+            $this->logger->warning('Maintenance job skipped, invalid argument');
 
             return;
         }
@@ -66,7 +66,7 @@ final class CalendarMaintenanceJob extends QueuedJob
                 ? $this->calendars->moveAppEvents($from, $to, self::BATCH)
                 : $this->calendars->removeAppEvents($from, self::BATCH);
         } catch (\Throwable $e) {
-            $this->logger->error('Wartungsjob fehlgeschlagen', [
+            $this->logger->error('Maintenance job failed', [
                 'uid' => $uid,
                 'action' => $action,
                 'exception' => $e::class,
@@ -100,7 +100,7 @@ final class CalendarMaintenanceJob extends QueuedJob
     private function retryOrGiveUp(array $argument, string $uid, string $action, int $attempt, ?int $lastRest): void
     {
         if ($attempt + 1 > self::MAX_ATTEMPTS) {
-            $this->logger->error('Wartungsjob gibt auf', [
+            $this->logger->error('Maintenance job gives up', [
                 'uid' => $uid,
                 'action' => $action,
                 'attempts' => $attempt + 1,
@@ -141,7 +141,7 @@ final class CalendarMaintenanceJob extends QueuedJob
             });
         } catch (PersonBusyException) {
             // WHY: Without the lock, completion would overwrite a concurrent change to the setup.
-            $this->logger->debug('Abschluss des Wartungsjobs verschoben, ein anderer Vorgang hält die Sperre', ['uid' => $uid]);
+            $this->logger->debug('Maintenance job completion postponed, another operation holds the lock', ['uid' => $uid]);
             $this->jobList->add(self::class, $argument);
         }
     }

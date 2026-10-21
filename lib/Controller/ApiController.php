@@ -72,7 +72,7 @@ final class ApiController extends Controller
     {
         return $this->handle(function (string $uid) use ($email, $password): array {
             if (trim($email) === '' || $password === '') {
-                throw new \InvalidArgumentException('E-Mail-Adresse und Passwort sind anzugeben');
+                throw new \InvalidArgumentException('Email address and password are required');
             }
             $this->accounts->login($uid, $email, $password);
 
@@ -122,10 +122,10 @@ final class ApiController extends Controller
         return $this->handle(function (string $uid) use ($historyDays): array {
             // WHY: IRequest::getParam returns the default value for missing and for null values.
             if ($historyDays === null && !array_key_exists('historyDays', $this->request->getParams())) {
-                throw new \InvalidArgumentException('historyDays fehlt');
+                throw new \InvalidArgumentException('historyDays is missing');
             }
             if ($historyDays !== null && !in_array($historyDays, self::HISTORY_DAYS, true)) {
-                throw new \InvalidArgumentException('Ungültiger Zeitraum');
+                throw new \InvalidArgumentException('Invalid history period');
             }
             /** @var ?int $historyDays */
             $now = $this->now();
@@ -144,7 +144,7 @@ final class ApiController extends Controller
     {
         $setup = $this->users->setup($uid);
         if ($setup->step !== SetupStep::History && $setup->step !== SetupStep::Done) {
-            throw new \InvalidArgumentException('Die Historie lässt sich erst nach der Kalenderwahl festlegen');
+            throw new \InvalidArgumentException('History can only be set after the calendar choice');
         }
 
         $settings = $this->users->settings($uid)->toArray();
@@ -200,13 +200,13 @@ final class ApiController extends Controller
                     continue;
                 }
                 if (!is_int($value)) {
-                    throw new \InvalidArgumentException("$key muss eine ganze Zahl sein");
+                    throw new \InvalidArgumentException("$key must be an integer");
                 }
                 $changes[$key] = $value;
             }
             if ($deletionMode !== null) {
                 if (!is_string($deletionMode) || DeletionMode::tryFrom($deletionMode) === null) {
-                    throw new \InvalidArgumentException('Ungültiger Umgang mit gelöschten Aktivitäten');
+                    throw new \InvalidArgumentException('Invalid handling of deleted activities');
                 }
                 $changes['deletionMode'] = $deletionMode;
             }
@@ -285,7 +285,7 @@ final class ApiController extends Controller
             if ($logMessage) {
                 $context['message'] = $e->getMessage();
             }
-            $this->logger->error('Anfrage der Einstellungsseite fehlgeschlagen', $context);
+            $this->logger->error('Settings page request failed', $context);
 
             return new JSONResponse(['error' => 'internal'], Http::STATUS_INTERNAL_SERVER_ERROR);
         }
@@ -300,7 +300,7 @@ final class ApiController extends Controller
     {
         $cleanup = is_string($value) ? Cleanup::tryFrom($value) : null;
         if ($cleanup === null) {
-            throw new \InvalidArgumentException('Ungültige Angabe für cleanup');
+            throw new \InvalidArgumentException('Invalid value for cleanup');
         }
 
         return $cleanup;

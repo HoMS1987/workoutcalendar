@@ -35,7 +35,7 @@ final class FailureLog
             $state->failureCount = 1;
             $state->failureReportedAt = $now;
             $level = in_array($e->category, self::ERROR_CATEGORIES, true) ? 'error' : 'warning';
-            $this->logger->log($level, 'Garmin-Sync fehlgeschlagen', $e->logContext());
+            $this->logger->log($level, 'Garmin sync failed', $e->logContext());
 
             return;
         }
@@ -49,16 +49,16 @@ final class FailureLog
         ];
         if ($now - (int)$state->failureReportedAt >= self::REMINDER_INTERVAL_SECONDS) {
             $state->failureReportedAt = $now;
-            $this->logger->warning('Garmin-Sync-Fehler hält an', $context);
+            $this->logger->warning('Garmin sync failure persists', $context);
         } else {
-            $this->logger->debug('Garmin-Sync-Fehler unverändert', $context);
+            $this->logger->debug('Garmin sync failure unchanged', $context);
         }
     }
 
     public function recordSuccess(SyncState $state, int $now): void
     {
         if ($state->failureCount > 0) {
-            $this->logger->info('Garmin-Sync wieder erfolgreich', [
+            $this->logger->info('Garmin sync succeeded again', [
                 'category' => $state->failureCategory,
                 'step' => $state->failureStep,
                 'failedRuns' => $state->failureCount,

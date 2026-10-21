@@ -50,7 +50,7 @@ final class MobileLogin implements LoginStrategy
         $data = $response->json();
         $type = $data['responseStatus']['type'] ?? null;
         if (!is_string($type)) {
-            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Antwort ohne responseStatus.type', $response);
+            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Response without responseStatus.type', $response);
         }
 
         // ASSUMPTION: The status names for a wrong password and MFA come from python-garminconnect;
@@ -67,7 +67,7 @@ final class MobileLogin implements LoginStrategy
 
         $ticket = $data['serviceTicketId'] ?? null;
         if (!is_string($ticket) || $ticket === '') {
-            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Erfolg ohne serviceTicketId', $response);
+            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Success without serviceTicketId', $response);
         }
 
         return $this->tokens->exchangeTicket($ticket, self::SERVICE_URL, $this->name());

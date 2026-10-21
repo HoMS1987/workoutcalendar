@@ -99,7 +99,7 @@ final class CalendarService
         }
         foreach ($collisions as $uri) {
             if (!isset($appInTarget[$uri])) {
-                $this->logger->debug('Termin bleibt im alten Kalender, im neuen liegt unter der URI ein fremdes Objekt', ['uri' => $uri]);
+                $this->logger->debug('Event stays in the old calendar, the new one holds a foreign object under the URI', ['uri' => $uri]);
                 unset($pending[$uri]);
             }
         }

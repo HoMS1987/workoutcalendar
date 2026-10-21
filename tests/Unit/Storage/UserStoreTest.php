@@ -73,7 +73,7 @@ final class UserStoreTest extends TestCase
         $state = new SyncState();
         $state->initialized = true;
         $state->nextRunAt = 1234;
-        $state->failureMessage = 'Zeitüberschreitung';
+        $state->failureMessage = 'Timeout';
 
         $store->saveState('anna', $state);
 

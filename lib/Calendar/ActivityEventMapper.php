@@ -53,7 +53,7 @@ final class ActivityEventMapper
     {
         $id = $activity['activityId'] ?? null;
         if (!is_int($id) && !(is_string($id) && $id !== '')) {
-            throw new \InvalidArgumentException('Aktivität ohne activityId');
+            throw new \InvalidArgumentException('Activity without activityId');
         }
         $id = (string)$id;
         $start = $this->parseStart($activity['startTimeGMT'] ?? null, $id);
@@ -124,7 +124,7 @@ final class ActivityEventMapper
             ? \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value, new \DateTimeZone('UTC'))
             : false;
         if ($start === false) {
-            throw new \InvalidArgumentException("Aktivität $id ohne gültige startTimeGMT");
+            throw new \InvalidArgumentException("Activity $id without a valid startTimeGMT");
         }
 
         return $start;

@@ -32,7 +32,7 @@ final class FakeHttpClient implements HttpClient
         $this->requests[] = $request;
         $next = array_shift($this->queue);
         if ($next === null) {
-            throw new \LogicException("Keine Antwort vorbereitet für {$request->step} {$request->method} {$request->url}");
+            throw new \LogicException("No response queued for {$request->step} {$request->method} {$request->url}");
         }
         if ($next instanceof \Throwable) {
             throw $next;
