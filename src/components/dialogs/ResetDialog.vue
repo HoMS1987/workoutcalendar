@@ -3,6 +3,7 @@
 		:name="t('workoutcalendar', 'Reset the app?')"
 		:buttons="buttons"
 		:closeOnClickOutside="false"
+		:noClose="busy"
 		size="small"
 		@closing="emit('cancel')">
 		<p>{{ t('workoutcalendar', 'The app deletes everything it saved for you: Garmin credentials and tokens, settings, sync state and the link to the calendar. The setup starts again at step 1.') }}</p>
@@ -47,6 +48,7 @@ const buttons = computed(() => [
 	{
 		label: t('workoutcalendar', 'Cancel'),
 		variant: 'secondary' as const,
+		disabled: props.busy,
 		callback: (): false | void => {
 			emit('cancel')
 		},

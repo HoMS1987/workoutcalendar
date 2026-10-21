@@ -30,7 +30,7 @@
 					data-test="continue"
 					variant="primary"
 					:disabled="busy || !choice"
-					@click="asking = true">
+					@click="onContinue">
 					{{ t('workoutcalendar', 'Continue') }}
 				</NcButton>
 			</div>
@@ -70,7 +70,7 @@ import MoveEventsDialog from '../dialogs/MoveEventsDialog.vue'
 import { ApiError, chooseCalendar, getCalendars } from '../../api.ts'
 import { apiErrorText } from '../../messages.ts'
 
-defineProps<{
+const props = defineProps<{
 	status: Status
 	/** True while a move or removal runs (locks.calendarChange). */
 	locked: boolean
@@ -114,6 +114,17 @@ function stopPicking() {
 	picking.value = false
 	asking.value = false
 	confirming.value = null
+}
+
+// Nothing to move when the same calendar is picked again or the app has no events yet.
+function onContinue() {
+	const picked = choice.value
+	const sameCalendar = picked?.kind === 'existing' && picked.id === props.status.setup.calendar?.id
+	if (sameCalendar || props.status.sync.eventCount === 0) {
+		void apply(false, false)
+		return
+	}
+	asking.value = true
 }
 
 async function apply(moveEvents: boolean, confirmed: boolean) {

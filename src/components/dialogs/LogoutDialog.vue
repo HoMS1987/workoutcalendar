@@ -3,6 +3,7 @@
 		:name="t('workoutcalendar', 'Sign out of Garmin?')"
 		:buttons="buttons"
 		:closeOnClickOutside="false"
+		:noClose="busy"
 		size="small"
 		@closing="emit('cancel')">
 		<p>{{ t('workoutcalendar', 'Signing out deletes your Garmin password and tokens and stops the sync. The events stay in the calendar.') }}</p>
@@ -47,6 +48,7 @@ const buttons = computed(() => [
 	{
 		label: t('workoutcalendar', 'Cancel'),
 		variant: 'secondary' as const,
+		disabled: props.busy,
 		callback: (): false | void => {
 			emit('cancel')
 		},

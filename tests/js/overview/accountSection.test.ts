@@ -40,9 +40,11 @@ describe('AccountSection', () => {
 		const wrapper = mountSection()
 
 		expect(wrapper.find('button[data-test="toggle"]').attributes('aria-expanded')).toBe('false')
+		expect(wrapper.find('button[data-test="toggle"]').attributes('aria-controls')).toBeUndefined()
 		expect(wrapper.find('button[data-test="logout"]').exists()).toBe(false)
 		await wrapper.find('button[data-test="toggle"]').trigger('click')
 		expect(wrapper.find('button[data-test="toggle"]').attributes('aria-expanded')).toBe('true')
+		expect(wrapper.find('button[data-test="toggle"]').attributes('aria-controls')).toBeDefined()
 		expect(wrapper.find('button[data-test="logout"]').exists()).toBe(true)
 		wrapper.unmount()
 	})
@@ -132,6 +134,43 @@ describe('AccountSection', () => {
 		await flushPromises()
 		expect(document.body.textContent).toContain('A sync is running right now')
 		expect(wrapper.emitted('status')).toBeUndefined()
+		wrapper.unmount()
+	})
+
+	it('keeps the dialog open while the request runs and shows a later error', async () => {
+		let fail: (e: unknown) => void = () => {}
+		vi.mocked(api.logout).mockReturnValue(new Promise((_resolve, reject) => {
+			fail = reject
+		}))
+		const wrapper = mountSection()
+		await open(wrapper, 'logout')
+
+		dialogButton('Sign out')?.click()
+		await flushPromises()
+		expect(dialogButton('Cancel')?.disabled).toBe(true)
+		dialogButton('Cancel')?.click()
+		document.body.querySelector('[role="dialog"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+		await flushPromises()
+		expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+
+		fail(new api.ApiError(409, 'busy'))
+		await flushPromises()
+		expect(document.body.textContent).toContain('A sync is running right now')
+		wrapper.unmount()
+	})
+
+	it('can reopen the dialog after it was cancelled', async () => {
+		const wrapper = mountSection()
+		await open(wrapper, 'logout')
+
+		dialogButton('Cancel')?.click()
+		await flushPromises()
+		expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+
+		await wrapper.find('button[data-test="logout"]').trigger('click')
+		await flushPromises()
+		expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
 		wrapper.unmount()
 	})
 })

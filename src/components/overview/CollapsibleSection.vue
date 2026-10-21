@@ -6,7 +6,7 @@
 				class="collapsible__toggle"
 				data-test="toggle"
 				:aria-expanded="open ? 'true' : 'false'"
-				:aria-controls="panelId"
+				:aria-controls="open ? panelId : undefined"
 				@click="open = !open">
 				<span aria-hidden="true">{{ open ? '▾' : '▸' }}</span>
 				{{ title }}
