@@ -1,16 +1,19 @@
 <template>
 	<section class="collapsible">
 		<h3 class="collapsible__heading">
-			<button
-				type="button"
+			<NcButton
+				variant="tertiary"
+				alignment="start"
 				class="collapsible__toggle"
 				data-test="toggle"
 				:aria-expanded="open ? 'true' : 'false'"
 				:aria-controls="open ? panelId : undefined"
 				@click="open = !open">
-				<span aria-hidden="true">{{ open ? '▾' : '▸' }}</span>
+				<template #icon>
+					<span aria-hidden="true">{{ open ? '▾' : '▸' }}</span>
+				</template>
 				{{ title }}
-			</button>
+			</NcButton>
 		</h3>
 		<div v-if="open" :id="panelId" class="collapsible__panel">
 			<slot />
@@ -20,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref, useId } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 
 defineProps<{ title: string }>()
 
@@ -33,13 +37,7 @@ const panelId = useId()
 }
 
 .collapsible__toggle {
-	background: none;
-	border: 0;
-	padding: 8px 0;
-	font: inherit;
 	font-weight: bold;
-	cursor: pointer;
-	color: var(--color-main-text);
 }
 
 .collapsible__panel {
