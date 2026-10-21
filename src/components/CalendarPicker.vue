@@ -9,15 +9,24 @@
 		:selectable="isSelectable"
 		:clearable="false"
 		:disabled="disabled"
-		@update:modelValue="onSelect" />
+		@search="search = $event"
+		@update:modelValue="onSelect">
+		<template #option="option">
+			<span v-if="option.heading" v-heading-option class="calendar-picker__heading">{{ option.label }}</span>
+			<!-- Same rendering as the select's default option, including the search highlight. -->
+			<NcEllipsisedOption v-else :name="option.label" :search="search" />
+		</template>
+	</NcSelect>
 </template>
 
 <script setup lang="ts">
+import type { Directive } from 'vue'
 import type { CalendarOption } from '../types.ts'
 import type { CalendarChoice, CalendarSelectOption } from './calendarChoice.ts'
 
 import { t } from '@nextcloud/l10n'
 import { computed, ref } from 'vue'
+import NcEllipsisedOption from '@nextcloud/vue/components/NcEllipsisedOption'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 
 const props = defineProps<{
@@ -30,6 +39,17 @@ const props = defineProps<{
 const emit = defineEmits<{
 	'update:modelValue': [choice: CalendarChoice]
 }>()
+
+// The select renders every entry as role="option" and offers no way to mark one as disabled, so the
+// heading marks its own entry; assistive technology then announces it as not selectable.
+const vHeadingOption: Directive<HTMLElement> = {
+	mounted(el) {
+		el.closest('[role="option"]')?.setAttribute('aria-disabled', 'true')
+	},
+}
+
+// The text in the search field, for highlighting it in the options.
+const search = ref('')
 
 // Names the person typed into the field; each one becomes a "new calendar" option.
 const typed = ref<CalendarSelectOption[]>([])
@@ -87,3 +107,10 @@ function onSelect(option: CalendarSelectOption | null) {
 	emit('update:modelValue', option.choice)
 }
 </script>
+
+<style scoped>
+.calendar-picker__heading {
+	font-weight: bold;
+	color: var(--color-text-maxcontrast);
+}
+</style>
