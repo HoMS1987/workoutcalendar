@@ -1,9 +1,11 @@
+import type { Ref } from 'vue'
+
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 import { usePolling } from '../../src/usePolling.ts'
 
-function host(fn: () => Promise<void> | void, active = ref(true), intervalMs?: number) {
+function host(fn: () => Promise<void> | void, active = ref(true), intervalMs?: number | Ref<number>) {
 	return mount(defineComponent({
 		setup() {
 			usePolling(fn, active, intervalMs)
@@ -61,6 +63,22 @@ describe('usePolling', () => {
 
 		release()
 		await vi.advanceTimersByTimeAsync(10_000)
+		expect(fn).toHaveBeenCalledTimes(2)
+		wrapper.unmount()
+	})
+
+	it('follows a changed interval', async () => {
+		const fn = vi.fn().mockResolvedValue(undefined)
+		const interval = ref(10_000)
+		const wrapper = host(fn, ref(true), interval)
+
+		await vi.advanceTimersByTimeAsync(10_000)
+		expect(fn).toHaveBeenCalledTimes(1)
+
+		interval.value = 60_000
+		await vi.advanceTimersByTimeAsync(59_999)
+		expect(fn).toHaveBeenCalledTimes(1)
+		await vi.advanceTimersByTimeAsync(1)
 		expect(fn).toHaveBeenCalledTimes(2)
 		wrapper.unmount()
 	})

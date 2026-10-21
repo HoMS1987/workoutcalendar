@@ -199,5 +199,6 @@ OC.L10N.register("workoutcalendar", {
     "Too many attempts. Please try again later.": "Zu viele Versuche. Bitte versuche es später erneut.",
     "Due": "Fällig",
     "Events are being reorganised in the background.": "Die Termine werden im Hintergrund neu geordnet.",
-    "Delete calendar “{name}” ({count})": "Kalender „{name}“ löschen ({count})"
+    "Delete calendar “{name}” ({count})": "Kalender „{name}“ löschen ({count})",
+    "The connection to Nextcloud was lost. The page keeps trying to reconnect.": "Die Verbindung zu Nextcloud ist unterbrochen. Die Seite versucht weiter, sie wiederherzustellen."
 }, "nplurals=2; plural=(n != 1);");

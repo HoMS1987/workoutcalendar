@@ -102,6 +102,48 @@ describe('App overview', () => {
 		wrapper.unmount()
 	})
 
+	it('shows a lasting hint when the session expires during polling and polls less often', async () => {
+		vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+		const running = makeStatus({ sync: { eventCount: 10, backfill: { running: true, reachedDate: null } } })
+		vi.mocked(api.getStatus).mockResolvedValueOnce(running).mockRejectedValue(new api.ApiError(401, 'internal'))
+		const wrapper = mount(App, { attachTo: document.body })
+		await flushPromises()
+
+		await vi.advanceTimersByTimeAsync(10_000)
+		await flushPromises()
+		expect(wrapper.find('[data-test="connection-lost"]').text()).toContain('Your session has expired. Please reload the page.')
+		// The page stays usable: the overview is still there.
+		expect(wrapper.find('.workoutcalendar-settings__overview').exists()).toBe(true)
+
+		await vi.advanceTimersByTimeAsync(50_000)
+		expect(api.getStatus).toHaveBeenCalledTimes(2)
+		await vi.advanceTimersByTimeAsync(10_000)
+		expect(api.getStatus).toHaveBeenCalledTimes(3)
+		wrapper.unmount()
+	})
+
+	it('shows a hint while polls cannot reach Nextcloud and hides it after a successful poll', async () => {
+		vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+		const running = makeStatus({ sync: { eventCount: 10, backfill: { running: true, reachedDate: null } } })
+		const later = makeStatus({ sync: { eventCount: 25, backfill: { running: true, reachedDate: null } } })
+		vi.mocked(api.getStatus)
+			.mockResolvedValueOnce(running)
+			.mockRejectedValueOnce(new api.ApiError(0, 'network'))
+			.mockResolvedValue(later)
+		const wrapper = mount(App, { attachTo: document.body })
+		await flushPromises()
+
+		await vi.advanceTimersByTimeAsync(10_000)
+		await flushPromises()
+		expect(wrapper.find('[data-test="connection-lost"]').text()).toContain('The connection to Nextcloud was lost.')
+
+		await vi.advanceTimersByTimeAsync(10_000)
+		await flushPromises()
+		expect(wrapper.find('[data-test="connection-lost"]').exists()).toBe(false)
+		expect(wrapper.text()).toContain('25 activities')
+		wrapper.unmount()
+	})
+
 	it('updates the status from the poll while an import runs', async () => {
 		vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
 		const running = makeStatus({ sync: { eventCount: 10, backfill: { running: true, reachedDate: null } } })

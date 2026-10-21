@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 
-import { onScopeDispose, watch } from 'vue'
+import { onScopeDispose, toValue, watch } from 'vue'
 
 /**
  * Calls `fn` every `intervalMs` while `active` is true. Stops when `active` turns false or the
@@ -9,9 +9,9 @@ import { onScopeDispose, watch } from 'vue'
  *
  * @param fn The poll; may be async
  * @param active Polling runs only while this is true
- * @param intervalMs Time between two polls
+ * @param intervalMs Time between two polls; a change restarts the timer with the new interval
  */
-export function usePolling(fn: () => Promise<void> | void, active: Ref<boolean>, intervalMs = 10_000): void {
+export function usePolling(fn: () => Promise<void> | void, active: Ref<boolean>, intervalMs: number | Ref<number> = 10_000): void {
 	let timer: ReturnType<typeof setInterval> | undefined
 	let running = false
 
@@ -36,10 +36,10 @@ export function usePolling(fn: () => Promise<void> | void, active: Ref<boolean>,
 		}
 	}
 
-	watch(active, (isActive) => {
+	watch([active, () => toValue(intervalMs)], ([isActive, ms]) => {
 		stop()
 		if (isActive) {
-			timer = setInterval(tick, intervalMs)
+			timer = setInterval(tick, ms)
 		}
 	}, { immediate: true })
 

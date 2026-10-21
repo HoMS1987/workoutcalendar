@@ -6,6 +6,11 @@
 		<NcNoteCard v-if="loadError" type="error">
 			{{ loadError }}
 		</NcNoteCard>
+		<NcNoteCard v-if="pollFailure"
+			type="warning"
+			data-test="connection-lost">
+			{{ pollProblemText(pollFailure) }}
+		</NcNoteCard>
 
 		<template v-if="status">
 			<template v-if="wizardStep">
@@ -44,6 +49,7 @@
 </template>
 
 <script setup lang="ts">
+import type { PollProblem } from './messages.ts'
 import type { SetupStep, Status } from './types.ts'
 
 import { t } from '@nextcloud/l10n'
@@ -58,7 +64,7 @@ import StepGarmin from './components/wizard/StepGarmin.vue'
 import StepHistory from './components/wizard/StepHistory.vue'
 import WizardSteps from './components/wizard/WizardSteps.vue'
 import { ApiError, getStatus } from './api.ts'
-import { apiErrorText } from './messages.ts'
+import { apiErrorText, pollProblem, pollProblemText } from './messages.ts'
 import { usePolling } from './usePolling.ts'
 import { deriveView } from './viewState.ts'
 
@@ -136,14 +142,25 @@ async function load() {
 	}
 }
 
+// Set while the quiet refresh fails for a reason the person should know; a later success clears it.
+const pollFailure = ref<PollProblem | null>(null)
+
 // While an import or a maintenance job runs, the status is refreshed quietly.
+// An expired session rarely comes back by itself, so the refresh then slows down.
 usePolling(async () => {
 	const version = statusVersion
-	const next = await getStatus()
+	let next: Status
+	try {
+		next = await getStatus()
+	} catch (e) {
+		pollFailure.value = pollProblem(e) ?? pollFailure.value
+		throw e
+	}
+	pollFailure.value = null
 	if (version === statusVersion) {
 		setStatus(next)
 	}
-}, computed(() => viewState.value.polling))
+}, computed(() => viewState.value.polling), computed(() => pollFailure.value === 'session' ? 60_000 : 10_000))
 
 onMounted(load)
 </script>
