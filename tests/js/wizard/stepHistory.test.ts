@@ -107,10 +107,21 @@ describe('StepHistory before the start', () => {
 	})
 
 	it('formats the reached month in UTC', () => {
-		const wrapper = mount(StepHistory, {
-			props: { status: makeStatus({ sync: { eventCount: 5, backfill: { running: true, reachedDate: '2023-03-01' } } }), started: true },
-		})
+		// The suite pins TZ to UTC, where local time and UTC agree. A time zone west of UTC puts
+		// midnight UTC of the first day of a month on the last day of the month before in local
+		// time, so a formatter without timeZone: 'UTC' would show February here.
+		const pinned = process.env.TZ
+		process.env.TZ = 'America/New_York'
+		try {
+			expect(new Date('2023-03-01').getMonth(), 'the time zone switch takes effect').toBe(1)
+			const wrapper = mount(StepHistory, {
+				props: { status: makeStatus({ sync: { eventCount: 5, backfill: { running: true, reachedDate: '2023-03-01' } } }), started: true },
+			})
 
-		expect(wrapper.text()).toContain('March 2023')
+			expect(wrapper.text()).toContain('March 2023')
+			expect(wrapper.text()).not.toContain('February')
+		} finally {
+			process.env.TZ = pinned
+		}
 	})
 })
