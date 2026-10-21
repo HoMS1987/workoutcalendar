@@ -18,8 +18,13 @@ export type Severity = 'error' | 'warning' | 'info'
 // for a while (ADR 0004), and a later run usually works again without the person doing anything.
 const TRANSIENT_FAILURES = ['NETWORK', 'SERVER_ERROR', 'BLOCKED']
 
-// Failures only the person can fix and a paused sync are red; transient failures, running or
-// abandoned maintenance and a missing calendar are yellow; progress is blue.
+/**
+ * Failures only the person can fix and a paused sync are red; transient failures, running or
+ * abandoned maintenance and a missing calendar are yellow; progress is blue.
+ *
+ * @param hint Hint to rate
+ * @param status Current status, for the failure category
+ */
 export function hintSeverity(hint: Hint, status: Status): Severity {
 	switch (hint) {
 		case 'failure':
@@ -57,7 +62,11 @@ function viewOf(status: Status, wizardFinished: boolean): View {
 	}
 }
 
-// Hints ordered by severity, independent of the view (docs/architecture.md, "Zustände für die Oberfläche").
+/**
+ * Hints ordered by severity, independent of the view (docs/architecture.md, "Zustände für die Oberfläche").
+ *
+ * @param status Current status
+ */
 function hintsOf(status: Status): Hint[] {
 	const { setup } = status
 	const hints: Hint[] = []
@@ -90,7 +99,12 @@ function hintsOf(status: Status): Hint[] {
 	return hints
 }
 
-// Derives everything the settings page shows from the status alone.
+/**
+ * Derives everything the settings page shows from the status alone.
+ *
+ * @param status Current status
+ * @param wizardFinished True from the history choice until the person leaves the "done" step
+ */
 export function deriveView(status: Status, wizardFinished: boolean): ViewState {
 	const maintenanceRunning = status.setup.maintenance !== null
 
