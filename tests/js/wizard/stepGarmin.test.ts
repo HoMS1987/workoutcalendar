@@ -81,3 +81,18 @@ describe('StepGarmin', () => {
 		expect(wrapper.emitted('status')).toEqual([[status]])
 	})
 })
+
+describe('StepGarmin last account hint', () => {
+	it('names the last connected account without filling the input', () => {
+		const wrapper = mount(StepGarmin, { props: { maskedEmail: 'a***@example.org' } })
+
+		expect(wrapper.text()).toContain('Last connected as a***@example.org.')
+		expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe('')
+	})
+
+	it('shows no hint without a known account', () => {
+		const wrapper = mount(StepGarmin, { props: { maskedEmail: null } })
+
+		expect(wrapper.text()).not.toContain('Last connected')
+	})
+})

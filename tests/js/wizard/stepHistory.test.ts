@@ -60,3 +60,20 @@ describe('StepHistory', () => {
 		expect(wrapper.emitted('next')).toHaveLength(1)
 	})
 })
+
+describe('StepHistory before the start', () => {
+	it('offers only the start button, no Next', () => {
+		const wrapper = mount(StepHistory, { props: { status: fresh, started: false } })
+
+		expect(wrapper.find('button[data-test="start"]').exists()).toBe(true)
+		expect(wrapper.find('button[data-test="next"]').exists()).toBe(false)
+	})
+
+	it('formats the reached month in UTC', () => {
+		const wrapper = mount(StepHistory, {
+			props: { status: makeStatus({ sync: { eventCount: 5, backfill: { running: true, reachedDate: '2023-03-01' } } }), started: true },
+		})
+
+		expect(wrapper.text()).toContain('March 2023')
+	})
+})

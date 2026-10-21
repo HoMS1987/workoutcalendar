@@ -65,6 +65,7 @@ describe('StepCalendar', () => {
 		const wrapper = await mountStep()
 
 		const select = wrapper.findComponent(NcSelect)
+		expect((select.props() as unknown as { taggable: boolean }).taggable).toBe(true)
 		const created = ((select.props() as unknown as { createOption: (label: string) => unknown }).createOption as (label: string) => unknown)('Laufen')
 		select.vm.$emit('update:modelValue', created)
 		await flushPromises()
@@ -73,6 +74,21 @@ describe('StepCalendar', () => {
 
 		expect(chooseCalendar).toHaveBeenCalledWith({ name: 'Laufen', confirmed: false, moveEvents: false })
 		expect(wrapper.emitted('status')).toEqual([[status]])
+		wrapper.unmount()
+	})
+
+	it('ignores a whitespace-only typed name', async () => {
+		chooseCalendar.mockResolvedValueOnce({ needsConfirmation: false, existingEvents: 0, calendar: { id: 9, name: 'Garmin-Aktivitäten' }, status })
+		const wrapper = await mountStep()
+
+		const select = wrapper.findComponent(NcSelect)
+		const blank = (select.props() as unknown as { createOption: (label: string) => unknown }).createOption('   ')
+		select.vm.$emit('update:modelValue', blank)
+		await flushPromises()
+		await wrapper.find('button[data-test="next"]').trigger('click')
+		await flushPromises()
+
+		expect(chooseCalendar).toHaveBeenCalledWith({ name: 'Garmin-Aktivitäten', confirmed: false, moveEvents: false })
 		wrapper.unmount()
 	})
 

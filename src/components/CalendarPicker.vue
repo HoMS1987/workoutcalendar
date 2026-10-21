@@ -77,7 +77,8 @@ function isSelectable(option: CalendarSelectOption): boolean {
 }
 
 function onSelect(option: CalendarSelectOption | null) {
-	if (!option?.choice) {
+	// Whitespace-only typed names are ignored.
+	if (!option?.choice || option.choice.name === '') {
 		return
 	}
 	if (option.choice.kind === 'new' && !typed.value.some((o) => o.key === option.key)) {

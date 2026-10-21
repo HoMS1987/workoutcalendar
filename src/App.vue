@@ -14,7 +14,10 @@
 
 			<template v-if="wizardStep">
 				<WizardSteps :current="wizardStep" />
-				<StepGarmin v-if="view === 'login'" @status="onLogin" />
+				<StepGarmin
+					v-if="view === 'login'"
+					:maskedEmail="status.setup.connected ? null : status.setup.maskedEmail"
+					@status="onLogin" />
 				<StepCalendar
 					v-else-if="view === 'calendar'"
 					@status="status = $event"
