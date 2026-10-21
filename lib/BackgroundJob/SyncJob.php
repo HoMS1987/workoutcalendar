@@ -23,7 +23,8 @@ final class SyncJob extends TimedJob
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct($time);
-        $this->setInterval(300);
+        // Below the 5-minute cron period: TimedJob needs strictly more than the interval, so 300 would skip every second tick.
+        $this->setInterval(240);
         $this->setTimeSensitivity(IJob::TIME_SENSITIVE);
     }
 

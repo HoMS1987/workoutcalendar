@@ -18,6 +18,7 @@ use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\IJobList;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
 use OCP\Lock\ILockingProvider;
@@ -50,12 +51,24 @@ final class SyncJobTest extends TestCase
         $this->users = new UserStore($this->memoryUserConfig($this->store));
     }
 
-    public function testIsTimeSensitiveEveryFiveMinutes(): void
+    public function testIsTimeSensitive(): void
     {
-        $job = $this->job();
+        self::assertTrue($this->job()->isTimeSensitive());
+    }
 
-        self::assertSame(300, (new \ReflectionProperty($job, 'interval'))->getValue($job));
-        self::assertTrue($job->isTimeSensitive());
+    /**
+     * Nextcloud's system cron fires every 5 minutes and `TimedJob` only starts when strictly more
+     * than the interval has passed. The tick exactly 300 s after the last run must still start the job.
+     */
+    public function testStartsOnEveryFiveMinuteCronTick(): void
+    {
+        self::assertTrue($this->startsAfter(300));
+        self::assertTrue($this->startsAfter(270), 'a tick delayed by the previous cron run');
+    }
+
+    public function testDoesNotStartTwiceWithinOneTick(): void
+    {
+        self::assertFalse($this->startsAfter(60));
     }
 
     public function testRunsOnlyDueUsersUpToLimit(): void
@@ -143,6 +156,26 @@ final class SyncJobTest extends TestCase
             $this->createStub(IUserManager::class),
             $this->logger,
         );
+    }
+
+    /**
+     * `Job::start()` first calls `IJobList::setLastRun()` and only then needs a running server, so a
+     * job list that throws there tells whether `TimedJob::start()` let the job through.
+     */
+    private function startsAfter(int $secondsSinceLastRun): bool
+    {
+        $job = $this->job();
+        $job->setLastRun(self::NOW - $secondsSinceLastRun);
+        $jobList = $this->createStub(IJobList::class);
+        $jobList->method('setLastRun')->willThrowException(new \LogicException('started'));
+
+        try {
+            $job->start($jobList);
+        } catch (\LogicException) {
+            return true;
+        }
+
+        return false;
     }
 
     /** `start()` needs a running server (logger), so the test goes straight to the protected `run()`. */
