@@ -475,7 +475,7 @@ final class ApiControllerTest extends TestCase
             'workoutcalendar',
             $request,
             $session,
-            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock),
+            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock, new MemoryLogger()),
             new CalendarSetupService($calendars, $this->users, $jobs, $time, $l, $lock),
             $calendars,
             new SyncRunner(
