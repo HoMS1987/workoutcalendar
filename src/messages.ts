@@ -59,6 +59,8 @@ export function apiErrorText(e: ApiError): string {
 /** Why the quiet status refresh fails: the session ended or Nextcloud cannot be reached. */
 export type PollProblem = 'session' | 'network'
 
+const PROXY_UNAVAILABLE = [502, 503, 504]
+
 // Classifies a failed status refresh; other failures are not shown.
 export function pollProblem(e: unknown): PollProblem | null {
 	if (!(e instanceof ApiError)) {
@@ -67,7 +69,9 @@ export function pollProblem(e: unknown): PollProblem | null {
 	if (e.status === 401 || e.code === 'notLoggedIn') {
 		return 'session'
 	}
-	return e.code === 'network' ? 'network' : null
+	// WHY: 502, 503 and 504 come from a proxy or the maintenance mode, not from the app: Nextcloud
+	// itself is out of reach for a while, just like without a network.
+	return e.code === 'network' || PROXY_UNAVAILABLE.includes(e.status) ? 'network' : null
 }
 
 // Text for a failed status refresh.

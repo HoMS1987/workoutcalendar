@@ -122,12 +122,18 @@ describe('hintText', () => {
 
 describe('pollProblem', () => {
 	it.each([
-		[new ApiError(401, 'internal'), 'session'],
-		[new ApiError(401, 'notLoggedIn'), 'session'],
-		[new ApiError(0, 'network'), 'network'],
-		[new ApiError(500, 'internal'), null],
-		[new Error('other'), null],
-	] as const)('classifies %s', (error, expected) => {
+		['401 internal', new ApiError(401, 'internal'), 'session'],
+		['401 notLoggedIn', new ApiError(401, 'notLoggedIn'), 'session'],
+		['0 network', new ApiError(0, 'network'), 'network'],
+		// A proxy or a maintenance page answers for Nextcloud: the connection is gone for a while.
+		['502 internal', new ApiError(502, 'internal'), 'network'],
+		['503 internal', new ApiError(503, 'internal'), 'network'],
+		['504 internal', new ApiError(504, 'internal'), 'network'],
+		['500 internal', new ApiError(500, 'internal'), null],
+		['501 internal', new ApiError(501, 'internal'), null],
+		['505 internal', new ApiError(505, 'internal'), null],
+		['other error', new Error('other'), null],
+	] as const)('classifies %s', (_label, error, expected) => {
 		expect(pollProblem(error)).toBe(expected)
 	})
 })
