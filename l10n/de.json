@@ -201,7 +201,11 @@
         "Due": "Fällig",
         "Events are being reorganised in the background.": "Die Termine werden im Hintergrund neu geordnet.",
         "Delete calendar “{name}” ({count})": "Kalender „{name}“ löschen ({count})",
-        "The connection to Nextcloud was lost. The page keeps trying to reconnect.": "Die Verbindung zu Nextcloud ist unterbrochen. Die Seite versucht weiter, sie wiederherzustellen."
+        "The connection to Nextcloud was lost. The page keeps trying to reconnect.": "Die Verbindung zu Nextcloud ist unterbrochen. Die Seite versucht weiter, sie wiederherzustellen.",
+        "_Importing your history: {n} activity so far, back to {date}._::_Importing your history: {n} activities so far, back to {date}._": [
+            "Import deiner Historie: bisher {n} Aktivität, zurück bis {date}.",
+            "Import deiner Historie: bisher {n} Aktivitäten, zurück bis {date}."
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
