@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Tests\Integration\Settings;
 
 use OCA\WorkoutCalendar\Settings\Personal;
+use OCP\IUser;
+use OCP\IUserManager;
+use OCP\IUserSession;
 use OCP\Server;
 use OCP\Settings\IManager;
 use PHPUnit\Framework\TestCase;
@@ -14,6 +17,24 @@ use PHPUnit\Framework\TestCase;
  */
 final class SettingsRegistrationTest extends TestCase
 {
+    private ?IUser $user = null;
+
+    protected function setUp(): void
+    {
+        // The core settings sections need a signed-in person to be built.
+        $uid = 'wc-settings-' . bin2hex(random_bytes(4));
+        $user = Server::get(IUserManager::class)->createUser($uid, 'Wc-' . bin2hex(random_bytes(16)) . '!');
+        self::assertInstanceOf(IUser::class, $user);
+        $this->user = $user;
+        Server::get(IUserSession::class)->setUser($user);
+    }
+
+    protected function tearDown(): void
+    {
+        Server::get(IUserSession::class)->setUser(null);
+        $this->user?->delete();
+    }
+
     public function testPersonalSectionAndFormAreRegistered(): void
     {
         $manager = Server::get(IManager::class);
