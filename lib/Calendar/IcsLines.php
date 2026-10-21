@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Entfalten und Falten von iCalendar-Zeilen nach RFC 5545, UTF-8-sicher. */
+/** Unfolding and folding of iCalendar lines per RFC 5545, UTF-8 safe. */
 final class IcsLines
 {
     private const MAX_LINE_OCTETS = 75;
@@ -14,7 +14,7 @@ final class IcsLines
     }
 
     /**
-     * Logische Zeilen eines ICS-Texts mit CRLF- oder LF-Zeilenenden, Fortsetzungszeilen zusammengefügt.
+     * Logical lines of an ICS text with CRLF or LF line endings, continuation lines joined.
      *
      * @return list<string>
      */
@@ -32,7 +32,7 @@ final class IcsLines
         return implode('', array_map(static fn (string $line): string => self::fold($line) . "\r\n", $lines));
     }
 
-    /** Faltet nach 75 Oktetten, ohne ein UTF-8-Zeichen zu zerschneiden. */
+    /** Folds after 75 octets without splitting a UTF-8 character. */
     public static function fold(string $line): string
     {
         if (strlen($line) <= self::MAX_LINE_OCTETS) {
@@ -40,7 +40,7 @@ final class IcsLines
         }
         $parts = [];
         $current = '';
-        // Fortsetzungszeilen beginnen mit einem Leerzeichen, das zählt mit.
+        // Continuation lines start with a space, which counts.
         $limit = self::MAX_LINE_OCTETS;
         foreach (mb_str_split($line, 1, 'UTF-8') as $char) {
             if (strlen($current) + strlen($char) > $limit) {
@@ -55,13 +55,13 @@ final class IcsLines
         return implode("\r\n ", $parts);
     }
 
-    /** Name einer Eigenschaft in Großbuchstaben, ohne Parameter, z. B. "SUMMARY" für "SUMMARY;LANGUAGE=de:…". */
+    /** Name of a property in upper case, without parameters, e.g. "SUMMARY" for "SUMMARY;LANGUAGE=de:…". */
     public static function name(string $line): string
     {
         return strtoupper((string)preg_replace('/[;:].*$/s', '', $line));
     }
 
-    /** Wert einer Eigenschaft (alles nach dem ersten Doppelpunkt). */
+    /** Value of a property (everything after the first colon). */
     public static function value(string $line): string
     {
         $pos = strpos($line, ':');

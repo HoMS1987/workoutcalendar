@@ -13,13 +13,13 @@ use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
-/** Tauscht Service-Tickets gegen DI-Tokens und erneuert sie (Ablauf wie python-garminconnect 0.3.19). */
+/** Exchanges service tickets for DI tokens and refreshes them (flow as in python-garminconnect 0.3.19). */
 final class DiTokenService
 {
     public const TOKEN_URL = 'https://diauth.garmin.com/di-oauth2-service/oauth/token';
     public const TICKET_GRANT_TYPE = 'https://connectapi.garmin.com/di-oauth2-service/oauth/grant/service_ticket';
 
-    /** Reihenfolge wie in python-garminconnect: neueste Client-ID zuerst. */
+    /** Order as in python-garminconnect: newest client ID first. */
     public const CLIENT_IDS = [
         'GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2',
         'GARMIN_CONNECT_MOBILE_ANDROID_DI_2024Q4',

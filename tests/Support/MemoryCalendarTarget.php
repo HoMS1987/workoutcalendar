@@ -14,7 +14,7 @@ final class MemoryCalendarTarget implements CalendarTarget
     public array $events = [];
     /** @var array<string, true> */
     public array $marked = [];
-    /** @var list<string> Ausgeführte Schreibvorgänge, z. B. "create:1" */
+    /** @var list<string> Executed write operations, e.g. "create:1" */
     public array $writes = [];
 
     public function find(array $activityIds): array

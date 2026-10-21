@@ -1,17 +1,17 @@
 <?php
 /**
- * Machbarkeitstest: Garmin-Zugriff mit reinem PHP (ext-curl), ohne Browser-TLS-Impersonation.
+ * Feasibility test: Garmin access with plain PHP (ext-curl), without browser TLS impersonation.
  *
- * Bildet die Abläufe von python-garminconnect 0.3.19 nach, damit die Ergebnisse vergleichbar sind.
+ * Reproduces the flows of python-garminconnect 0.3.19 so the results are comparable.
  *
- * Aufruf:  php garmin_test.php <modus>
- *   api            Aktivitäten mit dem vorhandenen Python-Token abrufen (nur lesend)
- *   refresh        Token-Refresh mit dem Python-Refresh-Token, Ergebnis nach php_tokens.json
- *   login-mobile   Login wie die iOS-App (Strategie "mobile+requests")
- *   login-widget   Login über das SSO-Embed-Widget (wie "widget+cffi", aber ohne Impersonation)
- *   login-portal   Login über das Web-Portal (Strategie "portal+requests")
+ * Usage:   php garmin_test.php <mode>
+ *   api            fetch activities with the existing Python token (read-only)
+ *   refresh        token refresh with the Python refresh token, result to php_tokens.json
+ *   login-mobile   login like the iOS app (strategy "mobile+requests")
+ *   login-widget   login via the SSO embed widget (like "widget+cffi", but without impersonation)
+ *   login-portal   login via the web portal (strategy "portal+requests")
  *
- * Ausgegeben werden nur HTTP-Status und Ergebnis, nie Passwörter oder Tokens.
+ * Only HTTP status and result are printed, never passwords or tokens.
  */
 
 declare(strict_types=1);
@@ -78,7 +78,7 @@ final class Http
             CURLOPT_CUSTOMREQUEST => $method,
         ]);
         if (PHP_OS_FAMILY === 'Windows') {
-            // WHY: Windows-PHP bringt kein CA-Bundle mit, daher den Windows-Zertifikatsspeicher nutzen.
+            // WHY: PHP on Windows ships no CA bundle, so use the Windows certificate store.
             curl_setopt($ch, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
         }
         if ($body !== null) {

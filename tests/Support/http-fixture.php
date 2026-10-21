@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 /**
- * Router für `php -S` im CurlHttpClientTest.
- * Pfade: /set-cookie, /echo, /redirect (nach /echo), /status/503.
+ * Router for `php -S` in the CurlHttpClientTest.
+ * Paths: /set-cookie, /echo, /redirect (to /echo), /status/503.
  */
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);

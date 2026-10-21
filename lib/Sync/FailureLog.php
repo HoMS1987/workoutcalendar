@@ -9,14 +9,14 @@ use OCA\WorkoutCalendar\Garmin\GarminException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Loggt Sync-Fehler gedrosselt (ADR 0004, F-43): ausführlich nur bei neuem oder geändertem Fehler,
- * solange er anhält höchstens eine Erinnerung pro Tag, nach Behebung ein Info-Eintrag.
+ * Logs sync errors throttled (ADR 0004, F-43): verbose only for a new or changed error,
+ * at most one reminder per day while it persists, and an info entry once it is fixed.
  */
 final class FailureLog
 {
     private const REMINDER_INTERVAL_SECONDS = 86_400;
 
-    /** Diese Fehler brauchen ein Eingreifen (Zugangsdaten, MFA, App-Anpassung). */
+    /** These errors need intervention (credentials, MFA, app adjustment). */
     private const ERROR_CATEGORIES = [FailureCategory::InvalidCredentials, FailureCategory::MfaRequired, FailureCategory::ProtocolChanged];
 
     public function __construct(private readonly LoggerInterface $logger)

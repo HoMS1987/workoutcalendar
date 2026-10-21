@@ -9,7 +9,7 @@ use OCP\BackgroundJob\IJobList;
 use OCP\Server;
 use PHPUnit\Framework\TestCase;
 
-/** Läuft innerhalb eines echten Nextcloud-Servers. */
+/** Runs inside a real Nextcloud server. */
 final class SyncJobRegistrationTest extends TestCase
 {
     public function testSyncJobIsRegisteredAfterEnable(): void

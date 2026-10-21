@@ -1,4 +1,4 @@
-# Zugangsdaten / Tokens – niemals committen
+# Credentials / tokens - never commit
 .env
 *.env
 garmin_tokens.json
@@ -17,7 +17,7 @@ vendor/
 # Node
 node_modules/
 
-# Exportierte Daten
+# Exported data
 *.fit
 *.ics
 exports/

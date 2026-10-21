@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Bildet eine Aktivität aus der Garmin-Aktivitätsliste auf einen Kalendertermin ab. */
+/** Maps an activity from the Garmin activity list to a calendar event. */
 final class ActivityEventMapper
 {
     private const ACTIVITY_URL = 'https://connect.garmin.com/modern/activity/';
@@ -14,8 +14,8 @@ final class ActivityEventMapper
     private const SPEED = 'speed';
 
     /**
-     * typeKey => [Emoji, Name, Metrik]. Die typeKeys stammen aus der Garmin-Aktivitätsliste,
-     * die Liste ist nicht vollständig. Unbekannte Typen fallen auf den Aktivitätsnamen zurück.
+     * typeKey => [emoji, name, metric]. The typeKeys come from the Garmin activity list;
+     * the list is not exhaustive. Unknown types fall back to the activity name.
      */
     private const TYPES = [
         'running' => ['🏃', 'Running', self::PACE_PER_KM],

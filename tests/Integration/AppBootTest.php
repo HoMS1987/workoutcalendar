@@ -10,7 +10,7 @@ use OCP\Server;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Läuft innerhalb eines echten Nextcloud-Servers (siehe tests/Integration/bootstrap.php).
+ * Runs inside a real Nextcloud server (see tests/Integration/bootstrap.php).
  */
 final class AppBootTest extends TestCase
 {

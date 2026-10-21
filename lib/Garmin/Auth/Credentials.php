@@ -12,7 +12,7 @@ final class Credentials
     ) {
     }
 
-    /** Verhindert, dass das Passwort in var_dump/print_r-Ausgaben landet. */
+    /** Prevents the password from ending up in var_dump/print_r output. */
     public function __debugInfo(): array
     {
         return ['email' => '***', 'password' => '***'];

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Übersetzbare Texte und Zahlenformat der Kalendertermine. Quelltexte sind Englisch. */
+/** Translatable texts and number format of the calendar events. Source texts are English. */
 interface EventTexts
 {
     /**
-     * Übersetzt einen Quelltext und ersetzt die %s-Platzhalter der Reihe nach.
+     * Translates a source text and replaces the %s placeholders in order.
      *
      * @param list<string> $parameters
      */
     public function translate(string $text, array $parameters = []): string;
 
-    /** Formatiert eine Zahl mit den Trennzeichen der Sprache. */
+    /** Formats a number with the language's separators. */
     public function number(float $value, int $decimals): string;
 }

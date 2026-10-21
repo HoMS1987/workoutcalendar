@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class PersonLockTest extends TestCase
 {
-    /** md5('anna'), die Spalte oc_file_locks.key fasst 64 Zeichen. */
+    /** md5('anna'), the column oc_file_locks.key holds 64 characters. */
     private const LOCK = 'workoutcalendar/sync/a70f9e38ff015afaa9ab0aacabee2e13';
 
     public function testRunsCallbackUnderLockAndReturnsResult(): void

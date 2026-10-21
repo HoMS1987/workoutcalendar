@@ -6,13 +6,13 @@ namespace OCA\WorkoutCalendar\Garmin;
 
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
-/** Garmin-Zugriff fehlgeschlagen. Kategorie und Schritt zeigen, wo und warum (ADR 0004). */
+/** Garmin access failed. Category and step show where and why (ADR 0004). */
 final class GarminException extends \RuntimeException
 {
     /**
-     * @param string $step Ablaufschritt, z. B. "widget.signin-post"
-     * @param string $excerpt Bereits bereinigter Auszug der Antwort
-     * @param array<string, string> $attempts Login-Versuche je Strategie, z. B. ["mobile" => "BLOCKED @ mobile.login"]
+     * @param string $step Flow step, e.g. "widget.signin-post"
+     * @param string $excerpt Already sanitized excerpt of the response
+     * @param array<string, string> $attempts Login attempts per strategy, e.g. ["mobile" => "BLOCKED @ mobile.login"]
      */
     public function __construct(
         public readonly FailureCategory $category,
@@ -32,7 +32,7 @@ final class GarminException extends \RuntimeException
         return new self($this->category, $this->step, $this->getMessage(), $this->status, $this->excerpt, $this, $attempts);
     }
 
-    /** @return array<string, mixed> Kontext für das Log, enthält keine Geheimnisse */
+    /** @return array<string, mixed> Context for the log, contains no secrets */
     public function logContext(): array
     {
         return array_filter([

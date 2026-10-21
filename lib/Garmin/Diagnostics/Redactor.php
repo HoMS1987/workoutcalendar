@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
 /**
- * Entfernt Geheimnisse (Passwörter, Tokens, Tickets, E-Mail-Adressen) aus Texten, bevor sie geloggt werden.
+ * Removes secrets (passwords, tokens, tickets, email addresses) from texts before they are logged.
  *
- * Neue Felder mit Geheimnissen müssen hier ergänzt werden (ADR 0004).
+ * New fields containing secrets must be added here (ADR 0004).
  */
 final class Redactor
 {
@@ -19,7 +19,7 @@ final class Redactor
     /** @var list<string> */
     private array $knownSecrets;
 
-    /** @param list<string> $knownSecrets Konkrete Werte, die immer maskiert werden (z. B. das Passwort). */
+    /** @param list<string> $knownSecrets Concrete values that are always masked (e.g. the password). */
     public function __construct(array $knownSecrets = [])
     {
         $this->knownSecrets = array_values(array_filter($knownSecrets, static fn (string $s): bool => $s !== ''));
@@ -33,11 +33,11 @@ final class Redactor
 
         $keys = self::SECRET_KEYS;
         $patterns = [
-            // JSON: "password":"wert"
+            // JSON: "password":"value"
             '/("(?:' . $keys . ')"\s*:\s*")(?:[^"\\\\]|\\\\.)*(")/i' => '$1' . self::MASK . '$2',
-            // Formular/Query: password=wert
+            // Form/query: password=value
             '/(?<![\w-])((?:' . $keys . ')=)[^&\s"\'<>]+/i' => '$1' . self::MASK,
-            // HTML: name="_csrf" value="wert"
+            // HTML: name="_csrf" value="value"
             '/(name="_csrf"\s+value=")[^"]*(")/i' => '$1' . self::MASK . '$2',
             '/\b(Bearer|Basic)\s+[A-Za-z0-9._~+\/=-]+/' => '$1 ' . self::MASK,
             '/\bST-[A-Za-z0-9._-]+/' => 'ST-' . self::MASK,
@@ -48,7 +48,7 @@ final class Redactor
         return preg_replace(array_keys($patterns), array_values($patterns), $text) ?? self::MASK;
     }
 
-    /** Bereinigter, auf $maxLength Zeichen gekürzter Auszug, z. B. aus einer HTTP-Antwort. */
+    /** Sanitized excerpt shortened to $maxLength characters, e.g. from an HTTP response. */
     public function excerpt(string $text, int $maxLength = 300): string
     {
         $clean = $this->redact($text);

@@ -9,7 +9,7 @@ use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
 
-/** Login über das SSO-Embed-Widget (python-garminconnect: Strategie "widget"). */
+/** Login via the SSO embed widget (python-garminconnect: strategy "widget"). */
 final class WidgetLogin implements LoginStrategy
 {
     private const SSO_BASE = GarminConstants::SSO . '/sso';
@@ -20,7 +20,7 @@ final class WidgetLogin implements LoginStrategy
     /** @var \Closure(int): void */
     private readonly \Closure $sleep;
 
-    /** @param (callable(int): void)|null $sleep Wartezeit zwischen Formular-Abruf und Absenden, in Tests ersetzbar */
+    /** @param (callable(int): void)|null $sleep Wait between fetching and submitting the form, replaceable in tests */
     public function __construct(
         private readonly HttpClient $http,
         private readonly DiTokenService $tokens,
@@ -62,7 +62,7 @@ final class WidgetLogin implements LoginStrategy
             throw $this->failures->create(FailureCategory::ProtocolChanged, $step, 'Kein CSRF-Token im Anmeldeformular', $response);
         }
 
-        // WHY: python-garminconnect wartet ebenfalls 3–8 s, sofortiges Absenden wirkt wie ein Bot.
+        // WHY: python-garminconnect also waits 3-8 s; submitting immediately looks like a bot.
         ($this->sleep)(random_int(3, 8));
 
         $step = 'widget.signin-post';
@@ -79,8 +79,8 @@ final class WidgetLogin implements LoginStrategy
 
         $title = ResponseFailures::pageTitle($response->body);
         if ($title !== 'Success') {
-            // ANNAHME: Bei falschem Passwort zeigt Garmin das Formular erneut an, bei MFA eine Seite mit "MFA"
-            // im Titel. Beides ist nicht mit einem echten Fehlversuch geprüft.
+            // ASSUMPTION: With a wrong password Garmin shows the form again, with MFA a page with "MFA"
+            // in the title. Neither has been verified with a real failed attempt.
             $category = match (true) {
                 stripos($title, 'MFA') !== false => FailureCategory::MfaRequired,
                 self::csrf($response->body) !== null => FailureCategory::InvalidCredentials,

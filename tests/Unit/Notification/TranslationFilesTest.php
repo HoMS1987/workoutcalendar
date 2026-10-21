@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Tests\Unit\Notification;
 use OCA\WorkoutCalendar\Tests\Support\GermanEventTexts;
 use PHPUnit\Framework\TestCase;
 
-/** Hält l10n/de.json, l10n/de.js und die Test-Tabelle GermanEventTexts deckungsgleich. */
+/** Keeps l10n/de.json, l10n/de.js and the GermanEventTexts test table identical. */
 final class TranslationFilesTest extends TestCase
 {
     private const PLURAL_FORM = 'nplurals=2; plural=(n != 1);';

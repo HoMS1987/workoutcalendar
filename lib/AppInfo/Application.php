@@ -27,7 +27,7 @@ final class Application extends App implements IBootstrap
     {
         $context->registerNotifierService(Notifier::class);
         $context->registerServiceAlias(HttpClientProvider::class, CurlHttpClientProvider::class);
-        // DavCalendarObjects bekommt das CalDavBackend des Containers (nicht das Legacy-Backend).
+        // DavCalendarObjects gets the container's CalDavBackend (not the legacy backend).
         $context->registerServiceAlias(CalendarObjects::class, DavCalendarObjects::class);
     }
 

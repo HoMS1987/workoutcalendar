@@ -7,12 +7,12 @@ namespace OCA\WorkoutCalendar\Sync;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
 /**
- * Entscheidet, ob zum Sync-Zustand eine Benachrichtigung gesendet oder entfernt wird.
- * Reine Regel: verändert den Zustand nicht, der Aufrufer setzt notifiedCategory danach.
+ * Decides whether a notification is sent or removed for the sync state.
+ * Pure rule: does not change the state; the caller sets notifiedCategory afterwards.
  */
 final class NotificationPolicy
 {
-    /** Wartezeit seit Fehlerbeginn, bevor andere Kategorien als abgelehntes Passwort / Verifizierungscode melden. */
+    /** Wait since the error began before categories other than rejected password / verification code are reported. */
     public const DELAY_SECONDS = 86_400;
 
     public function decide(SyncState $state, int $now): NotificationAction

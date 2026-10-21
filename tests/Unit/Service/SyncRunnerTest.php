@@ -41,7 +41,7 @@ final class SyncRunnerTest extends TestCase
 
     private const UID = 'anna';
     private const ACCOUNT = '0123456789abcdef';
-    /** md5('anna'), die Spalte oc_file_locks.key fasst 64 Zeichen. */
+    /** md5('anna'), the column oc_file_locks.key holds 64 characters. */
     private const LOCK = 'workoutcalendar/sync/a70f9e38ff015afaa9ab0aacabee2e13';
 
     /** @var array<string, array<string, string|int>> */
@@ -146,7 +146,7 @@ final class SyncRunnerTest extends TestCase
         self::assertSame(RunOutcome::Done, $outcome);
         self::assertArrayHasKey('garmin-101.ics', $this->objects->objects[$this->calendarId]);
         self::assertSame(['acquire:' . self::LOCK, 'release:' . self::LOCK], $this->lockCalls);
-        // Standard: 30 Minuten ± 20 %.
+        // Default: 30 minutes ± 20 %.
         $nextRunAt = $this->users->state(self::UID)->nextRunAt;
         self::assertNotNull($nextRunAt);
         self::assertGreaterThanOrEqual($this->now->getTimestamp() + 24 * 60, $nextRunAt);
@@ -244,7 +244,7 @@ final class SyncRunnerTest extends TestCase
         self::assertSame('INVALID_CREDENTIALS', $state->pausedFor);
         self::assertSame('INVALID_CREDENTIALS', $state->notifiedCategory);
 
-        // Neue Zugangsdaten heben die Pause auf, Garmin lehnt sie wieder ab.
+        // New credentials lift the pause, Garmin rejects them again.
         $state->pausedFor = null;
         $this->users->saveState(self::UID, $state);
         self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now->modify('+30 minutes')));
@@ -351,7 +351,7 @@ final class SyncRunnerTest extends TestCase
         } catch (\RuntimeException) {
         }
 
-        // Standard: 30 Minuten ± 20 %.
+        // Default: 30 minutes ± 20 %.
         $nextRunAt = $this->users->state(self::UID)->nextRunAt;
         self::assertNotNull($nextRunAt);
         self::assertGreaterThanOrEqual($this->now->getTimestamp() + 24 * 60, $nextRunAt);
@@ -392,11 +392,11 @@ final class SyncRunnerTest extends TestCase
 
         $ics = $this->objects->objects[$this->calendarId]['garmin-101.ics'];
         self::assertStringContainsString('Laufen', $ics);
-        // ICS maskiert das Komma.
+        // ICS escapes the comma.
         self::assertStringContainsString('Distanz: 5\,00 km', $ics);
     }
 
-    /** Person steht mit fälligem Lauf in der Warteschlange. */
+    /** Person is in the queue with a due run. */
     private function queued(SyncState $state): void
     {
         $state->nextRunAt = $this->now->getTimestamp() - 60;

@@ -20,9 +20,9 @@ final class CalendarEvent
     }
 
     /**
-     * Stabiler Hash über alle inhaltlichen Felder (SHA-256, base64url ohne Padding, 43 Zeichen).
-     * Damit erkennt der Sync, ob ein gespeicherter Termin neu geschrieben werden muss.
-     * WHY base64url statt hex: Die Zeile X-GARMIN-FINGERPRINT bleibt so unter 75 Oktetten.
+     * Stable hash over all content fields (SHA-256, base64url without padding, 43 characters).
+     * The sync uses it to detect whether a stored event has to be rewritten.
+     * WHY base64url instead of hex: this keeps the X-GARMIN-FINGERPRINT line under 75 octets.
      */
     public function fingerprint(): string
     {

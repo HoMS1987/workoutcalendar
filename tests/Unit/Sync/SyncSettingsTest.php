@@ -67,7 +67,7 @@ final class SyncSettingsTest extends TestCase
     {
         $settings = SyncSettings::fromArray(['intervalMinutes' => 30, 'jitterPercent' => 20]);
 
-        // 30 min ± 20 % = 24 bis 36 min
+        // 30 min ± 20 % = 24 to 36 min
         self::assertSame(1000 + 24 * 60, $settings->nextRunAt(1000, static fn (int $min, int $max): int => $min));
         self::assertSame(1000 + 36 * 60, $settings->nextRunAt(1000, static fn (int $min, int $max): int => $max));
     }

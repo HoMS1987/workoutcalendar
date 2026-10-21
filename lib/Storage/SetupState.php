@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Storage;
 
-/** Stand der Einrichtung einer Person. Wird als JSON gespeichert. */
+/** A person's setup state. Stored as JSON. */
 final class SetupState
 {
     /**
-     * @param ?string $accountKey Kontoschlüssel des verbundenen Garmin-Kontos
-     * @param ?string $maskedEmail maskierte E-Mail-Adresse für die Anzeige
-     * @param bool $calendarCreatedByApp der Kalender wurde von der App angelegt
-     * @param ?string $maintenance 'move', 'remove' oder null
-     * @param ?string $maintenanceFailed 'move' oder 'remove', wenn der Wartungsjob aufgegeben hat, sonst null
-     * @param bool $calendarMissing der Zielkalender fehlte beim letzten Sync-Lauf, die Einrichtung steht wieder bei der Kalenderwahl
+     * @param ?string $accountKey Account key of the connected Garmin account
+     * @param ?string $maskedEmail masked email address for display
+     * @param bool $calendarCreatedByApp the calendar was created by the app
+     * @param ?string $maintenance 'move', 'remove' or null
+     * @param ?string $maintenanceFailed 'move' or 'remove' if the maintenance job gave up, otherwise null
+     * @param bool $calendarMissing the target calendar was missing in the last sync run; the setup is back at the calendar choice
      */
     public function __construct(
         public readonly SetupStep $step = SetupStep::Garmin,

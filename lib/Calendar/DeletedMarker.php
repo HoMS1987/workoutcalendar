@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Markiert einen gespeicherten Termin als „in Garmin gelöscht“ (F-13, F-34). Mehrfaches Anwenden ändert nichts. */
+/** Marks a stored event as "deleted in Garmin" (F-13, F-34). Applying it repeatedly changes nothing. */
 final class DeletedMarker
 {
     public const SUMMARY_SUFFIX = ' (in Garmin gelöscht)';
 
-    /** Eigenschaften, die beim Markieren neu gesetzt werden. */
+    /** Properties that are set anew when marking. */
     private const REPLACED = ['STATUS', 'X-GARMIN-DELETED'];
 
     public function apply(string $ics, \DateTimeImmutable $now): string

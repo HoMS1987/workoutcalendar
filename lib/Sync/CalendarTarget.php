@@ -6,21 +6,21 @@ namespace OCA\WorkoutCalendar\Sync;
 
 use OCA\WorkoutCalendar\Calendar\CalendarEvent;
 
-/** Zielkalender einer Person. Die Nextcloud-Implementierung nutzt die interne Kalender-API (ADR 0003). */
+/** A person's target calendar. The Nextcloud implementation uses the internal calendar API (ADR 0003). */
 interface CalendarTarget
 {
     /**
      * @param list<string> $activityIds
-     * @return array<string, StoredEvent> Vorhandene Termine, Schlüssel ist die Activity-ID
+     * @return array<string, StoredEvent> Existing events, keyed by activity ID
      */
     public function find(array $activityIds): array;
 
-    /** @return array<string, StoredEvent> Termine der App mit Beginn in [from, to] */
+    /** @return array<string, StoredEvent> The app's events starting in [from, to] */
     public function inRange(\DateTimeImmutable $from, \DateTimeImmutable $to): array;
 
     public function create(CalendarEvent $event): void;
 
-    /** Überschreibt den Termin vollständig, eine Löschmarkierung entfällt dabei. */
+    /** Overwrites the event completely; a deletion marker is dropped in the process. */
     public function update(CalendarEvent $event): void;
 
     public function markDeleted(string $activityId): void;

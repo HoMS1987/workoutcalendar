@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Service;
 
-/** Was beim Abmelden oder Zurücksetzen mit den Terminen der App geschieht. */
+/** What happens to the app's events on sign-out or reset. */
 enum Cleanup: string
 {
-    /** Termine und Kalender bleiben. */
+    /** Events and calendar stay. */
     case None = 'none';
-    /** Die Termine der App werden aus dem Kalender entfernt. */
+    /** The app's events are removed from the calendar. */
     case Events = 'events';
-    /** Der von der App angelegte Kalender wird gelöscht. */
+    /** The calendar created by the app is deleted. */
     case Calendar = 'calendar';
 }

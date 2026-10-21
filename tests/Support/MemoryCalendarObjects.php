@@ -8,18 +8,18 @@ use OCA\WorkoutCalendar\CalDav\CalendarInfo;
 use OCA\WorkoutCalendar\CalDav\CalendarObjects;
 use OCA\WorkoutCalendar\Calendar\IcsLines;
 
-/** Kalender und Objekte im Speicher, verhält sich in den geprüften Punkten wie `CalDavBackend`. */
+/** Calendars and objects in memory; behaves like `CalDavBackend` in the points under test. */
 final class MemoryCalendarObjects implements CalendarObjects
 {
     /** @var array<int, array{owner: string, uri: string, name: string, color: ?string, components: list<string>, trashed: bool}> */
     public array $calendars = [];
-    /** @var array<int, array<string, string>> Kalender-ID → URI → ICS */
+    /** @var array<int, array<string, string>> Calendar ID → URI → ICS */
     public array $objects = [];
-    /** @var list<string> Ausgeführte Schreibvorgänge, z. B. "create:1:garmin-42.ics" */
+    /** @var list<string> Executed write operations, e.g. "create:1:garmin-42.ics" */
     public array $writes = [];
-    /** Aufrufe von get(), für Prüfungen, dass kein ICS gelesen wird. */
+    /** Calls of get(), for assertions that no ICS is read. */
     public int $getCalls = 0;
-    /** Wird beim Löschen eines Kalenders geworfen, wenn gesetzt. */
+    /** Thrown when deleting a calendar, if set. */
     public ?\Throwable $deleteCalendarFailure = null;
     private int $nextId = 1;
 
@@ -86,7 +86,7 @@ final class MemoryCalendarObjects implements CalendarObjects
         return array_keys($this->objects[$calendarId] ?? []);
     }
 
-    /** Wie `calendarQuery`: Termine, die sich mit dem Zeitraum überschneiden (Beginn < to, Ende > from). */
+    /** Like `calendarQuery`: events that overlap the time range (start < to, end > from). */
     public function urisInRange(int $calendarId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         $result = [];
@@ -132,7 +132,7 @@ final class MemoryCalendarObjects implements CalendarObjects
         unset($this->objects[$calendarId][$uri]);
     }
 
-    /** Liest nur UTC-Zeiten der Form 20261019T051203Z, das genügt für die Tests. */
+    /** Reads only UTC times of the form 20261019T051203Z, which is enough for the tests. */
     private static function time(string $ics, string $name): ?\DateTimeImmutable
     {
         foreach (IcsLines::unfold($ics) as $line) {

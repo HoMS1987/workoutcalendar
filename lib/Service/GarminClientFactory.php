@@ -19,8 +19,8 @@ use OCA\WorkoutCalendar\Storage\UserTokenStore;
 use Psr\Log\LoggerInterface;
 
 /**
- * Baut Garmin-Client und Anmeldung. Jeder Aufruf bekommt einen eigenen HTTP-Client, damit Cookies
- * nie zwischen Personen geteilt werden.
+ * Builds the Garmin client and login. Every call gets its own HTTP client so that cookies
+ * are never shared between people.
  */
 final class GarminClientFactory
 {
@@ -45,7 +45,7 @@ final class GarminClientFactory
         );
     }
 
-    /** Anmeldung ohne gespeicherte Tokens, z. B. zum Prüfen neuer Zugangsdaten. */
+    /** Login without stored tokens, e.g. to check new credentials. */
     public function authenticator(): Authenticator
     {
         return $this->authenticatorFor($this->http());

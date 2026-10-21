@@ -42,7 +42,7 @@ use OCP\Notification\IManager;
 use OCP\Notification\INotification;
 use PHPUnit\Framework\TestCase;
 
-/** Ablauf und Fehlerabbildung des Controllers ohne Nextcloud, Garmin über FakeHttpClient. */
+/** Flow and error mapping of the controller without Nextcloud, Garmin via FakeHttpClient. */
 final class ApiControllerTest extends TestCase
 {
     use InMemoryConfigMocks;
@@ -124,7 +124,7 @@ final class ApiControllerTest extends TestCase
         $state->backfillUntil = '2026-07-22';
         $state->lastSuccessAt = self::NOW - 3600;
         $this->users->saveState(self::UID, $state);
-        // Ablauf nach der echten Uhr, sonst holt der Client zuerst ein neues Token.
+        // Expiry per the real clock, otherwise the client fetches a new token first.
         $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
         $this->objects->deleteCalendar((int)$this->users->setup(self::UID)->calendarId);
         $controller = $this->controller();
@@ -135,7 +135,7 @@ final class ApiControllerTest extends TestCase
         $response = $controller->history(90);
 
         self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
-        // Neuer Zustand: aktuelles Fenster ab dem Prüfzeitraum und eine Etappe Historien-Import.
+        // New state: current window from the check period and one stage of history import.
         self::assertSame(['api.activities', 'api.activities'], $this->http->steps());
         self::assertStringContainsString('startDate=2026-09-19', $this->http->requests[0]->url);
         $state = $this->users->state(self::UID);
@@ -293,7 +293,7 @@ final class ApiControllerTest extends TestCase
 
         $this->controller()->updateSettings(intervalMinutes: 120);
 
-        // 120 Minuten ± 20 %.
+        // 120 minutes ± 20 %.
         $nextRunAt = $this->users->state(self::UID)->nextRunAt;
         self::assertNotNull($nextRunAt);
         self::assertGreaterThanOrEqual(self::NOW + 96 * 60, $nextRunAt);
@@ -409,7 +409,7 @@ final class ApiControllerTest extends TestCase
 
         $response = $this->controller()->sync();
 
-        // Das Einreihen läuft in derselben Sperre wie der Lauf: ist sie belegt, ändert sich nichts.
+        // Queueing runs in the same lock as the run: if it is taken, nothing changes.
         self::assertSame('skipped', $response->getData()['outcome']);
         self::assertSame($before, $this->store);
         self::assertSame([], $this->http->requests);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Service;
 
-/** Ein Sync-Lauf oder eine andere Änderung für die Person hält gerade die Sperre. */
+/** A sync run or another change for the person currently holds the lock. */
 final class PersonBusyException extends \RuntimeException
 {
     public function __construct()

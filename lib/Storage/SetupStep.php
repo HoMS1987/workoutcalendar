@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Storage;
 
-/** Schritte der Einrichtung einer Person. */
+/** Steps of a person's setup. */
 enum SetupStep: string
 {
     case Garmin = 'garmin';

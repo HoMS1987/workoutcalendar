@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Sync;
 
-/** Was der Aufrufer mit der Benachrichtigung tun soll. */
+/** What the caller should do with the notification. */
 enum NotificationAction
 {
     case None;

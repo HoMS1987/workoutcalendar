@@ -33,9 +33,9 @@ use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 
 /**
- * JSON-API der Einstellungsseite. Jede Route arbeitet nur mit den Daten der angemeldeten Person.
- * Fehler: Garmin → 422 mit Fehlerkategorie, ungültige Anfrage → 400, laufender Sync → 409 `busy`,
- * alles andere → 500.
+ * JSON API of the settings page. Every route works only with the signed-in person's data.
+ * Errors: Garmin → 422 with failure category, invalid request → 400, running sync → 409 `busy`,
+ * anything else → 500.
  */
 final class ApiController extends Controller
 {
@@ -110,17 +110,17 @@ final class ApiController extends Controller
     }
 
     /**
-     * Im Assistenten (Schritt Historie) schließt die Wahl die Einrichtung ab und führt die erste Etappe
-     * sofort aus. Danach ändert sie nur den Zeitraum, ein längerer setzt den Import fort.
+     * In the wizard (history step) the choice completes the setup and runs the first stage
+     * immediately. Afterwards it only changes the period; a longer one resumes the import.
      *
-     * @param mixed $historyDays 30, 90, 365 oder null für die komplette Historie
+     * @param mixed $historyDays 30, 90, 365 or null for the complete history
      */
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/history')]
     public function history(mixed $historyDays = null): JSONResponse
     {
         return $this->handle(function (string $uid) use ($historyDays): array {
-            // WHY: IRequest::getParam liefert für fehlende und für null-Werte den Standardwert.
+            // WHY: IRequest::getParam returns the default value for missing and for null values.
             if ($historyDays === null && !array_key_exists('historyDays', $this->request->getParams())) {
                 throw new \InvalidArgumentException('historyDays fehlt');
             }
@@ -129,7 +129,7 @@ final class ApiController extends Controller
             }
             /** @var ?int $historyDays */
             $now = $this->now();
-            // WHY: Die Sperre ist nicht wiedereintrittsfähig, der erste Lauf startet erst nach ihrer Freigabe.
+            // WHY: The lock is not reentrant; the first run starts only after it has been released.
             $finishedWizard = $this->lock->run($uid, fn (): bool => $this->applyHistory($uid, $historyDays, $now));
             if ($finishedWizard) {
                 $this->runner->runNow($uid, $now);
@@ -139,7 +139,7 @@ final class ApiController extends Controller
         });
     }
 
-    /** @return bool true, wenn die Wahl den Assistenten abgeschlossen hat */
+    /** @return bool true if the choice completed the wizard */
     private function applyHistory(string $uid, ?int $historyDays, \DateTimeImmutable $now): bool
     {
         $setup = $this->users->setup($uid);
@@ -163,9 +163,9 @@ final class ApiController extends Controller
                 $setup->maintenanceFailed,
                 $setup->calendarMissing,
             ));
-            // WHY: Nach einem fehlenden Kalender stünde sonst der alte Zustand da (Historie fertig,
-            // letzter Erfolg), der neue Kalender bekäme keinen Import. Die Pause bleibt: ohne neue
-            // Zugangsdaten gibt es keinen weiteren Anmeldeversuch.
+            // WHY: After a missing calendar the old state would otherwise remain (history done,
+            // last success), and the new calendar would get no import. The pause stays: without new
+            // credentials there is no further sign-in attempt.
             $previous = $this->users->state($uid);
             $state = new SyncState();
             $state->pausedFor = $previous->pausedFor;
@@ -184,7 +184,7 @@ final class ApiController extends Controller
         return false;
     }
 
-    /** Ändert Intervall, Streuung, Umgang mit gelöschten Aktivitäten und Prüfzeitraum. Die Historie bleibt. */
+    /** Changes interval, jitter, handling of deleted activities and check period. The history stays. */
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'PUT', url: '/api/settings')]
     public function updateSettings(
@@ -216,7 +216,7 @@ final class ApiController extends Controller
                 $this->users->saveSettings($uid, $settings);
                 $state = $this->users->state($uid);
                 if ($settings->intervalMinutes !== $previous->intervalMinutes && $state->nextRunAt !== null) {
-                    // Wer in der Warteschlange steht, bekommt den nächsten Lauf nach dem neuen Intervall.
+                    // Anyone in the queue gets the next run after the new interval.
                     $state->nextRunAt = $settings->nextRunAt($this->time->getTime());
                     $this->users->saveState($uid, $state);
                 }
@@ -262,7 +262,7 @@ final class ApiController extends Controller
 
     /**
      * @param callable(string): array<string, mixed> $action
-     * @param bool $logMessage false, wenn Meldungen Zugangsdaten enthalten könnten (Anmeldung)
+     * @param bool $logMessage false if messages could contain credentials (sign-in)
      */
     private function handle(callable $action, bool $logMessage = true): JSONResponse
     {
@@ -280,7 +280,7 @@ final class ApiController extends Controller
         } catch (\InvalidArgumentException) {
             return new JSONResponse(['error' => 'invalidRequest'], Http::STATUS_BAD_REQUEST);
         } catch (\Throwable $e) {
-            // Bei der Anmeldung nur die Klasse: Meldung und Anfrage könnten Zugangsdaten enthalten.
+            // For sign-in only the class: message and request could contain credentials.
             $context = ['exceptionClass' => $e::class];
             if ($logMessage) {
                 $context['message'] = $e->getMessage();

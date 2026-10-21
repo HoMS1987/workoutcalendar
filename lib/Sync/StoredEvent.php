@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Sync;
 
-/** Ein bereits im Kalender gespeicherter Termin der App. */
+/** An app event already stored in the calendar. */
 final class StoredEvent
 {
     public function __construct(

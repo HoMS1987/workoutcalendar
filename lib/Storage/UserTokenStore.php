@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Storage;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\TokenStore;
 
-/** Token-Ablage einer Person auf Basis des SecretStore. */
+/** A person's token storage based on the SecretStore. */
 final class UserTokenStore implements TokenStore
 {
     public function __construct(private readonly SecretStore $secrets, private readonly string $uid)

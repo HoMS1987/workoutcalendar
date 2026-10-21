@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ActivityEventMapperTest extends TestCase
 {
-    /** Erfundene Beispielaktivität, keine echten Nutzerdaten. */
+    /** Made-up sample activity, no real user data. */
     private static function activity(array $overrides = []): array
     {
         return array_replace([

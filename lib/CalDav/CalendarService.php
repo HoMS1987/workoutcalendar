@@ -8,8 +8,8 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Kalenderverwaltung für Einstellungen und Hintergrundjobs: Kalender suchen, anlegen und löschen,
- * Termine der App zählen, verschieben und entfernen. Fremde Termine bleiben unangetastet.
+ * Calendar management for settings and background jobs: find, create and delete calendars,
+ * count, move and remove the app's events. Foreign events are left untouched.
  */
 final class CalendarService
 {
@@ -27,7 +27,7 @@ final class CalendarService
         return $this->objects->ownCalendars($uid);
     }
 
-    /** Sucht einen eigenen Kalender nach Namen, ohne Leerzeichen am Rand und ohne Groß- und Kleinschreibung. */
+    /** Finds an own calendar by name, ignoring surrounding whitespace and letter case. */
     public function findByName(string $uid, string $name): ?CalendarInfo
     {
         $needle = self::normalize($name);
@@ -40,7 +40,7 @@ final class CalendarService
         return null;
     }
 
-    /** Legt einen Kalender unter `workoutcalendar` an, bei Belegung unter `workoutcalendar-2`, `-3` usw. */
+    /** Creates a calendar under `workoutcalendar`, or `workoutcalendar-2`, `-3` etc. if that is taken. */
     public function createCalendar(string $uid, string $name): CalendarInfo
     {
         $used = array_flip($this->objects->usedCalendarUris($uid));
@@ -68,8 +68,8 @@ final class CalendarService
     }
 
     /**
-     * Zählt nur nach der URI-Form `garmin-<activityId>.ics`, ohne ICS zu lesen. Für die Anzeige;
-     * ändernde Vorgänge prüfen zusätzlich die UID.
+     * Counts by the URI form `garmin-<activityId>.ics` only, without reading ICS. For display;
+     * operations that change data also check the UID.
      */
     public function countAppEventsByUri(int $calendarId): int
     {
@@ -80,11 +80,11 @@ final class CalendarService
     }
 
     /**
-     * Verschiebt höchstens `limit` Termine der App. Liegt unter der URI im Ziel schon ein Termin der
-     * App, wird nur die Quelle gelöscht. Liegt dort ein fremdes Objekt, bleibt die Quelle stehen und
-     * zählt nicht mehr zum Rest, damit der Wartungsjob fertig wird.
+     * Moves at most `limit` events of the app. If the target already holds an event of the
+     * app under the URI, only the source is deleted. If a foreign object is there, the source stays and
+     * no longer counts towards the remainder, so the maintenance job can finish.
      *
-     * @return int Zahl der Termine der App, die noch verschoben werden können
+     * @return int Number of the app's events that can still be moved
      */
     public function moveAppEvents(int $from, int $to, int $limit): int
     {
@@ -114,7 +114,7 @@ final class CalendarService
         return count($pending);
     }
 
-    /** @return int Zahl der Termine der App, die noch im Kalender liegen */
+    /** @return int Number of the app's events still in the calendar */
     public function removeAppEvents(int $calendarId, int $limit): int
     {
         $pending = $this->appObjects($calendarId);
@@ -126,7 +126,7 @@ final class CalendarService
         return count($pending);
     }
 
-    /** @return array<string, string> URI → ICS der Termine der App, nach URI sortiert */
+    /** @return array<string, string> URI → ICS of the app's events, sorted by URI */
     private function appObjects(int $calendarId): array
     {
         $uris = array_values(array_filter(

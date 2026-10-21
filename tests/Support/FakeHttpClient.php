@@ -8,7 +8,7 @@ use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
-/** Liefert vorbereitete Antworten in Reihenfolge und merkt sich alle Anfragen. */
+/** Returns prepared responses in order and records all requests. */
 final class FakeHttpClient implements HttpClient
 {
     /** @var list<HttpRequest> */

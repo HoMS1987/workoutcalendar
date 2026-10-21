@@ -6,7 +6,7 @@ namespace OCA\WorkoutCalendar\Service;
 
 use OCA\WorkoutCalendar\CalDav\CalendarInfo;
 
-/** Ergebnis von {@see CalendarSetupService::choose()}. */
+/** Result of {@see CalendarSetupService::choose()}. */
 final class CalendarChoice
 {
     public function __construct(

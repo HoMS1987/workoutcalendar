@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Service;
 
-/** Maskiert E-Mail-Adressen für die Anzeige, damit sie nicht vollständig in Antworten und Logs stehen. */
+/** Masks email addresses for display so they do not appear in full in responses and logs. */
 final class EmailMask
 {
     public static function mask(string $email): string

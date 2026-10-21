@@ -11,12 +11,12 @@ use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Probiert die Login-Strategien der Reihe nach. Einzelversuche werden auf Stufe debug geloggt, die
- * Zusammenfassung steckt in der geworfenen Exception und wird gedrosselt vom Sync-Ablauf geloggt (ADR 0004).
+ * Tries the login strategies in order. Single attempts are logged at debug level; the
+ * summary is carried by the thrown exception and logged, throttled, by the sync flow (ADR 0004).
  */
 final class Authenticator
 {
-    /** Bei diesen Fehlern hilft ein anderer Login-Weg nicht, weitere Versuche könnten das Konto sperren. */
+    /** For these errors another login path does not help, and further attempts could lock the account. */
     private const FINAL_CATEGORIES = [FailureCategory::InvalidCredentials, FailureCategory::MfaRequired, FailureCategory::Network];
 
     /** @param list<LoginStrategy> $strategies */

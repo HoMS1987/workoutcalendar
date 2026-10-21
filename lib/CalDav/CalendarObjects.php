@@ -5,32 +5,32 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\CalDav;
 
 /**
- * Kalender und Kalenderobjekte einer Nextcloud-Instanz (ADR 0005).
- * Die einzige Implementierung mit Nextcloud-Bezug ist `DavCalendarObjects`.
+ * Calendars and calendar objects of a Nextcloud instance (ADR 0005).
+ * The only implementation tied to Nextcloud is `DavCalendarObjects`.
  */
 interface CalendarObjects
 {
-    /** @return list<CalendarInfo> Eigene Kalender (keine geteilten), nicht im Papierkorb, mit VEVENT */
+    /** @return list<CalendarInfo> Own calendars (not shared ones), not in the trash, with VEVENT */
     public function ownCalendars(string $uid): array;
 
-    /** @return list<string> URIs aller eigenen Kalender, auch der im Papierkorb. Diese URIs sind belegt. */
+    /** @return list<string> URIs of all own calendars, including those in the trash. These URIs are taken. */
     public function usedCalendarUris(string $uid): array;
 
-    /** @return int ID des neuen Kalenders, der nur VEVENT unterstützt */
+    /** @return int ID of the new calendar, which supports VEVENT only */
     public function createCalendar(string $uid, string $uri, string $name): int;
 
-    /** Verschiebt den Kalender in den Papierkorb. */
+    /** Moves the calendar to the trash. */
     public function deleteCalendar(int $calendarId): void;
 
-    /** @return list<string> URIs aller Objekte des Kalenders */
+    /** @return list<string> URIs of all objects in the calendar */
     public function uris(int $calendarId): array;
 
-    /** @return list<string> URIs der VEVENTs, die sich mit dem Zeitraum überschneiden (Beginn < to, Ende > from) */
+    /** @return list<string> URIs of the VEVENTs that overlap the time range (start < to, end > from) */
     public function urisInRange(int $calendarId, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
 
     /**
      * @param list<string> $uris
-     * @return array<string, string> URI → ICS, fehlende URIs fehlen auch im Ergebnis
+     * @return array<string, string> URI → ICS, missing URIs are also missing from the result
      */
     public function get(int $calendarId, array $uris): array;
 
@@ -39,9 +39,9 @@ interface CalendarObjects
     public function update(int $calendarId, string $uri, string $ics): void;
 
     /**
-     * Verschiebt das Objekt in den Papierkorb, fehlende Objekte werden ignoriert. Endgültig gelöscht
-     * wird, wenn der Papierkorb abgeschaltet ist (Aufbewahrung 0) oder schon eine Fassung desselben
-     * Objekts enthält.
+     * Moves the object to the trash, missing objects are ignored. It is deleted permanently
+     * when the trash is disabled (retention 0) or already contains a version of the same
+     * object.
      */
     public function delete(int $calendarId, string $uri): void;
 }

@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Garmin\Http;
 final class HttpRequest
 {
     /**
-     * @param string $step Name des Ablaufschritts für das Diagnose-Log, z. B. "widget.signin-post"
+     * @param string $step Name of the flow step for the diagnostic log, e.g. "widget.signin-post"
      * @param array<string, string> $headers
      */
     public function __construct(

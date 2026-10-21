@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Tests\Support;
 
-/** Baut unsignierte JWTs mit beliebigem Payload für Tests. */
+/** Builds unsigned JWTs with an arbitrary payload for tests. */
 final class Jwt
 {
     public static function make(array $payload): string

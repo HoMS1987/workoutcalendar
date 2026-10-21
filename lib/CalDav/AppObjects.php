@@ -7,8 +7,8 @@ namespace OCA\WorkoutCalendar\CalDav;
 use OCA\WorkoutCalendar\Calendar\IcsLines;
 
 /**
- * Erkennt Kalenderobjekte der App: URI `garmin-<activityId>.ics` und UID `garmin-<activityId>`.
- * Alle anderen Objekte bleiben unangetastet.
+ * Recognizes the app's calendar objects: URI `garmin-<activityId>.ics` and UID `garmin-<activityId>`.
+ * All other objects are left untouched.
  */
 final class AppObjects
 {
@@ -21,13 +21,13 @@ final class AppObjects
         return "garmin-$activityId.ics";
     }
 
-    /** Activity-ID aus einer URI der App, sonst null. */
+    /** Activity ID from an app URI, otherwise null. */
     public static function activityId(string $uri): ?string
     {
         return preg_match('/^garmin-(\d+)\.ics$/', $uri, $m) === 1 ? $m[1] : null;
     }
 
-    /** Prüft zusätzlich die UID, denn URI und UID eines Objekts sind voneinander unabhängig. */
+    /** Also checks the UID, because the URI and UID of an object are independent of each other. */
     public static function isAppObject(string $uri, string $ics): bool
     {
         $id = self::activityId($uri);

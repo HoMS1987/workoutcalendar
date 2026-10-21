@@ -13,7 +13,7 @@ final class SyncResult
     public int $unchanged = 0;
     public int $markedDeleted = 0;
     public int $deleted = 0;
-    /** Aktivitäten, die sich nicht abbilden ließen */
+    /** Activities that could not be mapped */
     public int $skipped = 0;
     public int $backfillPages = 0;
     public ?FailureCategory $failure = null;

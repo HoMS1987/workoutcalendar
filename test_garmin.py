@@ -1,7 +1,7 @@
-"""Machbarkeitstest: Bei Garmin Connect anmelden und die letzten Aktivitäten anzeigen.
+"""Feasibility test: sign in to Garmin Connect and show the latest activities.
 
-Zugangsdaten kommen aus .env (siehe .env.example). Nach dem ersten erfolgreichen
-Login liegen Tokens in .garminconnect/, weitere Läufe brauchen das Passwort dann nicht.
+Credentials come from .env (see .env.example). After the first successful
+login, tokens are stored in .garminconnect/, so later runs do not need the password.
 """
 
 import os
@@ -20,7 +20,7 @@ TOKEN_DIR = PROJECT_DIR / ".garminconnect"
 
 
 def load_env(path: Path) -> None:
-    """Minimaler .env-Parser (KEY=VALUE), ohne zusätzliche Abhängigkeit."""
+    """Minimal .env parser (KEY=VALUE) without an extra dependency."""
     if not path.exists():
         return
     for line in path.read_text(encoding="utf-8").splitlines():

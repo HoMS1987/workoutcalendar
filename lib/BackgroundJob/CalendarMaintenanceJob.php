@@ -15,22 +15,22 @@ use OCP\BackgroundJob\QueuedJob;
 use Psr\Log\LoggerInterface;
 
 /**
- * Verschiebt oder entfernt die Termine der App in Etappen. Bleibt etwas übrig, reiht sich der
- * Job mit demselben Argument erneut ein.
+ * Moves or removes the app's events in stages. If anything is left over, the
+ * job queues itself again with the same argument.
  *
  * Argument: `['uid' => string, 'action' => 'move'|'remove', 'from' => int, 'to' => ?int]`, optional
- * `'attempt' => int` (fehlgeschlagene Läufe in Folge) und `'rest' => int` (Rest nach dem letzten Lauf).
- * Nach einem Fehler oder ohne Fortschritt reiht sich der Job bis MAX_ATTEMPTS erneut ein, danach
- * gibt er auf, löst die Sperre `maintenance` und merkt die Aktion in `maintenanceFailed` für die
- * Einstellungsseite. Ein erfolgreicher Abschluss löscht diese Markierung.
+ * `'attempt' => int` (failed runs in a row) and `'rest' => int` (remainder after the last run).
+ * After an error or without progress the job queues itself again up to MAX_ATTEMPTS, then
+ * it gives up, releases the `maintenance` lock and records the action in `maintenanceFailed` for the
+ * settings page. A successful completion clears this marker.
  *
- * Der Abschluss speichert unter der Sperre der Person. Ist sie belegt, reiht sich der Job mit
- * unverändertem Argument neu ein, das zählt nicht als Fehlversuch.
+ * Completion saves under the person's lock. If it is taken, the job queues itself again with
+ * the unchanged argument; that does not count as a failed attempt.
  */
 final class CalendarMaintenanceJob extends QueuedJob
 {
     public const BATCH = 200;
-    /** Fehlgeschlagene Läufe in Folge, nach denen der Job aufgibt. */
+    /** Failed runs in a row after which the job gives up. */
     public const MAX_ATTEMPTS = 5;
 
     public function __construct(
@@ -90,7 +90,7 @@ final class CalendarMaintenanceJob extends QueuedJob
         $this->jobList->add(self::class, [...$argument, 'attempt' => 0, 'rest' => $rest]);
     }
 
-    /** Optionaler Zähler im Argument: nur ganze Zahlen ab 0 gelten, alles andere zählt als nicht vorhanden. */
+    /** Optional counter in the argument: only integers from 0 count, anything else is treated as absent. */
     private function count(mixed $value): ?int
     {
         return is_int($value) && $value >= 0 ? $value : null;
@@ -120,7 +120,7 @@ final class CalendarMaintenanceJob extends QueuedJob
 
     /**
      * @param array<string, mixed> $argument
-     * @param ?string $failed Aktion, mit der der Job aufgegeben hat, null bei Erfolg
+     * @param ?string $failed Action the job gave up on, null on success
      */
     private function finish(array $argument, string $uid, ?string $failed = null): void
     {
@@ -140,7 +140,7 @@ final class CalendarMaintenanceJob extends QueuedJob
                 ));
             });
         } catch (PersonBusyException) {
-            // WHY: Ohne Sperre überschriebe der Abschluss eine gleichzeitige Änderung an der Einrichtung.
+            // WHY: Without the lock, completion would overwrite a concurrent change to the setup.
             $this->logger->debug('Abschluss des Wartungsjobs verschoben, ein anderer Vorgang hält die Sperre', ['uid' => $uid]);
             $this->jobList->add(self::class, $argument);
         }

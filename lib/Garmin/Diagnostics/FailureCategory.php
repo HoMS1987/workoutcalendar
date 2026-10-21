@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
-/** Fehlerkategorien für das Diagnose-Log (ADR 0004). */
+/** Failure categories for the diagnostic log (ADR 0004). */
 enum FailureCategory: string
 {
     case Blocked = 'BLOCKED';
