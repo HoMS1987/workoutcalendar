@@ -5,8 +5,9 @@ export default defineConfig([
 	...recommended,
 	{
 		rules: {
+			// WHY: most functions are small, named and typed; a forced docblock would only repeat the
+			// signature. Functions that get a docblock still have to document every parameter.
 			'jsdoc/require-jsdoc': 'off',
-			'vue/first-attribute-linebreak': 'off',
 		},
 	},
 ])

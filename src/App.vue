@@ -6,7 +6,8 @@
 		<NcNoteCard v-if="loadError" type="error">
 			{{ loadError }}
 		</NcNoteCard>
-		<NcNoteCard v-if="pollFailure"
+		<NcNoteCard
+			v-if="pollFailure"
 			type="warning"
 			data-test="connection-lost">
 			{{ pollProblemText(pollFailure) }}

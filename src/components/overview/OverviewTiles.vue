@@ -3,7 +3,8 @@
 		<div class="tiles__grid">
 			<div class="tiles__tile" data-test="tile-connection">
 				<span class="tiles__label">{{ t('workoutcalendar', 'Connection') }}</span>
-				<strong class="tiles__state"
+				<strong
+					class="tiles__state"
 					:class="'tiles__state--' + connectionSeverity"
 					data-test="connection-state">
 					<span class="tiles__marker" aria-hidden="true" />
@@ -36,7 +37,8 @@
 				@click="syncNowClicked">
 				{{ t('workoutcalendar', 'Sync now') }}
 			</NcButton>
-			<span v-if="result"
+			<span
+				v-if="result"
 				class="tiles__result"
 				role="status"
 				data-test="sync-result">{{ result }}</span>
