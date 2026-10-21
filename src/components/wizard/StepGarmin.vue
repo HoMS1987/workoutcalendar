@@ -48,6 +48,9 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { ApiError, login } from '../../api.ts'
 import { apiErrorText, isLoginFailure, loginError } from '../../messages.ts'
 
+// Bound by the page so the address survives a step back from the calendar; the password never is.
+const email = defineModel<string>('email', { default: '' })
+
 defineProps<{
 	/** Masked address of the account that was connected before, if any. */
 	maskedEmail?: string | null
@@ -55,7 +58,6 @@ defineProps<{
 
 const emit = defineEmits<{ status: [status: Status] }>()
 
-const email = ref('')
 const password = ref('')
 const busy = ref(false)
 const error = ref('')

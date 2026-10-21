@@ -18,6 +18,7 @@
 				<WizardSteps :current="wizardStep" />
 				<StepGarmin
 					v-if="view === 'login'"
+					v-model:email="typedEmail"
 					:maskedEmail="status.setup.connected ? null : status.setup.maskedEmail"
 					@status="onLogin" />
 				<StepCalendar
@@ -78,6 +79,8 @@ const wizardFinished = ref(false)
 const historyStarted = ref(false)
 // "Back" from the calendar step: show the login form again without signing out.
 const showLogin = ref(false)
+// What the person typed as Garmin email address, kept for "Back"; only held in memory on this page.
+const typedEmail = ref('')
 
 const viewState = computed(() => status.value
 	? deriveView(status.value, wizardFinished.value)
