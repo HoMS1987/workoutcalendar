@@ -143,6 +143,32 @@ final class AccountServiceTest extends TestCase
         self::assertSame(['markProcessed:' . self::UID], $this->notificationCalls);
     }
 
+    public function testLoginClearsStaleFailure(): void
+    {
+        $this->connected();
+        $state = new SyncState();
+        $state->initialized = true;
+        $state->failureCategory = 'SERVER_ERROR';
+        $state->failureStep = 'api.activities';
+        $state->failureMessage = 'HTTP 500';
+        $state->failureSince = 5;
+        $state->failureCount = 3;
+        $state->failureReportedAt = 6;
+        $this->users->saveState(self::UID, $state);
+        $this->queueSuccessfulLogin();
+
+        $this->service()->login(self::UID, 'a@b.de', 'geheim');
+
+        $state = $this->users->state(self::UID);
+        self::assertTrue($state->initialized);
+        self::assertNull($state->failureCategory);
+        self::assertNull($state->failureStep);
+        self::assertNull($state->failureMessage);
+        self::assertNull($state->failureSince);
+        self::assertSame(0, $state->failureCount);
+        self::assertNull($state->failureReportedAt);
+    }
+
     public function testOtherAccountStartsFreshState(): void
     {
         $this->connected();

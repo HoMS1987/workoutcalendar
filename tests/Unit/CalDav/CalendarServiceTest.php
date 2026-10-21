@@ -7,6 +7,7 @@ namespace OCA\WorkoutCalendar\Tests\Unit\CalDav;
 use OCA\WorkoutCalendar\CalDav\CalendarInfo;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use PHPUnit\Framework\TestCase;
 
 final class CalendarServiceTest extends TestCase
@@ -131,12 +132,31 @@ final class CalendarServiceTest extends TestCase
         $from = $this->objects->addCalendar('anna', 'alt', 'Alt');
         $to = $this->objects->addCalendar('anna', 'neu', 'Neu');
         $this->objects->put($from, 'garmin-1.ics', self::ics('garmin-1'));
-        $this->objects->put($to, 'garmin-1.ics', 'NEUER STAND');
+        $newer = str_replace('SUMMARY:Termin', 'SUMMARY:Neuer Stand', self::ics('garmin-1'));
+        $this->objects->put($to, 'garmin-1.ics', $newer);
 
         self::assertSame(0, $this->service->moveAppEvents($from, $to, 10));
         self::assertSame([], $this->objects->uris($from));
-        self::assertSame('NEUER STAND', $this->objects->objects[$to]['garmin-1.ics']);
+        self::assertSame($newer, $this->objects->objects[$to]['garmin-1.ics']);
         self::assertSame(["delete:$from:garmin-1.ics"], $this->objects->writes);
+    }
+
+    public function testMoveKeepsSourceWhenTargetUriHoldsForeignObject(): void
+    {
+        $from = $this->objects->addCalendar('anna', 'alt', 'Alt');
+        $to = $this->objects->addCalendar('anna', 'neu', 'Neu');
+        $this->fill($from, 3, 0);
+        $this->objects->put($to, 'garmin-2.ics', self::ics('etwas-anderes'));
+        $logger = new MemoryLogger();
+        $service = new CalendarService($this->objects, $logger);
+
+        self::assertSame(1, $service->moveAppEvents($from, $to, 1));
+        self::assertSame(0, $service->moveAppEvents($from, $to, 10));
+
+        self::assertSame(['garmin-2.ics'], $this->objects->uris($from));
+        self::assertSame(self::ics('etwas-anderes'), $this->objects->objects[$to]['garmin-2.ics']);
+        self::assertEqualsCanonicalizing(['garmin-1.ics', 'garmin-2.ics', 'garmin-3.ics'], $this->objects->uris($to));
+        self::assertNotEmpty($logger->byLevel('debug'));
     }
 
     public function testRemoveOnlyTouchesAppEvents(): void
