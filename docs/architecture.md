@@ -142,7 +142,9 @@ kommen zur jeweiligen Ansicht hinzu.
 | `done` | `true` | gesetzt | `maintenanceFailed: "move"` oder `"remove"` | Übersicht mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet bei der Wahl eines anderen Kalenders oder einem erfolgreichen Wartungsjob |
 
 Unabhängig vom Schritt: `paused` gesetzt ⇒ Hinweis, dass neue Zugangsdaten nötig sind;
-`failure` gesetzt ⇒ Fehlerhinweis mit Kategorie und Zeitpunkt; `sync.backfill.running` ⇒
+`failure` gesetzt ⇒ Fehlerhinweis mit Kategorie und Zeitpunkt. Vorübergehende Kategorien
+(`NETWORK`, `SERVER_ERROR`, `BLOCKED`) erscheinen gelb mit „Vorübergehend gestört“, alle anderen
+Kategorien und `paused` rot mit „Braucht Aufmerksamkeit“; `sync.backfill.running` ⇒
 Fortschritt des Historien-Imports. `sync.backfill.pending` ist `true`, solange der Import für den
 aktuellen Kalender angefordert ist, aber noch kein Lauf stattfand (Zustand nicht `initialized`,
 verbunden, Schritt `done`, eigener Kalender vorhanden, keine Pause). Während `running`, `pending`

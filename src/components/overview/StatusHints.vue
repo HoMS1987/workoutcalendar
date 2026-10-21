@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<NcNoteCard v-for="hint in hints" :key="hint" :type="hintSeverity(hint)">
+		<NcNoteCard v-for="hint in hints" :key="hint" :type="hintSeverity(hint, status)">
 			{{ hintText(hint, status) }}
 		</NcNoteCard>
 	</div>

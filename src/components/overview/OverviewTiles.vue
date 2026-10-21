@@ -7,7 +7,7 @@
 					:class="'tiles__state--' + connectionSeverity"
 					data-test="connection-state">
 					<span class="tiles__marker" aria-hidden="true" />
-					{{ connectionSeverity === 'success' ? t('workoutcalendar', 'Connected') : t('workoutcalendar', 'Needs attention') }}
+					{{ connectionText }}
 				</strong>
 				<span v-if="status.setup.maskedEmail" class="tiles__detail">{{ status.setup.maskedEmail }}</span>
 			</div>
@@ -68,12 +68,24 @@ const now = useNow()
 // The marker takes the colour of the hint that explains the problem; the text says the same in words.
 const connectionSeverity = computed<Severity | 'success'>(() => {
 	if (props.status.paused !== null) {
-		return hintSeverity('paused')
+		return hintSeverity('paused', props.status)
 	}
 	if (props.status.failure !== null) {
-		return hintSeverity('failure')
+		return hintSeverity('failure', props.status)
 	}
 	return 'success'
+})
+
+// Each colour has its own words, so the state does not depend on telling the colours apart.
+const connectionText = computed(() => {
+	switch (connectionSeverity.value) {
+		case 'success':
+			return t('workoutcalendar', 'Connected')
+		case 'warning':
+			return t('workoutcalendar', 'Temporarily disrupted')
+		default:
+			return t('workoutcalendar', 'Needs attention')
+	}
 })
 
 const nextText = computed(() => {
