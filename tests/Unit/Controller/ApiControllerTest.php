@@ -110,6 +110,51 @@ final class ApiControllerTest extends TestCase
         self::assertArrayHasKey('garmin-101.ics', $this->objects->objects[$calendarId]);
     }
 
+    public function testHistoryAfterMissingCalendarStartsFromScratch(): void
+    {
+        $this->done();
+        $state = $this->users->state(self::UID);
+        $state->initialized = true;
+        $state->backfillDone = true;
+        $state->backfillBefore = '2026-09-20';
+        $state->backfillUntil = '2026-07-22';
+        $state->lastSuccessAt = self::NOW - 3600;
+        $this->users->saveState(self::UID, $state);
+        // Ablauf nach der echten Uhr, sonst holt der Client zuerst ein neues Token.
+        $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
+        $this->objects->deleteCalendar((int)$this->users->setup(self::UID)->calendarId);
+        $controller = $this->controller();
+
+        self::assertSame('calendarMissing', $controller->sync()->getData()['outcome']);
+        self::assertSame('history', $controller->calendar('Neu')->getData()['status']['setup']['step']);
+        $this->http->queue(FakeHttpClient::json(200, []), FakeHttpClient::json(200, []));
+        $response = $controller->history(90);
+
+        self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
+        // Neuer Zustand: aktuelles Fenster ab dem Prüfzeitraum und eine Etappe Historien-Import.
+        self::assertSame(['api.activities', 'api.activities'], $this->http->steps());
+        self::assertStringContainsString('startDate=2026-09-19', $this->http->requests[0]->url);
+        $state = $this->users->state(self::UID);
+        self::assertTrue($state->initialized);
+        self::assertTrue($state->backfillDone);
+        self::assertSame('2026-07-22', $state->backfillUntil);
+    }
+
+    public function testSyncDuringHistoryStepIsNotReady(): void
+    {
+        $this->done();
+        $setup = $this->users->setup(self::UID);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::History, true, self::ACCOUNT, $setup->maskedEmail, $setup->calendarId, true));
+
+        $response = $this->controller()->sync();
+
+        self::assertSame(200, $response->getStatus());
+        self::assertSame('notReady', $response->getData()['outcome']);
+        self::assertSame([], $this->http->requests);
+        self::assertFalse($this->users->state(self::UID)->initialized);
+        self::assertNull($this->users->state(self::UID)->nextRunAt);
+    }
+
     public function testHistoryAfterSetupContinuesBackfillWithoutGarmin(): void
     {
         $this->done();

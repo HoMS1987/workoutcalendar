@@ -18,6 +18,7 @@ use OCA\WorkoutCalendar\Storage\UserStore;
 use OCA\WorkoutCalendar\Sync\DeletionMode;
 use OCA\WorkoutCalendar\Sync\SyncService;
 use OCA\WorkoutCalendar\Sync\SyncSettings;
+use OCA\WorkoutCalendar\Sync\SyncState;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
@@ -143,7 +144,15 @@ final class ApiController extends Controller
                     $setup->calendarCreatedByApp,
                     $setup->maintenance,
                 ));
-                $this->arm($uid, $now);
+                // WHY: Nach einem fehlenden Kalender stünde sonst der alte Zustand da (Historie fertig,
+                // letzter Erfolg), der neue Kalender bekäme keinen Import. Die Pause bleibt: ohne neue
+                // Zugangsdaten gibt es keinen weiteren Anmeldeversuch.
+                $previous = $this->users->state($uid);
+                $state = new SyncState();
+                $state->pausedFor = $previous->pausedFor;
+                $state->notifiedCategory = $previous->notifiedCategory;
+                $state->nextRunAt = $now->getTimestamp();
+                $this->users->saveState($uid, $state);
                 $this->runner->run($uid, $now);
             } else {
                 $state = $this->users->state($uid);
