@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import type { Status } from '../../types.ts'
 
-import { getCanonicalLocale, n, t } from '@nextcloud/l10n'
+import { n, t } from '@nextcloud/l10n'
 import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
@@ -82,6 +82,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { ApiError, chooseHistory } from '../../api.ts'
 import { apiErrorText } from '../../messages.ts'
+import { formatMonthYear } from '../overview/relativeTime.ts'
 
 type HistoryId = '30' | '90' | '365' | 'all'
 
@@ -114,7 +115,7 @@ const progressText = computed(() => {
 	if (backfill.reachedDate === null) {
 		return count
 	}
-	const date = new Intl.DateTimeFormat(getCanonicalLocale(), { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(backfill.reachedDate))
+	const date = formatMonthYear(backfill.reachedDate)
 	return t('workoutcalendar', '{count}, back to {date}', { count, date }, { escape: false })
 })
 
