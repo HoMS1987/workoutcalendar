@@ -129,11 +129,11 @@ describe('OverviewPage', () => {
 	it('shows the last error with time, category and count in the advanced section', async () => {
 		const wrapper = mountPage(makeStatus({ failure: { category: 'BLOCKED', since: 1_760_000_000, count: 4 } }))
 
-		expect(wrapper.find('[data-test="advanced"]').text()).not.toContain('4 failed')
+		expect(wrapper.find('[data-test="advanced"]').text()).not.toContain('Failed attempts')
 		await openAdvanced(wrapper)
 		const text = wrapper.find('[data-test="advanced"]').text()
 		expect(text).toContain('Garmin is blocking the sign-in right now.')
-		expect(text).toContain('4 failed attempts')
+		expect(text).toContain('Failed attempts so far: 4.')
 		wrapper.unmount()
 	})
 

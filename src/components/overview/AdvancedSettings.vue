@@ -69,7 +69,7 @@
 import type { DeletionMode, Status } from '../../types.ts'
 import type { SettingsDraft } from './settingsDraft.ts'
 
-import { n, t } from '@nextcloud/l10n'
+import { t } from '@nextcloud/l10n'
 import { computed } from 'vue'
 import CollapsibleSection from './CollapsibleSection.vue'
 import { failureReason } from '../../messages.ts'
@@ -88,11 +88,10 @@ const failureText = computed(() => {
 	if (failure === null) {
 		return ''
 	}
-	const attempts = n('workoutcalendar', '{n} failed attempt', '{n} failed attempts', failure.count, { n: failure.count }, { escape: false })
 	if (failure.since === null) {
-		return t('workoutcalendar', '{category}, {attempts}', { category: failureReason(failure.category), attempts }, { escape: false })
+		return t('workoutcalendar', '{reason} Failed attempts so far: {count}.', { reason: failureReason(failure.category), count: failure.count }, { escape: false })
 	}
-	return t('workoutcalendar', '{category} since {time}, {attempts}', { category: failureReason(failure.category), time: formatDateTime(failure.since), attempts }, { escape: false })
+	return t('workoutcalendar', '{reason} Failing since {time}. Failed attempts so far: {count}.', { reason: failureReason(failure.category), time: formatDateTime(failure.since), count: failure.count }, { escape: false })
 })
 </script>
 
