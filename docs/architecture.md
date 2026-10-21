@@ -91,7 +91,9 @@ Hintergrundjob die Person (`skipped`) und die API antwortet mit 409 `busy`
   das zählt nicht als Fehlversuch. Hat der Job zu diesem Zeitpunkt aufgegeben, trägt das Argument
   zusätzlich `gaveUp`, und der nächste Lauf führt nur noch den Abschluss aus, ohne weitere Termine zu
   verschieben oder zu entfernen. Beim Abmelden mit Bereinigung `events` steht `maintenance: "remove"`
-  gespeichert, bevor der Job eingereiht wird.
+  gespeichert, bevor der Job eingereiht wird, beim Kalenderwechsel mit Umzug ebenso
+  `maintenance: "move"`. Scheitert das Einreihen, wird die vorherige Einrichtung wiederhergestellt;
+  scheitert auch das, wird es protokolliert, und der ursprüngliche Fehler bleibt der gemeldete.
 - **Nicht wiedereintrittsfähig:** Wer die Sperre hält, ruft `PersonLock::run` für dieselbe Person
   nicht erneut auf. Der Abschluss der Historie bereitet den Zustand unter der Sperre vor, gibt sie
   frei und startet dann `runNow`.
