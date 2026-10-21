@@ -28,7 +28,7 @@ async function request<T>(method: Method, path: string, body?: object): Promise<
 			: await axios[method](url(path), body ?? {})
 		return response.data as T
 	} catch (error) {
-		const response = (error as { response?: { status: number, data?: { error?: string } } }).response
+		const response = (error as { response?: { status: number, data?: { error?: string } } } | null)?.response
 		if (response) {
 			throw new ApiError(response.status, response.data?.error ?? 'internal')
 		}
