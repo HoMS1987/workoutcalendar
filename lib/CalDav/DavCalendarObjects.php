@@ -121,8 +121,9 @@ final class DavCalendarObjects implements CalendarObjects
         try {
             $this->backend->deleteCalendarObject($calendarId, $uri);
         } catch (Forbidden) {
-            // WHY: The trash renames the object to `<name>-deleted.ics`. If an
-            // older version of the same event is already there, the backend refuses. Then it is deleted permanently.
+            // WHY: Deleting moves the object to the trash bin as `<name>-deleted.ics`. If an older
+            // version of the same event is already there, the backend refuses, so the object is
+            // deleted permanently instead.
             $this->backend->deleteCalendarObject($calendarId, $uri, CalDavBackend::CALENDAR_TYPE_CALENDAR, true);
         }
     }
