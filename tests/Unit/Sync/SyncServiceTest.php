@@ -172,7 +172,7 @@ final class SyncServiceTest extends TestCase
 
         self::assertSame([], $this->calendar->writes);
         self::assertSame(1, $result->unchanged);
-        self::assertSame([], $this->logger->byLevel('info'), 'Läufe ohne Änderung loggen nur auf debug');
+        self::assertSame([], $this->logger->byLevel('info'), 'Runs without changes log at debug level only');
     }
 
     public function testChangedActivityIsUpdated(): void
@@ -256,7 +256,7 @@ final class SyncServiceTest extends TestCase
 
         $this->sync();
 
-        self::assertSame([], $this->calendar->writes, 'Liegt vor now - 30 Tage, Garmin-Abfrage deckt das nicht sicher ab');
+        self::assertSame([], $this->calendar->writes, 'Lies before now - 30 days, which the Garmin query does not reliably cover');
     }
 
     public function testMarkedEventIsRestoredWhenActivityReappears(): void
@@ -285,8 +285,8 @@ final class SyncServiceTest extends TestCase
 
         self::assertSame(SyncSettings::BACKFILL_PAGES_PER_RUN, $first->backfillPages);
         self::assertFalse($this->state->backfillDone);
-        self::assertSame('endDate=2026-09-20&start=0&limit=20', $this->urls()[1], 'Komplette Historie: ohne startDate');
-        self::assertSame('endDate=2026-09-01&start=0&limit=20', $this->urls()[2], 'Nächste Seite endet am ältesten Datum der vorherigen');
+        self::assertSame('endDate=2026-09-20&start=0&limit=20', $this->urls()[1], 'Complete history: no startDate');
+        self::assertSame('endDate=2026-09-01&start=0&limit=20', $this->urls()[2], 'The next page ends at the oldest date of the previous one');
         $before = $this->state->backfillBefore;
 
         $this->http->requests = [];
@@ -376,7 +376,7 @@ final class SyncServiceTest extends TestCase
     public function testUnreadableActivityIsSkipped(): void
     {
         $this->initialized();
-        $this->http->queue(self::page([self::activity(1, '2026-10-19 07:00:00'), ['activityName' => 'ohne ID']]));
+        $this->http->queue(self::page([self::activity(1, '2026-10-19 07:00:00'), ['activityName' => 'without ID']]));
 
         $result = $this->sync();
 

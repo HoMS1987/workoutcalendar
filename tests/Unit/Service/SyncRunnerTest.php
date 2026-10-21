@@ -287,7 +287,7 @@ final class SyncRunnerTest extends TestCase
 
         try {
             $this->runner()->run(self::UID, $this->now);
-            self::fail('Exception erwartet');
+            self::fail('Exception expected');
         } catch (\RuntimeException $e) {
             self::assertSame('broken', $e->getMessage());
         }
@@ -347,7 +347,7 @@ final class SyncRunnerTest extends TestCase
 
         try {
             $this->runner()->run(self::UID, $this->now);
-            self::fail('Exception erwartet');
+            self::fail('Exception expected');
         } catch (\RuntimeException) {
         }
 
@@ -406,7 +406,7 @@ final class SyncRunnerTest extends TestCase
 
     private function connect(bool $withTokens = true): void
     {
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         if ($withTokens) {
             $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
         }

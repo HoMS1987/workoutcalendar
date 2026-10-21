@@ -38,7 +38,7 @@ final class UserStoreTest extends TestCase
 
     public function testInvalidJsonReadsAsDefaults(): void
     {
-        $this->data['anna'] = ['settings' => '{kaputt', 'state' => '"x"', 'setup' => ''];
+        $this->data['anna'] = ['settings' => '{broken', 'state' => '"x"', 'setup' => ''];
         $store = $this->store();
 
         self::assertEquals(new SyncSettings(), $store->settings('anna'));
@@ -118,7 +118,7 @@ final class UserStoreTest extends TestCase
 
     public function testUnknownMaintenanceFailureIsIgnored(): void
     {
-        $this->data = ['anna' => ['setup' => '{"maintenanceFailed":"wipe","calendarMissing":"ja"}']];
+        $this->data = ['anna' => ['setup' => '{"maintenanceFailed":"wipe","calendarMissing":"yes"}']];
 
         $setup = $this->store()->setup('anna');
 

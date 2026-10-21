@@ -76,7 +76,7 @@ final class AccountServiceTest extends TestCase
     {
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'Anna@Example.de', 'geheim');
+        $setup = $this->service()->login(self::UID, 'Anna@Example.de', 'secret');
 
         self::assertSame(SetupStep::Calendar, $setup->step);
         self::assertTrue($setup->connected);
@@ -85,7 +85,7 @@ final class AccountServiceTest extends TestCase
         self::assertEquals($setup, $this->users->setup(self::UID));
         $credentials = $this->secrets->credentials(self::UID);
         self::assertSame('Anna@Example.de', $credentials?->email);
-        self::assertSame('geheim', $credentials->password);
+        self::assertSame('secret', $credentials->password);
         self::assertSame('C', $this->secrets->tokens(self::UID)?->clientId);
     }
 
@@ -93,7 +93,7 @@ final class AccountServiceTest extends TestCase
     {
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, '  Anna@Example.de ', 'geheim');
+        $setup = $this->service()->login(self::UID, '  Anna@Example.de ', 'secret');
 
         self::assertSame('Anna@Example.de', $this->secrets->credentials(self::UID)?->email);
         self::assertSame('A***@Example.de', $setup->maskedEmail);
@@ -104,7 +104,7 @@ final class AccountServiceTest extends TestCase
     {
         $this->queueSuccessfulLogin();
 
-        $this->service()->login(self::UID, 'a@b.de', 'geheim');
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
 
         self::assertNull($this->users->state(self::UID)->nextRunAt);
         self::assertSame([], $this->users->dueUsers(self::NOW + 100, 10));
@@ -117,8 +117,8 @@ final class AccountServiceTest extends TestCase
         $this->http->queue(FakeHttpClient::json(200, ['responseStatus' => ['type' => 'INVALID_USERNAME_PASSWORD']]));
 
         try {
-            $this->service()->login(self::UID, 'a@b.de', 'falsch');
-            self::fail('GarminException erwartet');
+            $this->service()->login(self::UID, 'a@b.de', 'wrong');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::InvalidCredentials, $e->category);
         }
@@ -138,7 +138,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveState(self::UID, $state);
         $this->queueSuccessfulLogin();
 
-        $this->service()->login(self::UID, 'a@b.de', 'neu');
+        $this->service()->login(self::UID, 'a@b.de', 'new');
 
         self::assertNull($this->users->state(self::UID)->pausedFor);
         self::assertNull($this->users->state(self::UID)->notifiedCategory);
@@ -159,7 +159,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveState(self::UID, $state);
         $this->queueSuccessfulLogin();
 
-        $this->service()->login(self::UID, 'a@b.de', 'geheim');
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
 
         $state = $this->users->state(self::UID);
         self::assertTrue($state->initialized);
@@ -183,14 +183,14 @@ final class AccountServiceTest extends TestCase
         $this->users->saveState(self::UID, $state);
         $this->queueSuccessfulLogin();
 
-        $this->service()->login(self::UID, 'andere@b.de', 'geheim');
+        $this->service()->login(self::UID, 'other@b.de', 'secret');
 
         $fresh = $this->users->state(self::UID);
         self::assertFalse($fresh->initialized);
         self::assertNull($fresh->lastSuccessAt);
         self::assertFalse($fresh->backfillDone);
         self::assertSame($settings, $this->users->settings(self::UID)->toArray());
-        self::assertSame(substr(hash('sha256', 'andere@b.de'), 0, 16), $this->users->setup(self::UID)->accountKey);
+        self::assertSame(substr(hash('sha256', 'other@b.de'), 0, 16), $this->users->setup(self::UID)->accountKey);
     }
 
     public function testSameAccountKeepsState(): void
@@ -202,7 +202,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveState(self::UID, $state);
         $this->queueSuccessfulLogin();
 
-        $this->service()->login(self::UID, ' A@B.de ', 'geheim');
+        $this->service()->login(self::UID, ' A@B.de ', 'secret');
 
         $kept = $this->users->state(self::UID);
         self::assertTrue($kept->initialized);
@@ -214,7 +214,7 @@ final class AccountServiceTest extends TestCase
         $this->connected();
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'a@b.de', 'geheim');
+        $setup = $this->service()->login(self::UID, 'a@b.de', 'secret');
 
         self::assertSame(SetupStep::Done, $setup->step);
         self::assertSame($this->calendarId, $setup->calendarId);
@@ -225,7 +225,7 @@ final class AccountServiceTest extends TestCase
         $this->connected();
         $this->queueSuccessfulLogin();
 
-        $this->service()->login(self::UID, 'a@b.de', 'geheim');
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
 
         self::assertSame(self::NOW, $this->users->state(self::UID)->nextRunAt);
         self::assertSame([self::UID], $this->users->dueUsers(self::NOW, 10));
@@ -236,7 +236,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::History, false, $this->key(), null, $this->calendarId));
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'a@b.de', 'geheim');
+        $setup = $this->service()->login(self::UID, 'a@b.de', 'secret');
 
         self::assertSame(SetupStep::History, $setup->step);
         self::assertNull($this->users->state(self::UID)->nextRunAt);
@@ -245,7 +245,7 @@ final class AccountServiceTest extends TestCase
     public function testLogoutKeepsEventsByDefault(): void
     {
         $this->connected();
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make([]), 'r', 'C'));
         $state = new SyncState();
         $state->initialized = true;
@@ -299,11 +299,11 @@ final class AccountServiceTest extends TestCase
     public function testLogoutCalendarOnlyForOwnCalendar(): void
     {
         $this->connected(createdByApp: false);
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
 
         try {
             $this->service()->logout(self::UID, Cleanup::Calendar);
-            self::fail('InvalidArgumentException erwartet');
+            self::fail('InvalidArgumentException expected');
         } catch (\InvalidArgumentException) {
         }
 
@@ -332,12 +332,12 @@ final class AccountServiceTest extends TestCase
     public function testFailedCalendarCleanupKeepsConnection(): void
     {
         $this->connected(createdByApp: true);
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $this->objects->deleteCalendarFailure = new \RuntimeException('CalDAV unreachable');
 
         try {
             $this->service()->logout(self::UID, Cleanup::Calendar);
-            self::fail('RuntimeException erwartet');
+            self::fail('RuntimeException expected');
         } catch (\RuntimeException) {
         }
 
@@ -362,7 +362,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, false, $this->key(), 'a***@b.de', null, false, null, 'remove', true));
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'a@b.de', 'geheim');
+        $setup = $this->service()->login(self::UID, 'a@b.de', 'secret');
 
         self::assertSame('remove', $setup->maintenanceFailed);
         self::assertTrue($setup->calendarMissing);
@@ -371,7 +371,7 @@ final class AccountServiceTest extends TestCase
     public function testResetStartsWizardFromBeginning(): void
     {
         $this->connected(createdByApp: true);
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $this->users->saveSettings(self::UID, new SyncSettings());
         $state = new SyncState();
         $state->nextRunAt = self::NOW;
@@ -379,7 +379,7 @@ final class AccountServiceTest extends TestCase
 
         $this->service()->reset(self::UID, Cleanup::Events);
 
-        self::assertSame(['setup'], array_keys($this->store[self::UID] ?? []), 'nur die Entfernen-Markierung bleibt');
+        self::assertSame(['setup'], array_keys($this->store[self::UID] ?? []), 'only the removal marker remains');
         self::assertSame(SetupStep::Garmin, $this->users->setup(self::UID)->step);
         self::assertFalse($this->users->setup(self::UID)->connected);
         self::assertNull($this->secrets->credentials(self::UID));
@@ -408,12 +408,12 @@ final class AccountServiceTest extends TestCase
     public function testResetCalendarOnForeignCalendarChangesNothing(): void
     {
         $this->connected(createdByApp: false);
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $before = $this->store;
 
         try {
             $this->service()->reset(self::UID, Cleanup::Calendar);
-            self::fail('InvalidArgumentException erwartet');
+            self::fail('InvalidArgumentException expected');
         } catch (\InvalidArgumentException) {
         }
 
@@ -439,7 +439,7 @@ final class AccountServiceTest extends TestCase
     public function testCleanupDuringMaintenanceIsRejected(): void
     {
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $this->key(), 'a***@b.de', $this->calendarId, true, 'move'));
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $before = $this->store;
         $service = $this->service();
 
@@ -451,7 +451,7 @@ final class AccountServiceTest extends TestCase
         ] as $call) {
             try {
                 $call();
-                self::fail('InvalidArgumentException erwartet');
+                self::fail('InvalidArgumentException expected');
             } catch (\InvalidArgumentException) {
             }
         }
@@ -479,7 +479,7 @@ final class AccountServiceTest extends TestCase
     public function testLifecycleWaitsForRunningSync(): void
     {
         $this->connected();
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $before = $this->store;
         $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
         $service = $this->service();
@@ -490,7 +490,7 @@ final class AccountServiceTest extends TestCase
         ] as $call) {
             try {
                 $call();
-                self::fail('PersonBusyException erwartet');
+                self::fail('PersonBusyException expected');
             } catch (PersonBusyException) {
             }
         }
@@ -509,8 +509,8 @@ final class AccountServiceTest extends TestCase
         $this->queueSuccessfulLogin();
 
         try {
-            $this->service()->login(self::UID, 'a@b.de', 'geheim');
-            self::fail('PersonBusyException erwartet');
+            $this->service()->login(self::UID, 'a@b.de', 'secret');
+            self::fail('PersonBusyException expected');
         } catch (PersonBusyException) {
         }
 
@@ -525,8 +525,8 @@ final class AccountServiceTest extends TestCase
         $this->queueSuccessfulLogin();
 
         try {
-            $this->service()->login(self::UID, 'a@b.de', 'geheim');
-            self::fail('PersonBusyException erwartet');
+            $this->service()->login(self::UID, 'a@b.de', 'secret');
+            self::fail('PersonBusyException expected');
         } catch (PersonBusyException) {
         }
 
@@ -550,7 +550,7 @@ final class AccountServiceTest extends TestCase
     public function testFailedQueueingRestoresSetup(): void
     {
         $this->connected();
-        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $before = $this->store;
         $this->onJobAdded = static function (): void {
             throw new \RuntimeException('Database unreachable');
@@ -558,7 +558,7 @@ final class AccountServiceTest extends TestCase
 
         try {
             $this->service()->logout(self::UID, Cleanup::Events);
-            self::fail('RuntimeException erwartet');
+            self::fail('RuntimeException expected');
         } catch (\RuntimeException) {
         }
 
@@ -585,7 +585,7 @@ final class AccountServiceTest extends TestCase
 
         try {
             $this->service()->logout(self::UID, Cleanup::Events);
-            self::fail('RuntimeException erwartet');
+            self::fail('RuntimeException expected');
         } catch (\RuntimeException $e) {
             self::assertSame('Database unreachable', $e->getMessage());
         }
@@ -602,7 +602,7 @@ final class AccountServiceTest extends TestCase
         $this->queueSuccessfulLogin();
         $service = $this->service();
 
-        $service->login(self::UID, 'a@b.de', 'geheim');
+        $service->login(self::UID, 'a@b.de', 'secret');
         $service->logout(self::UID, Cleanup::None);
         $service->reset(self::UID, Cleanup::None);
 

@@ -39,7 +39,7 @@ final class PersonLockTest extends TestCase
             (new PersonLock($locking))->run('anna', function () use (&$called): void {
                 $called = true;
             });
-            self::fail('PersonBusyException erwartet');
+            self::fail('PersonBusyException expected');
         } catch (PersonBusyException) {
         }
 
@@ -55,7 +55,7 @@ final class PersonLockTest extends TestCase
             (new PersonLock($locking))->run('anna', static function (): void {
                 throw new \RuntimeException('broken');
             });
-            self::fail('RuntimeException erwartet');
+            self::fail('RuntimeException expected');
         } catch (\RuntimeException $e) {
             self::assertSame('broken', $e->getMessage());
         }

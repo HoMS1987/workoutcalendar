@@ -63,13 +63,13 @@ final class WidgetLoginTest extends TestCase
 
     public function testMissingCsrfMeansProtocolChanged(): void
     {
-        $http = new FakeHttpClient(self::page('embed'), self::page('<html><title>Neu</title></html>'));
+        $http = new FakeHttpClient(self::page('embed'), self::page('<html><title>New</title></html>'));
 
         $e = $this->failure($http);
 
         self::assertSame(FailureCategory::ProtocolChanged, $e->category);
         self::assertSame('widget.signin-page', $e->step);
-        self::assertSame([], $this->sleeps, 'Ohne CSRF wird nicht gewartet und nicht gesendet');
+        self::assertSame([], $this->sleeps, 'Without a CSRF value there is no wait and no request');
     }
 
     public function testBlockedSigninPage(): void
@@ -123,6 +123,6 @@ final class WidgetLoginTest extends TestCase
         } catch (GarminException $e) {
             return $e;
         }
-        self::fail('GarminException erwartet');
+        self::fail('GarminException expected');
     }
 }

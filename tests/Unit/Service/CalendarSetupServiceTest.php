@@ -119,7 +119,7 @@ final class CalendarSetupServiceTest extends TestCase
 
         try {
             $this->service()->choose(self::UID, null, $foreign, true, false);
-            self::fail('InvalidArgumentException erwartet');
+            self::fail('InvalidArgumentException expected');
         } catch (\InvalidArgumentException) {
             self::assertSame($before, $this->store);
         }
@@ -130,10 +130,10 @@ final class CalendarSetupServiceTest extends TestCase
         $this->wizard();
         $id = $this->objects->addCalendar(self::UID, 'x', 'Training');
 
-        foreach ([[null, null], ['Neu', $id]] as [$name, $calendarId]) {
+        foreach ([[null, null], ['New', $id]] as [$name, $calendarId]) {
             try {
                 $this->service()->choose(self::UID, $name, $calendarId, true, false);
-                self::fail('InvalidArgumentException erwartet');
+                self::fail('InvalidArgumentException expected');
             } catch (\InvalidArgumentException) {
                 self::addToAssertionCount(1);
             }
@@ -154,7 +154,7 @@ final class CalendarSetupServiceTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState());
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->service()->choose(self::UID, 'Neu', null, false, false);
+        $this->service()->choose(self::UID, 'New', null, false, false);
     }
 
     public function testChoosingSameCalendarChangesNothing(): void
@@ -174,7 +174,7 @@ final class CalendarSetupServiceTest extends TestCase
     {
         $this->wizard();
 
-        $this->service()->choose(self::UID, 'Neu', null, false, false);
+        $this->service()->choose(self::UID, 'New', null, false, false);
 
         self::assertNull($this->users->state(self::UID)->nextRunAt);
         self::assertSame([], $this->users->dueUsers(self::NOW + 100, 10));
@@ -186,7 +186,7 @@ final class CalendarSetupServiceTest extends TestCase
         $state = new SyncState();
         $state->initialized = true;
         $this->users->saveState(self::UID, $state);
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
 
         $this->service()->choose(self::UID, null, $new, true, true);
 
@@ -201,7 +201,7 @@ final class CalendarSetupServiceTest extends TestCase
     public function testChangeWithMoveSavesMarkerBeforeQueueing(): void
     {
         $this->done();
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
         $setupWhenQueued = [];
         $this->onJobAdded = function () use (&$setupWhenQueued): void {
             $setup = $this->users->setup(self::UID);
@@ -216,7 +216,7 @@ final class CalendarSetupServiceTest extends TestCase
     public function testFailedMoveQueueingRestoresSetupAndState(): void
     {
         $this->done();
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
         $before = $this->store;
         $this->onJobAdded = static function (): void {
             throw new \RuntimeException('Database unreachable');
@@ -224,7 +224,7 @@ final class CalendarSetupServiceTest extends TestCase
 
         try {
             $this->service()->choose(self::UID, null, $new, true, true);
-            self::fail('RuntimeException erwartet');
+            self::fail('RuntimeException expected');
         } catch (\RuntimeException $e) {
             self::assertSame('Database unreachable', $e->getMessage());
         }
@@ -245,7 +245,7 @@ final class CalendarSetupServiceTest extends TestCase
             },
         ));
         $this->done();
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
         $this->onJobAdded = static function () use (&$failSetupWrites): void {
             $failSetupWrites = true;
 
@@ -254,7 +254,7 @@ final class CalendarSetupServiceTest extends TestCase
 
         try {
             $this->service()->choose(self::UID, null, $new, true, true);
-            self::fail('RuntimeException erwartet');
+            self::fail('RuntimeException expected');
         } catch (\RuntimeException $e) {
             self::assertSame('Database unreachable', $e->getMessage());
         }
@@ -270,7 +270,7 @@ final class CalendarSetupServiceTest extends TestCase
         $state = new SyncState();
         $state->initialized = true;
         $this->users->saveState(self::UID, $state);
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
 
         $this->service()->choose(self::UID, null, $new, true, false);
 
@@ -281,17 +281,17 @@ final class CalendarSetupServiceTest extends TestCase
 
     public function testChangeWhileMaintenanceRunsIsRejected(): void
     {
-        $old = $this->objects->addCalendar(self::UID, 'x', 'Alt');
-        $target = $this->objects->addCalendar(self::UID, 'y', 'Ziel');
+        $old = $this->objects->addCalendar(self::UID, 'x', 'Old');
+        $target = $this->objects->addCalendar(self::UID, 'y', 'Target');
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', 'a***@b.de', $target, false, 'move'));
-        $other = $this->objects->addCalendar(self::UID, 'z', 'Dritter');
+        $other = $this->objects->addCalendar(self::UID, 'z', 'Third');
         $before = $this->store;
         $calendars = count($this->objects->ownCalendars(self::UID));
 
         foreach ([[null, $other], ['Brandneu', null]] as [$name, $id]) {
             try {
                 $this->service()->choose(self::UID, $name, $id, true, true);
-                self::fail('InvalidArgumentException erwartet');
+                self::fail('InvalidArgumentException expected');
             } catch (\InvalidArgumentException) {
                 self::addToAssertionCount(1);
             }
@@ -307,7 +307,7 @@ final class CalendarSetupServiceTest extends TestCase
     {
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, 'abc', 'a***@b.de', null, false, 'remove'));
 
-        $choice = $this->service()->choose(self::UID, 'Neu', null, false, false);
+        $choice = $this->service()->choose(self::UID, 'New', null, false, false);
 
         $setup = $this->users->setup(self::UID);
         self::assertSame($choice->calendar?->id, $setup->calendarId);
@@ -318,7 +318,7 @@ final class CalendarSetupServiceTest extends TestCase
     public function testChangeArmsQueue(): void
     {
         $this->done();
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
 
         $this->service()->choose(self::UID, null, $new, true, false);
 
@@ -330,7 +330,7 @@ final class CalendarSetupServiceTest extends TestCase
     {
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', 'a***@b.de'));
 
-        $choice = $this->service()->choose(self::UID, 'Neu', null, false, true);
+        $choice = $this->service()->choose(self::UID, 'New', null, false, true);
 
         self::assertSame($choice->calendar?->id, $this->users->setup(self::UID)->calendarId);
         self::assertNull($this->users->setup(self::UID)->maintenance);
@@ -342,7 +342,7 @@ final class CalendarSetupServiceTest extends TestCase
     {
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, 'abc', 'a***@b.de', null, false, null, 'move', true));
 
-        $this->service()->choose(self::UID, 'Neu', null, false, false);
+        $this->service()->choose(self::UID, 'New', null, false, false);
 
         $setup = $this->users->setup(self::UID);
         self::assertNull($setup->maintenanceFailed);
@@ -352,9 +352,9 @@ final class CalendarSetupServiceTest extends TestCase
 
     public function testChangeAfterFailedMaintenanceClearsMarker(): void
     {
-        $old = $this->objects->addCalendar(self::UID, 'x', 'Alt');
+        $old = $this->objects->addCalendar(self::UID, 'x', 'Old');
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', 'a***@b.de', $old, false, null, 'move'));
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
 
         $this->service()->choose(self::UID, null, $new, true, false);
 
@@ -365,13 +365,13 @@ final class CalendarSetupServiceTest extends TestCase
     public function testChoiceWaitsForRunningSync(): void
     {
         $old = $this->done();
-        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
         $before = $this->store;
         $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
 
         try {
             $this->service()->choose(self::UID, null, $new, true, true);
-            self::fail('PersonBusyException erwartet');
+            self::fail('PersonBusyException expected');
         } catch (PersonBusyException) {
         }
 
@@ -387,7 +387,7 @@ final class CalendarSetupServiceTest extends TestCase
 
     private function done(): int
     {
-        $id = $this->objects->addCalendar(self::UID, 'x', 'Alt');
+        $id = $this->objects->addCalendar(self::UID, 'x', 'Old');
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', 'a***@b.de', $id));
 
         return $id;

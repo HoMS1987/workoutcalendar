@@ -36,7 +36,7 @@ final class LoggingHttpClientTest extends TestCase
         $result = $client->send(new HttpRequest(
             'mobile.login',
             'POST',
-            'https://sso.garmin.com/mobile/api/login?clientId=GCM_IOS_DARK&ticket=ST-123-geheim',
+            'https://sso.garmin.com/mobile/api/login?clientId=GCM_IOS_DARK&ticket=ST-123-secret',
             ['Authorization' => 'Bearer geheimer-token'],
             '{"password":"pw"}',
         ));
@@ -51,7 +51,7 @@ final class LoggingHttpClientTest extends TestCase
         self::assertSame(403, $context['status']);
         self::assertSame(['cf-ray' => 'abc-FRA', 'server' => 'cloudflare'], $context['cloudflare']);
         self::assertIsInt($context['durationMs']);
-        self::assertStringNotContainsString('geheim', $this->logger->dump());
+        self::assertStringNotContainsString('secret', $this->logger->dump());
         self::assertStringNotContainsString('"pw"', $this->logger->dump());
     }
 
@@ -61,11 +61,11 @@ final class LoggingHttpClientTest extends TestCase
 
         try {
             $client->send(new HttpRequest('api.activities', 'GET', 'https://connectapi.garmin.com/x'));
-            self::fail('NetworkException erwartet');
+            self::fail('NetworkException expected');
         } catch (NetworkException) {
         }
 
-        self::assertSame([], $this->logger->byLevel('warning'), 'Warnungen loggt gedrosselt erst der Sync-Ablauf');
+        self::assertSame([], $this->logger->byLevel('warning'), 'Warnings are logged, throttled, only by the sync run');
         $debug = $this->logger->byLevel('debug');
         self::assertCount(1, $debug);
         self::assertSame('NETWORK', $debug[0]['context']['category']);

@@ -24,7 +24,7 @@ final class CalendarServiceTest extends TestCase
     private static function ics(string $uid): string
     {
         return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:$uid\r\nDTSTAMP:20261001T000000Z\r\n"
-            . "DTSTART:20261010T080000Z\r\nDTEND:20261010T090000Z\r\nSUMMARY:Termin\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+            . "DTSTART:20261010T080000Z\r\nDTEND:20261010T090000Z\r\nSUMMARY:Event\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
     }
 
     /** Creates n app events (garmin-1.ics …) and m foreign events. */
@@ -42,7 +42,7 @@ final class CalendarServiceTest extends TestCase
     {
         $sport = $this->objects->addCalendar('anna', 'sport', 'Sport', '#ff0000');
         $this->objects->addCalendar('bert', 'sport', 'Sport');
-        $this->objects->addCalendar('anna', 'alt', 'Alt', null, ['VEVENT'], true);
+        $this->objects->addCalendar('anna', 'old', 'Old', null, ['VEVENT'], true);
         $this->objects->addCalendar('anna', 'aufgaben', 'Aufgaben', null, ['VTODO']);
 
         self::assertEquals([new CalendarInfo($sport, 'sport', 'Sport', '#ff0000')], $this->service->ownCalendars('anna'));
@@ -60,7 +60,7 @@ final class CalendarServiceTest extends TestCase
 
     public function testCreateCalendarPicksFreeUri(): void
     {
-        $this->objects->addCalendar('anna', 'workoutcalendar', 'Alt');
+        $this->objects->addCalendar('anna', 'workoutcalendar', 'Old');
         $this->objects->addCalendar('bert', 'workoutcalendar-2', 'Bert');
 
         $created = $this->service->createCalendar('anna', 'Garmin-Aktivitäten');
@@ -72,14 +72,14 @@ final class CalendarServiceTest extends TestCase
 
     public function testCreateCalendarSkipsUriInTrash(): void
     {
-        $this->objects->addCalendar('anna', 'workoutcalendar', 'Alt', null, ['VEVENT'], true);
+        $this->objects->addCalendar('anna', 'workoutcalendar', 'Old', null, ['VEVENT'], true);
 
-        self::assertSame('workoutcalendar-2', $this->service->createCalendar('anna', 'Neu')->uri);
+        self::assertSame('workoutcalendar-2', $this->service->createCalendar('anna', 'New')->uri);
     }
 
     public function testCreateCalendarUsesPlainUriWhenFree(): void
     {
-        self::assertSame('workoutcalendar', $this->service->createCalendar('anna', 'Neu')->uri);
+        self::assertSame('workoutcalendar', $this->service->createCalendar('anna', 'New')->uri);
     }
 
     public function testDeleteCalendarMovesItToTrash(): void
@@ -113,8 +113,8 @@ final class CalendarServiceTest extends TestCase
 
     public function testMoveKeepsForeignEventsAndReportsRest(): void
     {
-        $from = $this->objects->addCalendar('anna', 'alt', 'Alt');
-        $to = $this->objects->addCalendar('anna', 'neu', 'Neu');
+        $from = $this->objects->addCalendar('anna', 'old', 'Old');
+        $to = $this->objects->addCalendar('anna', 'new', 'New');
         $this->fill($from, 5, 2);
 
         self::assertSame(3, $this->service->moveAppEvents($from, $to, 2));
@@ -129,10 +129,10 @@ final class CalendarServiceTest extends TestCase
 
     public function testMoveDropsSourceWhenTargetHasUri(): void
     {
-        $from = $this->objects->addCalendar('anna', 'alt', 'Alt');
-        $to = $this->objects->addCalendar('anna', 'neu', 'Neu');
+        $from = $this->objects->addCalendar('anna', 'old', 'Old');
+        $to = $this->objects->addCalendar('anna', 'new', 'New');
         $this->objects->put($from, 'garmin-1.ics', self::ics('garmin-1'));
-        $newer = str_replace('SUMMARY:Termin', 'SUMMARY:Neuer Stand', self::ics('garmin-1'));
+        $newer = str_replace('SUMMARY:Event', 'SUMMARY:Neuer Stand', self::ics('garmin-1'));
         $this->objects->put($to, 'garmin-1.ics', $newer);
 
         self::assertSame(0, $this->service->moveAppEvents($from, $to, 10));
@@ -143,8 +143,8 @@ final class CalendarServiceTest extends TestCase
 
     public function testMoveKeepsSourceWhenTargetUriHoldsForeignObject(): void
     {
-        $from = $this->objects->addCalendar('anna', 'alt', 'Alt');
-        $to = $this->objects->addCalendar('anna', 'neu', 'Neu');
+        $from = $this->objects->addCalendar('anna', 'old', 'Old');
+        $to = $this->objects->addCalendar('anna', 'new', 'New');
         $this->fill($from, 3, 0);
         $this->objects->put($to, 'garmin-2.ics', self::ics('etwas-anderes'));
         $logger = new MemoryLogger();

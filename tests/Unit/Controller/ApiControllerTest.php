@@ -87,7 +87,7 @@ final class ApiControllerTest extends TestCase
     {
         $this->http->queue(FakeHttpClient::json(200, ['responseStatus' => ['type' => 'INVALID_USERNAME_PASSWORD']]));
 
-        $response = $this->controller()->login('anna@example.org', 'falsch');
+        $response = $this->controller()->login('anna@example.org', 'wrong');
 
         self::assertSame(422, $response->getStatus());
         self::assertSame(['error' => 'INVALID_CREDENTIALS'], $response->getData());
@@ -97,7 +97,7 @@ final class ApiControllerTest extends TestCase
     {
         $controller = $this->controller();
         $this->queueSuccessfulLogin();
-        self::assertSame('calendar', $controller->login('anna@example.org', 'geheim')->getData()['setup']['step']);
+        self::assertSame('calendar', $controller->login('anna@example.org', 'secret')->getData()['setup']['step']);
 
         $choice = $controller->calendar('Training');
         self::assertSame(200, $choice->getStatus());
@@ -130,7 +130,7 @@ final class ApiControllerTest extends TestCase
         $controller = $this->controller();
 
         self::assertSame('calendarMissing', $controller->sync()->getData()['outcome']);
-        self::assertSame('history', $controller->calendar('Neu')->getData()['status']['setup']['step']);
+        self::assertSame('history', $controller->calendar('New')->getData()['status']['setup']['step']);
         $this->http->queue(FakeHttpClient::json(200, []), FakeHttpClient::json(200, []));
         $response = $controller->history(90);
 
@@ -236,7 +236,7 @@ final class ApiControllerTest extends TestCase
 
     public function testInvalidSettingsAreRejected(): void
     {
-        self::assertSame(400, $this->controller()->updateSettings(deletionMode: 'weg')->getStatus());
+        self::assertSame(400, $this->controller()->updateSettings(deletionMode: 'gone')->getStatus());
         self::assertSame(400, $this->controller()->updateSettings(intervalMinutes: '60')->getStatus());
     }
 
@@ -267,7 +267,7 @@ final class ApiControllerTest extends TestCase
     {
         $this->http->queue(new \RuntimeException('Secret anna@example.org'));
 
-        $response = $this->controller()->login('anna@example.org', 'geheim');
+        $response = $this->controller()->login('anna@example.org', 'secret');
 
         self::assertSame(500, $response->getStatus());
         self::assertSame(['error' => 'internal'], $response->getData());
@@ -319,7 +319,7 @@ final class ApiControllerTest extends TestCase
     public function testForeignCalendarIsRejected(): void
     {
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, self::ACCOUNT, 'a***@example.org'));
-        $foreign = $this->objects->addCalendar('bernd', 'privat', 'Privat');
+        $foreign = $this->objects->addCalendar('bernd', 'private', 'Private');
 
         $response = $this->controller()->calendar(calendarId: $foreign, confirmed: true);
 
@@ -330,12 +330,12 @@ final class ApiControllerTest extends TestCase
 
     public function testCalendarsListsOwnCalendars(): void
     {
-        $own = $this->objects->addCalendar(self::UID, 'personal', 'Persönlich', '#0082c9');
-        $this->objects->addCalendar('bernd', 'privat', 'Privat');
+        $own = $this->objects->addCalendar(self::UID, 'personal', 'Personal', '#0082c9');
+        $this->objects->addCalendar('bernd', 'private', 'Private');
 
         self::assertSame([
             'defaultName' => 'Garmin activities',
-            'calendars' => [['id' => $own, 'name' => 'Persönlich', 'color' => '#0082c9']],
+            'calendars' => [['id' => $own, 'name' => 'Personal', 'color' => '#0082c9']],
         ], $this->controller()->calendars()->getData());
     }
 
@@ -343,7 +343,7 @@ final class ApiControllerTest extends TestCase
     {
         $this->done();
 
-        self::assertSame(400, $this->controller()->logout('alles')->getStatus());
+        self::assertSame(400, $this->controller()->logout('everything')->getStatus());
         self::assertSame(400, $this->controller()->reset(null)->getStatus());
         self::assertTrue($this->users->setup(self::UID)->connected);
     }
@@ -375,7 +375,7 @@ final class ApiControllerTest extends TestCase
         foreach ([
             $controller->logout('none'),
             $controller->reset('none'),
-            $controller->calendar('Neu'),
+            $controller->calendar('New'),
             $controller->history(365),
             $controller->updateSettings(intervalMinutes: 60),
         ] as $response) {
@@ -418,7 +418,7 @@ final class ApiControllerTest extends TestCase
     private function done(): void
     {
         $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
-        $this->secrets->saveCredentials(self::UID, new Credentials('anna@example.org', 'geheim'));
+        $this->secrets->saveCredentials(self::UID, new Credentials('anna@example.org', 'secret'));
         $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => self::NOW + 3600]), 'r', 'C'));
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@example.org', $calendarId, true));
     }

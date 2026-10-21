@@ -123,21 +123,21 @@ final class GarminClientTest extends TestCase
 
     public function testRefreshesExpiredTokenBeforeRequest(): void
     {
-        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW - 10]), 'r-alt', 'C');
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW - 10]), 'r-old', 'C');
         $fresh = Jwt::make(['exp' => self::validExp(), 'fresh' => true]);
-        $this->http->queue(FakeHttpClient::json(200, ['access_token' => $fresh, 'refresh_token' => 'r-neu']), FakeHttpClient::json(200, []));
+        $this->http->queue(FakeHttpClient::json(200, ['access_token' => $fresh, 'refresh_token' => 'r-new']), FakeHttpClient::json(200, []));
 
         $this->client()->activities(0, 10);
 
         self::assertSame(['refresh', 'api.activities'], $this->http->steps());
         self::assertSame($fresh, $this->store->tokens?->accessToken);
-        self::assertSame('r-neu', $this->store->tokens?->refreshToken);
+        self::assertSame('r-new', $this->store->tokens?->refreshToken);
         self::assertSame(0, $this->logins);
     }
 
     public function testLogsInAgainWhenRefreshTokenIsRejected(): void
     {
-        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW - 10]), 'r-alt', 'C');
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW - 10]), 'r-old', 'C');
         $this->http->queue(FakeHttpClient::json(400, ['error' => 'invalid_grant']), FakeHttpClient::json(200, []));
 
         $this->client()->activities(0, 10);
@@ -198,6 +198,6 @@ final class GarminClientTest extends TestCase
         } catch (GarminException $e) {
             return $e;
         }
-        self::fail('GarminException erwartet');
+        self::fail('GarminException expected');
     }
 }

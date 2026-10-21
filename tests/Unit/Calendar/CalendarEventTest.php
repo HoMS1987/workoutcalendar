@@ -66,7 +66,7 @@ final class CalendarEventTest extends TestCase
         yield 'url' => [['url' => 'https://connect.garmin.com/modern/activity/43']];
         yield 'activityId' => [['activityId' => '43']];
         yield 'categories' => [['categories' => ['Garmin']]];
-        yield 'Kategorien-Grenze' => [['categories' => ['GarminLaufen']]];
+        yield 'category boundary' => [['categories' => ['GarminLaufen']]];
     }
 
     /** @param array<string, mixed> $override */

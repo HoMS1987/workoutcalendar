@@ -55,9 +55,9 @@ final class AuthenticatorTest extends TestCase
             self::strategy('widget', $tokens),
         ], $this->logger);
 
-        self::assertSame($tokens, $authenticator->login(new Credentials('a@b.de', 'geheim')));
+        self::assertSame($tokens, $authenticator->login(new Credentials('a@b.de', 'secret')));
 
-        self::assertSame([], $this->logger->byLevel('warning'), 'Warnungen loggt gedrosselt erst der Sync-Ablauf');
+        self::assertSame([], $this->logger->byLevel('warning'), 'Warnings are logged, throttled, only by the sync run');
         $attempt = $this->logger->byLevel('debug')[0];
         self::assertSame('mobile', $attempt['context']['strategy']);
         self::assertSame('BLOCKED', $attempt['context']['category']);
@@ -65,7 +65,7 @@ final class AuthenticatorTest extends TestCase
         $info = $this->logger->byLevel('info')[0];
         self::assertSame('widget', $info['context']['strategy']);
         self::assertSame(['mobile'], $info['context']['failedBefore']);
-        self::assertStringNotContainsString('geheim', $this->logger->dump());
+        self::assertStringNotContainsString('secret', $this->logger->dump());
     }
 
     public function testInvalidCredentialsStopWithoutTryingOtherStrategies(): void
@@ -78,11 +78,11 @@ final class AuthenticatorTest extends TestCase
 
         try {
             $authenticator->login(new Credentials('a@b.de', 'pw'));
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::InvalidCredentials, $e->category);
         }
-        self::assertSame(0, $widgetCalls, 'Weitere Versuche könnten das Garmin-Konto sperren');
+        self::assertSame(0, $widgetCalls, 'Further attempts could lock the Garmin account');
     }
 
     public function testAllStrategiesFailingThrowsSummaryOfAttempts(): void
@@ -94,7 +94,7 @@ final class AuthenticatorTest extends TestCase
 
         try {
             $authenticator->login(new Credentials('a@b.de', 'pw'));
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::ProtocolChanged, $e->category);
             self::assertSame('widget.signin-page', $e->step);
@@ -115,7 +115,7 @@ final class AuthenticatorTest extends TestCase
 
         try {
             $authenticator->login(new Credentials('a@b.de', 'pw'));
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::InvalidCredentials, $e->category);
             self::assertSame(['mobile' => 'BLOCKED @ mobile.login', 'widget' => 'INVALID_CREDENTIALS @ widget.signin-post'], $e->attempts);
@@ -128,7 +128,7 @@ final class AuthenticatorTest extends TestCase
 
         try {
             $authenticator->login(new Credentials('a@b.de', 'pw'));
-            self::fail('GarminException erwartet');
+            self::fail('GarminException expected');
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::Network, $e->category);
         }
@@ -136,12 +136,12 @@ final class AuthenticatorTest extends TestCase
 
     public function testCredentialsHidePasswordInDumps(): void
     {
-        $credentials = new Credentials('a@b.de', 'geheim');
+        $credentials = new Credentials('a@b.de', 'secret');
         ob_start();
         var_dump($credentials);
         $dump = ob_get_clean() . print_r($credentials, true);
 
-        self::assertStringNotContainsString('geheim', $dump);
-        self::assertSame('geheim', $credentials->password);
+        self::assertStringNotContainsString('secret', $dump);
+        self::assertSame('secret', $credentials->password);
     }
 }

@@ -37,7 +37,7 @@ final class SyncSettingsTest extends TestCase
 
     public function testInvalidValuesFallBackToDefaults(): void
     {
-        $settings = SyncSettings::fromArray(['intervalMinutes' => 'oft', 'deletionMode' => 'weg', 'historyDays' => 'alles']);
+        $settings = SyncSettings::fromArray(['intervalMinutes' => 'often', 'deletionMode' => 'gone', 'historyDays' => 'everything']);
 
         self::assertSame([30, DeletionMode::Mark, 90], [$settings->intervalMinutes, $settings->deletionMode, $settings->historyDays]);
     }

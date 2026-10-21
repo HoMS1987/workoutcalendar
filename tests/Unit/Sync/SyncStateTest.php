@@ -54,7 +54,7 @@ final class SyncStateTest extends TestCase
 
     public function testIgnoresUnknownAndInvalidValues(): void
     {
-        $state = SyncState::fromArray(['initialized' => 'ja', 'failureCount' => 'viele', 'unbekannt' => 1]);
+        $state = SyncState::fromArray(['initialized' => 'yes', 'failureCount' => 'many', 'unknown' => 1]);
 
         self::assertFalse($state->initialized);
         self::assertSame(0, $state->failureCount);
