@@ -13,9 +13,29 @@
       "dependencyDashboardApproval": true
     },
     {
-      "description": "PHPUnit 12+ braucht PHP 8.3+, die App unterstützt ab PHP 8.2 (Nextcloud 33)",
+      "description": "PHPUnit 12+ needs PHP 8.3+, the app supports PHP 8.2 (Nextcloud 33)",
       "matchPackageNames": ["phpunit/phpunit"],
       "allowedVersions": "<12"
+    },
+    {
+      "description": "Vite 8 needs @nextcloud/vite-config 3 (peer vite >=8.2), which is still a beta; approve on the dashboard once both are in the group",
+      "matchPackageNames": ["vite", "@nextcloud/vite-config"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "vite 8",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "TypeScript 7 breaks typescript-eslint (peer typescript <6.1) and vue-tsc; approve on the dashboard once both support it",
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Node 24 ships npm 11, the workflows install no other npm; approve on the dashboard when Node does",
+      "matchDepTypes": ["engines"],
+      "matchPackageNames": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
     },
     {
       "matchManagers": ["github-actions"],
