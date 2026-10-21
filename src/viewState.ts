@@ -14,10 +14,16 @@ export type Hint = 'paused'
 
 export type Severity = 'error' | 'warning' | 'info'
 
-// Errors are red, running or abandoned maintenance and a missing calendar are yellow, progress is blue.
-export function hintSeverity(hint: Hint): Severity {
+// Failure categories that pass by themselves: Garmin or the network is unavailable or throttles
+// for a while (ADR 0004), and a later run usually works again without the person doing anything.
+const TRANSIENT_FAILURES = ['NETWORK', 'SERVER_ERROR', 'BLOCKED']
+
+// Failures only the person can fix and a paused sync are red; transient failures, running or
+// abandoned maintenance and a missing calendar are yellow; progress is blue.
+export function hintSeverity(hint: Hint, status: Status): Severity {
 	switch (hint) {
 		case 'failure':
+			return TRANSIENT_FAILURES.includes(status.failure?.category ?? '') ? 'warning' : 'error'
 		case 'paused':
 			return 'error'
 		case 'backfill':

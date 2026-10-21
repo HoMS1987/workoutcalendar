@@ -35,11 +35,18 @@ describe('OverviewTiles connection marker', () => {
 		expect(marker(wrapper).text()).toBe('Connected')
 	})
 
-	it('marks a failing sync with the error colour next to the text', () => {
-		const wrapper = mount(OverviewTiles, { props: { status: makeStatus({ failure: { category: 'NETWORK', since: null, count: 1 } }) } })
+	it('marks a failure only the person can fix with the error colour next to the text', () => {
+		const wrapper = mount(OverviewTiles, { props: { status: makeStatus({ failure: { category: 'TOKEN_REJECTED', since: null, count: 1 } }) } })
 
 		expect(marker(wrapper).classes()).toContain('tiles__state--error')
 		expect(marker(wrapper).text()).toBe('Needs attention')
+	})
+
+	it.each(['NETWORK', 'SERVER_ERROR', 'BLOCKED'])('marks the transient failure %s with the warning colour next to its own text', (category) => {
+		const wrapper = mount(OverviewTiles, { props: { status: makeStatus({ failure: { category, since: null, count: 1 } }) } })
+
+		expect(marker(wrapper).classes()).toContain('tiles__state--warning')
+		expect(marker(wrapper).text()).toBe('Temporarily disrupted')
 	})
 
 	it('marks a paused sync with the error colour next to the text', () => {

@@ -90,6 +90,7 @@ OC.L10N.register("workoutcalendar", {
     "Save": "Speichern",
     "Connection": "Verbindung",
     "Needs attention": "Braucht Aufmerksamkeit",
+    "Temporarily disrupted": "Vorübergehend gestört",
     "Connected": "Verbunden",
     "In the calendar": "Im Kalender",
     "_{n} activity_::_{n} activities_": [

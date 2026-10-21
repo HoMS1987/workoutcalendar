@@ -2,7 +2,7 @@ import type { Status } from '../../src/types.ts'
 import type { View } from '../../src/viewState.ts'
 
 import { describe, expect, it } from 'vitest'
-import { deriveView } from '../../src/viewState.ts'
+import { deriveView, hintSeverity } from '../../src/viewState.ts'
 import { makeStatus } from './fixtures.ts'
 
 const noCalendar = null
@@ -103,5 +103,29 @@ describe('deriveView, rules below the table', () => {
 		// The backend already excludes runs that cannot happen (paused, calendar missing, not connected).
 		const noRun = { lastRunAt: null, lastSuccessAt: null, eventCount: 0, oldestActivityDate: null }
 		expect(deriveView(makeStatus({ sync: { ...noRun, backfill: { pending: false } } }), false).polling).toBe(false)
+	})
+})
+
+describe('hintSeverity', () => {
+	const failing = (category: string) => makeStatus({ failure: { category, since: null, count: 1 } })
+
+	it.each(['NETWORK', 'SERVER_ERROR', 'BLOCKED'])('shows the transient failure %s as a warning', (category) => {
+		// Garmin or the network is unavailable for a while; the next run usually works again.
+		expect(hintSeverity('failure', failing(category))).toBe('warning')
+	})
+
+	it.each(['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'TOKEN_REJECTED', 'PROTOCOL_CHANGED', 'SOMETHING_NEW'])('shows the failure %s as an error', (category) => {
+		expect(hintSeverity('failure', failing(category))).toBe('error')
+	})
+
+	it('shows a paused sync as an error', () => {
+		expect(hintSeverity('paused', makeStatus({ paused: 'INVALID_CREDENTIALS' }))).toBe('error')
+	})
+
+	it('keeps the colours of the other hints', () => {
+		const status = makeStatus()
+		expect(hintSeverity('backfill', status)).toBe('info')
+		expect(hintSeverity('calendarMissing', status)).toBe('warning')
+		expect(hintSeverity('maintenanceMove', status)).toBe('warning')
 	})
 })
