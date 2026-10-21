@@ -29,10 +29,11 @@ jobs:
             exit 1
           fi
 
+      # No dependency cache: a cache written by another workflow run must not reach a signed release.
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          cache: npm
+          package-manager-cache: false
       - run: npm ci
       - run: npm run build
       - run: bash scripts/package.sh
