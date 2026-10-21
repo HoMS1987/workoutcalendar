@@ -60,12 +60,34 @@ das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
   Termine (Wartung `remove`), wird die Person nur verschoben und bleibt in der Warteschlange.
 - Der Historien-Import läuft bei jedem Cron-Lauf in Etappen weiter, bis er fertig ist.
 - `CalendarMaintenanceJob` zieht Termine beim Kalenderwechsel um oder entfernt sie, in Etappen à 200
-  Termine. Bei Fehlern oder ohne Fortschritt versucht er es bis zu 5 Mal erneut und gibt dann auf.
+  Termine. Bei Fehlern oder ohne Fortschritt versucht er es bis zu 5 Mal erneut und gibt dann auf
+  und vermerkt die Aktion in `setup.maintenanceFailed`. Liegt im Zielkalender unter derselben URI ein
+  fremdes Objekt, bleibt der Termin im alten Kalender und zählt nicht mehr zum Rest.
+- Ein Sync-Lauf startet erst, wenn die Einrichtung abgeschlossen ist (Schritt `done`), sonst endet
+  er mit `notReady`. So initialisiert kein Lauf den Zustand, bevor die Person den Zeitraum der
+  Historie gewählt hat. Der Abschluss im Assistenten beginnt immer mit einem frischen `SyncState`.
+
+### Sperre je Person
+
+`PersonLock` hält eine exklusive Sperre (`ILockingProvider`, Schlüssel
+`workoutcalendar/sync/<md5(uid)>`). Unter ihr laufen der Sync-Lauf und alle Änderungen an
+Anmeldung, Abmeldung, Zurücksetzen, Kalenderwahl, Historie und Einstellungen. Ein Sync-Lauf hält den
+Zustand im Speicher und speichert ihn am Ende; ohne gemeinsame Sperre ginge eine Änderung dazwischen
+verloren. Hält ein Lauf die Sperre, überspringt der Hintergrundjob die Person (`skipped`) und die API
+antwortet mit 409 `busy`. Die Sperre ist nicht wiedereintrittsfähig: Wege, die nach einer Änderung
+einen Lauf starten (Abschluss der Historie), geben sie vorher frei.
 
 ## JSON-API
 
-Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`). Garmin-Fehler
-liefern 422 mit Fehlerkategorie, ungültige Anfragen 400, ohne angemeldete Person 401, alles andere 500.
+Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`).
+
+- **Anfragen:** Body als JSON (`Content-Type: application/json`). Zahlen stehen als JSON-Zahlen im
+  Body (`"historyDays": 90`, nicht `"90"`), sonst antwortet die API mit 400.
+- **Antworten:** Garmin-Fehler liefern 422 mit der Garmin-Fehlerkategorie (`{"error": "INVALID_CREDENTIALS"}`),
+  ungültige Anfragen 400 (`invalidRequest`), ohne angemeldete Person 401, ein laufender Sync oder eine
+  andere Änderung für dieselbe Person 409 (`{"error": "busy"}`, später erneut versuchen), alles andere
+  500 (`internal`). Bei 500 loggt der Server Klasse und Meldung der Exception, bei der Anmeldung nur die
+  Klasse.
 
 | Route | Zweck |
 |---|---|
@@ -74,10 +96,32 @@ liefern 422 mit Fehlerkategorie, ungültige Anfragen 400, ohne angemeldete Perso
 | `GET /api/calendars` | Kalender zur Auswahl |
 | `POST /api/calendar` | Kalender wählen oder wechseln, mit oder ohne Umzug der Termine |
 | `POST /api/history` | Historienzeitraum wählen (30, 90, 365 Tage oder komplett), schließt die Einrichtung ab |
-| `PUT /api/settings` | Intervall, Streuung, Umgang mit gelöschten Aktivitäten, Prüfzeitraum |
-| `POST /api/sync` | Sync sofort ausführen |
-| `POST /api/logout` | Von Garmin abmelden |
-| `POST /api/reset` | Einstellungen zurücksetzen |
+| `PUT /api/settings` | Intervall, Streuung, Umgang mit gelöschten Aktivitäten, Prüfzeitraum; ein neues Intervall plant den nächsten Lauf neu |
+| `POST /api/sync` | Sync sofort ausführen (Rate-Limit 30 pro Stunde), Ergebnis in `outcome` |
+| `POST /api/logout` | Von Garmin abmelden; Bereinigung `events` oder `calendar` nur ohne laufende Wartung |
+| `POST /api/reset` | Einstellungen zurücksetzen; Bereinigung wie beim Abmelden |
+
+### Zustände für die Oberfläche
+
+Die Einstellungsseite leitet ihre Ansicht nur aus `GET /api/status` ab. Grundregel:
+**`connected=false` ⇒ Anmeldeformular, unabhängig vom Schritt.** Die Hinweise in der letzten Spalte
+kommen zur jeweiligen Ansicht hinzu.
+
+| `setup.step` | `connected` | `setup.calendar` | Wartung und Markierungen | Einstellungsseite zeigt |
+|---|---|---|---|---|
+| beliebig | `false` | beliebig | beliebig | Anmeldeformular; bekannte maskierte E-Mail-Adresse als Vorschlag |
+| `garmin` | `false` | `null` | `maintenance: "move"` oder `"remove"` möglich (Zurücksetzen während der Wartung) | Anmeldeformular und Hinweis, dass die alten Termine noch verschoben bzw. entfernt werden |
+| `calendar` | `true` | `null` | `calendarMissing: false` | Kalenderauswahl (Assistent) |
+| `calendar` | `true` | `null` | `calendarMissing: true` | Kalenderauswahl mit Hinweis, dass der bisherige Kalender fehlt |
+| `history` | `true` | gesetzt | – | Auswahl des Historienzeitraums (Assistent) |
+| `done` | `true` | gesetzt | `maintenance: null`, `maintenanceFailed: null` | Übersicht: Sync-Stand, Einstellungen, „Jetzt synchronisieren“, Kalender wechseln, Abmelden, Zurücksetzen |
+| `done` | `true` | gesetzt | `maintenance: "move"` oder `"remove"` | Übersicht mit Hinweis, dass Termine verschoben bzw. entfernt werden; Kalenderwechsel und Bereinigung beim Abmelden/Zurücksetzen gesperrt |
+| `done` | `true` | gesetzt | `maintenanceFailed: "move"` oder `"remove"` | Übersicht mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet mit der nächsten Kalenderwahl oder einem erfolgreichen Wartungsjob |
+
+Unabhängig vom Schritt: `paused` gesetzt ⇒ Hinweis, dass neue Zugangsdaten nötig sind;
+`failure` gesetzt ⇒ Fehlerhinweis mit Kategorie und Zeitpunkt; `sync.backfill.running` ⇒
+Fortschritt des Historien-Imports. Eine Antwort 409 `busy` ändert nichts an der Ansicht, die Aktion
+lässt sich nach dem laufenden Sync wiederholen.
 
 ## Garmin-Zugriff
 
