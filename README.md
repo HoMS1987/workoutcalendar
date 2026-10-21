@@ -19,6 +19,11 @@ Use at your own risk. Garmin offers no official API for individuals; the app use
 unofficial interfaces as the Garmin Connect app. Garmin can change or block them at any time, and in
 the worst case restrict the account. The project is not affiliated with Garmin.
 
+## Support
+
+The app is free. If it is useful to you and you would like to support its development, you can do
+so via [GitHub Sponsors](https://github.com/sponsors/HoMS1987).
+
 ## License
 
 [AGPL-3.0-or-later](LICENSE). The software is provided without warranty, see sections 15 and 16 of

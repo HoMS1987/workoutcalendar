@@ -80,7 +80,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 
 | ID | Anforderung | Prio |
 |---|---|---|
-| F-50 | Vorgemerkt: Wer das Projekt unterstützen möchte, findet einen PayPal-Spendenlink. Er steht im App Store (`<donation type="paypal">` in `info.xml`) und unauffällig ganz unten auf der Einstellungsseite, ohne Pop-ups und ohne Hinweis im Assistenten. Über eine `.github/FUNDING.yml` wird mit dem Release-Prozess entschieden, sie wirkt nur bei einem öffentlichen Repository. Der PayPal-Link steht noch aus. | Kann |
+| F-50 | Wer das Projekt unterstützen möchte, findet einen Spendenlink zu GitHub Sponsors (`https://github.com/sponsors/HoMS1987`, ohne Gebühren und ohne Klarnamen). Er steht im App Store (`<donation type="other">` in `info.xml`), im README, als Sponsor-Knopf auf GitHub (`.github/FUNDING.yml`, wirkt erst, wenn das Repository öffentlich ist) und unauffällig ganz unten auf der Übersicht der Einstellungsseite, ohne Pop-ups und ohne Hinweis im Assistenten. PayPal entfällt, weil der PayPal.Me-Link den Klarnamen enthält. | Kann |
 
 ## Standardwerte
 

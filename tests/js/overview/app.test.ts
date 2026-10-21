@@ -27,6 +27,23 @@ describe('App overview', () => {
 		vi.useRealTimers()
 	})
 
+	it('ends the overview with an unobtrusive sponsor link', async () => {
+		vi.mocked(api.getStatus).mockResolvedValue(makeStatus())
+		const wrapper = mount(App, { attachTo: document.body })
+		await flushPromises()
+
+		const support = wrapper.find('[data-test="support"]')
+		expect(support.exists()).toBe(true)
+		const link = support.find('a')
+		expect(link.attributes('href')).toBe('https://github.com/sponsors/HoMS1987')
+		expect(link.attributes('target')).toBe('_blank')
+		expect(link.attributes('rel')).toBe('noopener noreferrer')
+		expect(support.text()).toContain('GitHub Sponsors')
+		const root = wrapper.find('.workoutcalendar-settings').element
+		expect(root.lastElementChild).toBe(support.element)
+		wrapper.unmount()
+	})
+
 	it('shows busy without changing the view', async () => {
 		vi.mocked(api.getStatus).mockResolvedValue(makeStatus())
 		vi.mocked(api.syncNow).mockRejectedValue(new api.ApiError(409, 'busy'))
