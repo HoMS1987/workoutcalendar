@@ -19,13 +19,15 @@ use Psr\Log\LoggerInterface;
  * job queues itself again with the same argument.
  *
  * Argument: `['uid' => string, 'action' => 'move'|'remove', 'from' => int, 'to' => ?int]`, optional
- * `'attempt' => int` (failed runs in a row) and `'rest' => int` (remainder after the last run).
+ * `'attempt' => int` (failed runs in a row), `'rest' => int` (remainder after the last run) and
+ * `'gaveUp' => true` (the job has given up, only the completion is left).
  * After an error or without progress the job queues itself again up to MAX_ATTEMPTS, then
  * it gives up, releases the `maintenance` lock and records the action in `maintenanceFailed` for the
  * settings page. A successful completion clears this marker.
  *
  * Completion saves under the person's lock. If it is taken, the job queues itself again with
- * the unchanged argument; that does not count as a failed attempt.
+ * the unchanged argument; that does not count as a failed attempt. After giving up, the argument
+ * carries `gaveUp`, so the next run only completes and moves or removes nothing more.
  */
 final class CalendarMaintenanceJob extends QueuedJob
 {
@@ -54,6 +56,13 @@ final class CalendarMaintenanceJob extends QueuedJob
             && (($action === 'move' && is_int($to)) || ($action === 'remove'));
         if (!$valid) {
             $this->logger->warning('Maintenance job skipped, invalid argument');
+
+            return;
+        }
+
+        if (($argument['gaveUp'] ?? null) === true) {
+            // WHY: Giving up is final. A postponed completion must not run another batch.
+            $this->finish($argument, $uid, $action);
 
             return;
         }
@@ -105,7 +114,7 @@ final class CalendarMaintenanceJob extends QueuedJob
                 'action' => $action,
                 'attempts' => $attempt + 1,
             ]);
-            $this->finish($argument, $uid, $action);
+            $this->finish([...$argument, 'gaveUp' => true], $uid, $action);
 
             return;
         }

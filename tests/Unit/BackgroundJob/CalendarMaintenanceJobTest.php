@@ -163,6 +163,34 @@ final class CalendarMaintenanceJobTest extends TestCase
         self::assertStringNotContainsString('geheim-passwort', $last['message'] . json_encode($last['context']));
     }
 
+    public function testGiveUpWhileBusyRequeuesOnlyTheGiveUp(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+        $argument = ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 5];
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::once())->method('add')->with(CalendarMaintenanceJob::class, $argument + ['gaveUp' => true]);
+
+        $this->execute($this->job($jobList, $this->failingObjects()), $argument);
+
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenance);
+    }
+
+    public function testRequeuedGiveUpRunsNoFurtherBatch(): void
+    {
+        $this->fill($this->from, 3);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'remove'));
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::never())->method('add');
+
+        $this->execute($this->job($jobList), ['uid' => self::UID, 'action' => 'remove', 'from' => $this->from, 'to' => null, 'attempt' => 5, 'gaveUp' => true]);
+
+        self::assertCount(3, $this->objects->objects[$this->from]);
+        $setup = $this->users->setup(self::UID);
+        self::assertNull($setup->maintenance);
+        self::assertSame('remove', $setup->maintenanceFailed);
+    }
+
     public function testSuccessClearsEarlierFailure(): void
     {
         $this->fill($this->from, 3);
