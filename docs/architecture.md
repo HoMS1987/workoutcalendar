@@ -25,7 +25,7 @@ FailureNotifications   GarminClient     ActivityEventMapper ──► IcsSeriali
         LoggingHttpClient ──► CurlHttpClient ──► Garmin Connect
 
 ApiController (JSON-API) ──► AccountService, CalendarSetupService, StatusService, SyncRunner
-Einstellungsseite (Vue)  ──► ApiController                                     (geplant)
+Einstellungsseite (Vue)  ──► ApiController
 ```
 
 ## Module
@@ -45,7 +45,8 @@ Einstellungsseite (Vue)  ──► ApiController                                
 | `lib/Notification` | `Notifier`, `FailureNotifications`: Benachrichtigung bei Fehlern, die nur die Person beheben kann | ✅ |
 | `lib/Service` | `SyncRunner`, `AccountService`, `CalendarSetupService`, `StatusService`, `GarminClientFactory`, `Cleanup` u. a. | ✅ |
 | `lib/Storage` | `UserStore`, `SecretStore`, `UserTokenStore`, `SetupState`: Einstellungen und verschlüsselte Zugangsdaten in `IUserConfig` | ✅ |
-| Einstellungsseite (Vue) | Frontend für die JSON-API | geplant |
+| `lib/Settings` | `Personal`, `Section`: Abschnitt „Workout Calendar“ in den persönlichen Einstellungen | ✅ |
+| `src/` | Einstellungsseite (Vue 3, `@nextcloud/vue`): Assistent und Übersicht auf der JSON-API, gebaut nach `js/` und `css/` | ✅ |
 
 Der Kern (`lib/Garmin`, `lib/Calendar`, `lib/Sync`) nutzt keine Nextcloud-Klassen, nur PSR-3 für
 das Logging. Er ist mit PHPUnit ohne Nextcloud testbar.
