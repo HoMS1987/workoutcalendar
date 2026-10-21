@@ -3,6 +3,7 @@ import type { Status } from '../../../src/types.ts'
 
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import OverviewPage from '../../../src/components/overview/OverviewPage.vue'
 import { deriveView } from '../../../src/viewState.ts'
 import { makeStatus } from '../fixtures.ts'
@@ -26,6 +27,31 @@ function mountPage(status: Status = makeStatus()) {
 
 async function setValue(wrapper: ReturnType<typeof mountPage>, selector: string, value: string) {
 	await wrapper.find(selector).setValue(value)
+}
+
+type Option = { value: string | number, label: string }
+
+function select(wrapper: ReturnType<typeof mountPage>, name: string) {
+	const found = wrapper.findAllComponents(NcSelect).find((s) => s.attributes('data-test') === name)
+	expect(found, name).toBeDefined()
+	return found!
+}
+
+function selectProps(target: ReturnType<typeof select>) {
+	return target.props() as unknown as { options: Option[], modelValue: Option | null }
+}
+
+// Picks an option of an NcSelect the way the select itself reports a choice.
+async function choose(wrapper: ReturnType<typeof mountPage>, name: string, value: string | number) {
+	const target = select(wrapper, name)
+	const option = selectProps(target).options.find((o) => o.value === value)
+	expect(option, `${name}=${value}`).toBeDefined()
+	target.vm.$emit('update:modelValue', option)
+	await flushPromises()
+}
+
+function chosen(wrapper: ReturnType<typeof mountPage>, name: string): string | number | undefined {
+	return selectProps(select(wrapper, name)).modelValue?.value
 }
 
 async function openAdvanced(wrapper: ReturnType<typeof mountPage>) {
@@ -72,9 +98,9 @@ describe('OverviewPage', () => {
 		const wrapper = mountPage()
 		await openAdvanced(wrapper)
 
-		await setValue(wrapper, 'select[data-test="interval"]', '360')
+		await choose(wrapper, 'interval', 360)
 		await setValue(wrapper, 'input[data-test="jitter"]', '80')
-		await setValue(wrapper, 'select[data-test="deletion-mode"]', 'mark')
+		await choose(wrapper, 'deletion-mode', 'mark')
 		await setValue(wrapper, 'input[data-test="check-days"]', '3')
 		await wrapper.find('button[data-test="save"]').trigger('click')
 		await flushPromises()
@@ -107,7 +133,7 @@ describe('OverviewPage', () => {
 		vi.mocked(api.chooseHistory).mockResolvedValue(saved)
 		const wrapper = mountPage()
 
-		await setValue(wrapper, 'select[data-test="history"]', '365')
+		await choose(wrapper, 'history', '365')
 		await wrapper.find('button[data-test="save"]').trigger('click')
 		await flushPromises()
 
@@ -121,7 +147,7 @@ describe('OverviewPage', () => {
 		const wrapper = mountPage()
 
 		expect(wrapper.find('button[data-test="save"]').attributes('disabled')).toBeDefined()
-		await setValue(wrapper, 'select[data-test="interval"]', '15')
+		await choose(wrapper, 'interval', 15)
 		expect(wrapper.find('button[data-test="save"]').attributes('disabled')).toBeUndefined()
 		wrapper.unmount()
 	})
@@ -141,12 +167,53 @@ describe('OverviewPage', () => {
 		vi.mocked(api.updateSettings).mockRejectedValue(new api.ApiError(409, 'busy'))
 		const wrapper = mountPage()
 
-		await setValue(wrapper, 'select[data-test="interval"]', '15')
+		await choose(wrapper, 'interval', 15)
 		await wrapper.find('button[data-test="save"]').trigger('click')
 		await flushPromises()
 
 		expect(wrapper.text()).toContain('A sync is running right now')
 		expect(wrapper.emitted('status')).toBeUndefined()
+		wrapper.unmount()
+	})
+})
+
+describe('OverviewPage fields', () => {
+	beforeEach(() => {
+		document.body.innerHTML = ''
+	})
+
+	it('uses the Nextcloud components for the settings fields', async () => {
+		const wrapper = mountPage()
+		await openAdvanced(wrapper)
+
+		for (const name of ['interval', 'history', 'deletion-mode']) {
+			expect(select(wrapper, name).exists(), name).toBe(true)
+		}
+		expect(wrapper.find('[data-test="advanced"] button[data-test="toggle"]').classes()).toContain('button-vue')
+		expect(wrapper.find('input[data-test="jitter-enabled"]').element.closest('.checkbox-radio-switch')).not.toBeNull()
+		for (const name of ['jitter', 'check-days']) {
+			expect(wrapper.find(`input[data-test="${name}"]`).element.closest('.input-field'), name).not.toBeNull()
+		}
+		wrapper.unmount()
+	})
+
+	it('keeps a label for every settings field', async () => {
+		const wrapper = mountPage()
+		await openAdvanced(wrapper)
+
+		for (const id of ['workoutcalendar-interval', 'workoutcalendar-history', 'workoutcalendar-deletion-mode']) {
+			expect(document.getElementById(id)?.tagName, id).toBe('INPUT')
+			expect(document.querySelector(`label[for="${id}"]`)?.textContent?.trim(), id).not.toBe('')
+		}
+		for (const [name, text] of [['jitter', 'Variation in percent (0 to 50)'], ['check-days', 'Check the last days (7 to 365)']]) {
+			const input = wrapper.find(`input[data-test="${name}"]`)
+			expect(document.querySelector(`label[for="${input.attributes('id')}"]`)?.textContent, name).toContain(text)
+			expect(input.attributes('min'), name).toBeDefined()
+			expect(input.attributes('max'), name).toBeDefined()
+		}
+		const jitterEnabled = wrapper.find('input[data-test="jitter-enabled"]')
+		const labelledBy = jitterEnabled.attributes('aria-labelledby') ?? ''
+		expect(document.getElementById(labelledBy)?.textContent).toContain('Vary the time between syncs randomly')
 		wrapper.unmount()
 	})
 })
@@ -164,29 +231,27 @@ describe('OverviewPage form', () => {
 		next.settings.intervalMinutes = 360
 		await wrapper.setProps({ status: next })
 
-		expect((wrapper.find('select[data-test="interval"]').element as HTMLSelectElement).value).toBe('360')
+		expect(chosen(wrapper, 'interval')).toBe(360)
 		wrapper.unmount()
 	})
 
 	it('keeps edits while a new status arrives', async () => {
 		const wrapper = mountPage()
-		await setValue(wrapper, 'select[data-test="interval"]', '15')
+		await choose(wrapper, 'interval', 15)
 		const next = makeStatus()
 		next.settings.intervalMinutes = 360
 		await wrapper.setProps({ status: next })
 
-		expect((wrapper.find('select[data-test="interval"]').element as HTMLSelectElement).value).toBe('15')
+		expect(chosen(wrapper, 'interval')).toBe(15)
 		wrapper.unmount()
 	})
 
 	it('clamps the interval to 15 to 1440 minutes', async () => {
 		vi.mocked(api.updateSettings).mockResolvedValue(makeStatus())
 		const wrapper = mountPage()
-		const select = wrapper.find('select[data-test="interval"]')
-		const option = document.createElement('option')
-		option.value = '5000'
-		select.element.appendChild(option)
-		await select.setValue('5000')
+		// A value outside the offered options, as a manipulated form could send it.
+		select(wrapper, 'interval').vm.$emit('update:modelValue', { value: 5000, label: '5000' })
+		await flushPromises()
 		await wrapper.find('button[data-test="save"]').trigger('click')
 		await flushPromises()
 
@@ -200,8 +265,8 @@ describe('OverviewPage form', () => {
 		vi.mocked(api.updateSettings).mockResolvedValue(saved)
 		vi.mocked(api.chooseHistory).mockRejectedValue(new api.ApiError(409, 'busy'))
 		const wrapper = mountPage()
-		await setValue(wrapper, 'select[data-test="interval"]', '15')
-		await setValue(wrapper, 'select[data-test="history"]', '365')
+		await choose(wrapper, 'interval', 15)
+		await choose(wrapper, 'history', '365')
 		await wrapper.find('button[data-test="save"]').trigger('click')
 		await flushPromises()
 

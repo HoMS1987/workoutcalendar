@@ -4,15 +4,15 @@
 
 		<div class="sync-settings__field">
 			<label for="workoutcalendar-interval">{{ t('workoutcalendar', 'Time between two syncs') }}</label>
-			<select
-				id="workoutcalendar-interval"
+			<NcSelect
+				inputId="workoutcalendar-interval"
 				data-test="interval"
-				:value="model.intervalMinutes"
-				@change="update({ intervalMinutes: Number(($event.target as HTMLSelectElement).value) })">
-				<option v-for="option in intervalOptions" :key="option.value" :value="option.value">
-					{{ option.label }}
-				</option>
-			</select>
+				labelOutside
+				:modelValue="selectedInterval"
+				:options="intervalOptions"
+				:searchable="false"
+				:clearable="false"
+				@update:modelValue="onInterval" />
 			<p class="sync-settings__hint">
 				{{ t('workoutcalendar', 'How often the app asks Garmin for new activities. Shorter times show new activities sooner.') }}
 			</p>
@@ -20,15 +20,15 @@
 
 		<div class="sync-settings__field">
 			<label for="workoutcalendar-history">{{ t('workoutcalendar', 'History') }}</label>
-			<select
-				id="workoutcalendar-history"
+			<NcSelect
+				inputId="workoutcalendar-history"
 				data-test="history"
-				:value="historyValue"
-				@change="onHistory(($event.target as HTMLSelectElement).value)">
-				<option v-for="option in historyOptions" :key="option.value" :value="option.value">
-					{{ option.label }}
-				</option>
-			</select>
+				labelOutside
+				:modelValue="selectedHistory"
+				:options="historyOptions"
+				:searchable="false"
+				:clearable="false"
+				@update:modelValue="onHistory" />
 			<p class="sync-settings__hint">
 				{{ t('workoutcalendar', 'How far back activities are imported. A longer period imports the missing activities in the background, a shorter one deletes nothing.') }}
 			</p>
@@ -41,6 +41,7 @@ import type { SettingsDraft } from './settingsDraft.ts'
 
 import { t } from '@nextcloud/l10n'
 import { computed } from 'vue'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { intervalLabel } from '../../intervalLabel.ts'
 
 const model = defineModel<SettingsDraft>({ required: true })
@@ -58,6 +59,14 @@ const intervalOptions = computed(() => {
 	}
 	return values.map((value) => ({ value, label: intervalLabel(value) }))
 })
+
+const selectedInterval = computed(() => intervalOptions.value.find((option) => option.value === model.value.intervalMinutes) ?? null)
+
+function onInterval(option: { value: number } | null) {
+	if (option) {
+		update({ intervalMinutes: option.value })
+	}
+}
 
 const historyValue = computed(() => model.value.historyDays === null ? 'all' : String(model.value.historyDays))
 
@@ -77,8 +86,12 @@ const historyOptions = computed(() => {
 	]
 })
 
-function onHistory(value: string) {
-	update({ historyDays: value === 'all' ? null : Number(value) })
+const selectedHistory = computed(() => historyOptions.value.find((option) => option.value === historyValue.value) ?? null)
+
+function onHistory(option: { value: string } | null) {
+	if (option) {
+		update({ historyDays: option.value === 'all' ? null : Number(option.value) })
+	}
 }
 </script>
 
@@ -89,6 +102,10 @@ function onHistory(value: string) {
 	gap: 4px;
 	align-items: flex-start;
 	margin-bottom: 12px;
+}
+
+.sync-settings__field :deep(.v-select) {
+	min-width: 260px;
 }
 
 .sync-settings__hint {
