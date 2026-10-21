@@ -37,15 +37,20 @@ final class AccountService
      * Prüft die Zugangsdaten bei Garmin und speichert sie erst bei Erfolg.
      *
      * @throws GarminException unverändert, dann bleibt alles Gespeicherte wie es war
-     * @throws PersonBusyException wenn gerade ein Sync läuft, dann bleibt alles Gespeicherte wie es war
+     * @throws PersonBusyException wenn gerade ein Sync läuft, dann gibt es keine Anfrage an Garmin und
+     *         alles Gespeicherte bleibt wie es war
      */
     public function login(string $uid, string $email, string $password): SetupState
     {
         $email = trim($email);
         $credentials = new Credentials($email, $password);
-        $tokens = $this->garmin->authenticator()->login($credentials);
 
-        return $this->lock->run($uid, fn (): SetupState => $this->store($uid, $email, $credentials, $tokens));
+        // WHY Garmin in der Sperre: sonst prüft ein zweiter Vorgang parallel und überholt beim Speichern.
+        return $this->lock->run($uid, function () use ($uid, $email, $credentials): SetupState {
+            $tokens = $this->garmin->authenticator()->login($credentials);
+
+            return $this->store($uid, $email, $credentials, $tokens);
+        });
     }
 
     private function store(string $uid, string $email, Credentials $credentials, GarminTokens $tokens): SetupState
@@ -127,12 +132,32 @@ final class AccountService
             case Cleanup::Events:
                 if ($calendarId !== null) {
                     $maintenance = 'remove';
-                    $this->jobs->add(CalendarMaintenanceJob::class, [
-                        'uid' => $uid,
-                        'action' => 'remove',
-                        'from' => $calendarId,
-                        'to' => null,
-                    ]);
+                    // WHY vorher speichern: Der Job kann sofort starten. So steht die Markierung fest, bevor
+                    // es einen Job gibt, der sie beim Abschluss wieder löscht.
+                    $this->users->saveSetup($uid, new SetupState(
+                        $setup->step,
+                        $setup->connected,
+                        $setup->accountKey,
+                        $setup->maskedEmail,
+                        $calendarId,
+                        $createdByApp,
+                        $maintenance,
+                        $setup->maintenanceFailed,
+                        $setup->calendarMissing,
+                    ));
+                    try {
+                        $this->jobs->add(CalendarMaintenanceJob::class, [
+                            'uid' => $uid,
+                            'action' => 'remove',
+                            'from' => $calendarId,
+                            'to' => null,
+                        ]);
+                    } catch (\Throwable $e) {
+                        // Ohne Job löschte niemand die Markierung, Sync und Bereinigung blieben gesperrt.
+                        $this->users->saveSetup($uid, $setup);
+
+                        throw $e;
+                    }
                 }
                 $state = new SyncState();
                 break;

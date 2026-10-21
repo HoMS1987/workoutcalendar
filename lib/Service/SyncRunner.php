@@ -53,9 +53,27 @@ final class SyncRunner
 
     public function run(string $uid, \DateTimeImmutable $now): RunOutcome
     {
+        return $this->underLock($uid, $now, false);
+    }
+
+    /**
+     * Manueller Sync und Abschluss des Assistenten: stellt die Person in die Warteschlange und führt
+     * den Lauf in derselben Sperre aus, damit kein anderer Vorgang dazwischen den Zustand ändert.
+     * Ist die Sperre belegt, bleibt alles unverändert.
+     */
+    public function runNow(string $uid, \DateTimeImmutable $now): RunOutcome
+    {
+        return $this->underLock($uid, $now, true);
+    }
+
+    private function underLock(string $uid, \DateTimeImmutable $now, bool $arm): RunOutcome
+    {
         try {
-            return $this->lock->run($uid, function () use ($uid, $now): RunOutcome {
+            return $this->lock->run($uid, function () use ($uid, $now, $arm): RunOutcome {
                 try {
+                    if ($arm) {
+                        $this->arm($uid, $now);
+                    }
                     $outcome = $this->runLocked($uid, $now);
                     if ($outcome !== RunOutcome::Done && $outcome !== RunOutcome::Skipped) {
                         $this->leaveQueue($uid);
@@ -73,6 +91,14 @@ final class SyncRunner
 
             return RunOutcome::Skipped;
         }
+    }
+
+    /** Stellt die Person sofort in die Warteschlange. */
+    private function arm(string $uid, \DateTimeImmutable $now): void
+    {
+        $state = $this->users->state($uid);
+        $state->nextRunAt = $now->getTimestamp();
+        $this->users->saveState($uid, $state);
     }
 
     /** Ohne möglichen Lauf ist die Person nicht fällig. Anmeldung, Kalenderwahl und manueller Sync planen neu. */

@@ -133,6 +133,39 @@ final class SyncRunnerTest extends TestCase
         self::assertSame(['acquire:' . self::LOCK], $this->lockCalls);
     }
 
+    public function testRunNowArmsAndRunsUnderOneLock(): void
+    {
+        $this->connect();
+        $this->http->queue(
+            FakeHttpClient::json(200, [self::activity(101, '2026-10-19 07:00:00')]),
+            FakeHttpClient::json(200, []),
+        );
+
+        $outcome = $this->runner()->runNow(self::UID, $this->now);
+
+        self::assertSame(RunOutcome::Done, $outcome);
+        self::assertArrayHasKey('garmin-101.ics', $this->objects->objects[$this->calendarId]);
+        self::assertSame(['acquire:' . self::LOCK, 'release:' . self::LOCK], $this->lockCalls);
+        // Standard: 30 Minuten ± 20 %.
+        $nextRunAt = $this->users->state(self::UID)->nextRunAt;
+        self::assertNotNull($nextRunAt);
+        self::assertGreaterThanOrEqual($this->now->getTimestamp() + 24 * 60, $nextRunAt);
+        self::assertLessThanOrEqual($this->now->getTimestamp() + 36 * 60, $nextRunAt);
+    }
+
+    public function testRunNowWhileBusyChangesNothing(): void
+    {
+        $this->connect();
+        $before = $this->store;
+        $this->lockFailure = new LockedException(self::LOCK);
+
+        self::assertSame(RunOutcome::Skipped, $this->runner()->runNow(self::UID, $this->now));
+
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->http->requests);
+        self::assertSame(['acquire:' . self::LOCK], $this->lockCalls);
+    }
+
     public function testPausedUserIsNotContacted(): void
     {
         $this->connect();

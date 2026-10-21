@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\BackgroundJob;
 
 use OCA\WorkoutCalendar\CalDav\CalendarService;
+use OCA\WorkoutCalendar\Service\PersonBusyException;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\UserStore;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -21,6 +23,9 @@ use Psr\Log\LoggerInterface;
  * Nach einem Fehler oder ohne Fortschritt reiht sich der Job bis MAX_ATTEMPTS erneut ein, danach
  * gibt er auf, löst die Sperre `maintenance` und merkt die Aktion in `maintenanceFailed` für die
  * Einstellungsseite. Ein erfolgreicher Abschluss löscht diese Markierung.
+ *
+ * Der Abschluss speichert unter der Sperre der Person. Ist sie belegt, reiht sich der Job mit
+ * unverändertem Argument neu ein, das zählt nicht als Fehlversuch.
  */
 final class CalendarMaintenanceJob extends QueuedJob
 {
@@ -34,6 +39,7 @@ final class CalendarMaintenanceJob extends QueuedJob
         private readonly UserStore $users,
         private readonly IJobList $jobList,
         private readonly LoggerInterface $logger,
+        private readonly PersonLock $lock,
     ) {
         parent::__construct($time);
     }
@@ -72,7 +78,7 @@ final class CalendarMaintenanceJob extends QueuedJob
         }
 
         if ($rest <= 0) {
-            $this->finish($uid);
+            $this->finish($argument, $uid);
 
             return;
         }
@@ -99,7 +105,7 @@ final class CalendarMaintenanceJob extends QueuedJob
                 'action' => $action,
                 'attempts' => $attempt + 1,
             ]);
-            $this->finish($uid, $action);
+            $this->finish($argument, $uid, $action);
 
             return;
         }
@@ -112,20 +118,31 @@ final class CalendarMaintenanceJob extends QueuedJob
         $this->jobList->add(self::class, $retry);
     }
 
-    /** @param ?string $failed Aktion, mit der der Job aufgegeben hat, null bei Erfolg */
-    private function finish(string $uid, ?string $failed = null): void
+    /**
+     * @param array<string, mixed> $argument
+     * @param ?string $failed Aktion, mit der der Job aufgegeben hat, null bei Erfolg
+     */
+    private function finish(array $argument, string $uid, ?string $failed = null): void
     {
-        $setup = $this->users->setup($uid);
-        $this->users->saveSetup($uid, new SetupState(
-            $setup->step,
-            $setup->connected,
-            $setup->accountKey,
-            $setup->maskedEmail,
-            $setup->calendarId,
-            $setup->calendarCreatedByApp,
-            null,
-            $failed,
-            $setup->calendarMissing,
-        ));
+        try {
+            $this->lock->run($uid, function () use ($uid, $failed): void {
+                $setup = $this->users->setup($uid);
+                $this->users->saveSetup($uid, new SetupState(
+                    $setup->step,
+                    $setup->connected,
+                    $setup->accountKey,
+                    $setup->maskedEmail,
+                    $setup->calendarId,
+                    $setup->calendarCreatedByApp,
+                    null,
+                    $failed,
+                    $setup->calendarMissing,
+                ));
+            });
+        } catch (PersonBusyException) {
+            // WHY: Ohne Sperre überschriebe der Abschluss eine gleichzeitige Änderung an der Einrichtung.
+            $this->logger->debug('Abschluss des Wartungsjobs verschoben, ein anderer Vorgang hält die Sperre', ['uid' => $uid]);
+            $this->jobList->add(self::class, $argument);
+        }
     }
 }
