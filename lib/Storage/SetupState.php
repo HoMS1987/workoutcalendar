@@ -12,6 +12,8 @@ final class SetupState
      * @param ?string $maskedEmail maskierte E-Mail-Adresse für die Anzeige
      * @param bool $calendarCreatedByApp der Kalender wurde von der App angelegt
      * @param ?string $maintenance 'move', 'remove' oder null
+     * @param ?string $maintenanceFailed 'move' oder 'remove', wenn der Wartungsjob aufgegeben hat, sonst null
+     * @param bool $calendarMissing der Zielkalender fehlte beim letzten Sync-Lauf, die Einrichtung steht wieder bei der Kalenderwahl
      */
     public function __construct(
         public readonly SetupStep $step = SetupStep::Garmin,
@@ -21,6 +23,8 @@ final class SetupState
         public readonly ?int $calendarId = null,
         public readonly bool $calendarCreatedByApp = false,
         public readonly ?string $maintenance = null,
+        public readonly ?string $maintenanceFailed = null,
+        public readonly bool $calendarMissing = false,
     ) {
     }
 
@@ -29,6 +33,7 @@ final class SetupState
     {
         $string = static fn (string $key): ?string => is_string($data[$key] ?? null) ? $data[$key] : null;
         $maintenance = $string('maintenance');
+        $failed = $string('maintenanceFailed');
 
         return new self(
             is_string($data['step'] ?? null) ? SetupStep::tryFrom($data['step']) ?? SetupStep::Garmin : SetupStep::Garmin,
@@ -38,6 +43,8 @@ final class SetupState
             is_int($data['calendarId'] ?? null) ? $data['calendarId'] : null,
             ($data['calendarCreatedByApp'] ?? false) === true,
             $maintenance === 'move' || $maintenance === 'remove' ? $maintenance : null,
+            $failed === 'move' || $failed === 'remove' ? $failed : null,
+            ($data['calendarMissing'] ?? false) === true,
         );
     }
 
@@ -52,6 +59,8 @@ final class SetupState
             'calendarId' => $this->calendarId,
             'calendarCreatedByApp' => $this->calendarCreatedByApp,
             'maintenance' => $this->maintenance,
+            'maintenanceFailed' => $this->maintenanceFailed,
+            'calendarMissing' => $this->calendarMissing,
         ];
     }
 }

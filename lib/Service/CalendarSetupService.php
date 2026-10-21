@@ -133,6 +133,9 @@ final class CalendarSetupService
             $calendar->id,
             $createdByApp,
             $maintenance,
+            // Ein neu gewählter Kalender beendet die Hinweise auf aufgegebene Wartung und fehlenden Kalender.
+            null,
+            false,
         ));
         if (!$wizard) {
             $this->users->saveState($uid, $state);

@@ -38,6 +38,8 @@ final class StatusService
                     'createdByApp' => $setup->calendarCreatedByApp,
                 ],
                 'maintenance' => $setup->maintenance,
+                'maintenanceFailed' => $setup->maintenanceFailed,
+                'calendarMissing' => $setup->calendarMissing,
             ],
             'sync' => [
                 'lastRunAt' => $state->lastRunAt,

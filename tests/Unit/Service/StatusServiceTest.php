@@ -124,6 +124,8 @@ final class StatusServiceTest extends TestCase
                 'maskedEmail' => 'a***@example.org',
                 'calendar' => ['id' => $calendarId, 'name' => 'Training', 'createdByApp' => true],
                 'maintenance' => 'move',
+                'maintenanceFailed' => null,
+                'calendarMissing' => false,
             ],
             'sync' => [
                 'lastRunAt' => 100,
@@ -153,6 +155,16 @@ final class StatusServiceTest extends TestCase
 
         self::assertSame(1, $this->service()->status(self::UID)['sync']['eventCount']);
         self::assertSame(0, $this->objects->getCalls);
+    }
+
+    public function testFailureMarkersAreReported(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, self::ACCOUNT, 'a***@example.org', null, false, null, 'move', true));
+
+        $setup = $this->service()->status(self::UID)['setup'];
+
+        self::assertSame('move', $setup['maintenanceFailed']);
+        self::assertTrue($setup['calendarMissing']);
     }
 
     public function testFreshPersonHasNoCalendarAndNoFailure(): void

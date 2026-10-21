@@ -19,6 +19,8 @@ final class MemoryCalendarObjects implements CalendarObjects
     public array $writes = [];
     /** Aufrufe von get(), für Prüfungen, dass kein ICS gelesen wird. */
     public int $getCalls = 0;
+    /** Wird beim Löschen eines Kalenders geworfen, wenn gesetzt. */
+    public ?\Throwable $deleteCalendarFailure = null;
     private int $nextId = 1;
 
     /** @param list<string> $components */
@@ -72,6 +74,9 @@ final class MemoryCalendarObjects implements CalendarObjects
 
     public function deleteCalendar(int $calendarId): void
     {
+        if ($this->deleteCalendarFailure !== null) {
+            throw $this->deleteCalendarFailure;
+        }
         $this->writes[] = "deleteCalendar:$calendarId";
         $this->calendars[$calendarId]['trashed'] = true;
     }

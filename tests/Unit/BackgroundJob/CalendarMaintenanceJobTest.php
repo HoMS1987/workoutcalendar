@@ -123,11 +123,26 @@ final class CalendarMaintenanceJobTest extends TestCase
         $this->execute($this->job($jobList, $this->failingObjects('geheim-passwort')), $argument);
 
         self::assertNull($this->users->setup(self::UID)->maintenance);
+        self::assertSame('remove', $this->users->setup(self::UID)->maintenanceFailed);
         $errors = $this->logger->byLevel('error');
         self::assertNotEmpty($errors);
         $last = end($errors);
         self::assertSame(['uid' => self::UID, 'action' => 'remove', 'attempts' => 6], $last['context']);
         self::assertStringNotContainsString('geheim-passwort', $last['message'] . json_encode($last['context']));
+    }
+
+    public function testSuccessClearsEarlierFailure(): void
+    {
+        $this->fill($this->from, 3);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, 'abc', null, $this->to, false, 'move', 'move', false));
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->expects(self::never())->method('add');
+
+        $this->execute($this->job($jobList), ['uid' => self::UID, 'action' => 'move', 'from' => $this->from, 'to' => $this->to]);
+
+        $setup = $this->users->setup(self::UID);
+        self::assertNull($setup->maintenance);
+        self::assertNull($setup->maintenanceFailed);
     }
 
     public function testNoProgressCountsAsFailedAttempt(): void
