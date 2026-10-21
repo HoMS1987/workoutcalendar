@@ -1,8 +1,8 @@
-import type { ApiError } from './api.ts'
 import type { Status } from './types.ts'
 import type { Hint } from './viewState.ts'
 
 import { getCanonicalLocale, n, t } from '@nextcloud/l10n'
+import { ApiError } from './api.ts'
 
 const APP = 'workoutcalendar'
 
@@ -53,6 +53,27 @@ export function apiErrorText(e: ApiError): string {
 		return t(APP, 'This action is not possible right now.')
 	}
 	return t(APP, 'Something went wrong. Details are in the Nextcloud log.')
+}
+
+/** Why the quiet status refresh fails: the session ended or Nextcloud cannot be reached. */
+export type PollProblem = 'session' | 'network'
+
+// Classifies a failed status refresh; other failures are not shown.
+export function pollProblem(e: unknown): PollProblem | null {
+	if (!(e instanceof ApiError)) {
+		return null
+	}
+	if (e.status === 401 || e.code === 'notLoggedIn') {
+		return 'session'
+	}
+	return e.code === 'network' ? 'network' : null
+}
+
+// Text for a failed status refresh.
+export function pollProblemText(problem: PollProblem): string {
+	return problem === 'session'
+		? t(APP, 'Your session has expired. Please reload the page.')
+		: t(APP, 'The connection to Nextcloud was lost. The page keeps trying to reconnect.')
 }
 
 // Names the cause of a sync failure in words.

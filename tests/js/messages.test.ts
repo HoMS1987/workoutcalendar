@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../src/api.ts'
-import { apiErrorText, hintText, isLoginFailure, loginError } from '../../src/messages.ts'
+import { apiErrorText, hintText, isLoginFailure, loginError, pollProblem } from '../../src/messages.ts'
 import { makeStatus } from './fixtures.ts'
 
 type Vars = Record<string, string | number>
@@ -107,6 +107,18 @@ describe('hintText', () => {
 		expect(hintText('maintenanceFailedRemove', status)).toBe('Removing the events was given up. Some events may still be in the old calendar.')
 		expect(hintText('backfill', status)).toBe('Importing your history: 340 activities so far.')
 		expect(hintText('backfill', makeStatus({ sync: { eventCount: 1 } }))).toBe('Importing your history: 1 activity so far.')
+	})
+})
+
+describe('pollProblem', () => {
+	it.each([
+		[new ApiError(401, 'internal'), 'session'],
+		[new ApiError(401, 'notLoggedIn'), 'session'],
+		[new ApiError(0, 'network'), 'network'],
+		[new ApiError(500, 'internal'), null],
+		[new Error('other'), null],
+	] as const)('classifies %s', (error, expected) => {
+		expect(pollProblem(error)).toBe(expected)
 	})
 })
 
