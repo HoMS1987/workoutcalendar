@@ -7,6 +7,7 @@ namespace OCA\WorkoutCalendar\Service;
 use OCA\WorkoutCalendar\BackgroundJob\CalendarMaintenanceJob;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
+use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -17,7 +18,7 @@ use OCA\WorkoutCalendar\Sync\SyncState;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 
-/** Anmelden, Abmelden und Zurücksetzen einer Person. */
+/** Anmelden, Abmelden und Zurücksetzen einer Person. Jede Änderung läuft unter der Sperre der Person. */
 final class AccountService
 {
     public function __construct(
@@ -28,6 +29,7 @@ final class AccountService
         private readonly IJobList $jobs,
         private readonly FailureNotifications $notifications,
         private readonly ITimeFactory $time,
+        private readonly PersonLock $lock,
     ) {
     }
 
@@ -35,6 +37,7 @@ final class AccountService
      * Prüft die Zugangsdaten bei Garmin und speichert sie erst bei Erfolg.
      *
      * @throws GarminException unverändert, dann bleibt alles Gespeicherte wie es war
+     * @throws PersonBusyException wenn gerade ein Sync läuft, dann bleibt alles Gespeicherte wie es war
      */
     public function login(string $uid, string $email, string $password): SetupState
     {
@@ -42,6 +45,11 @@ final class AccountService
         $credentials = new Credentials($email, $password);
         $tokens = $this->garmin->authenticator()->login($credentials);
 
+        return $this->lock->run($uid, fn (): SetupState => $this->store($uid, $email, $credentials, $tokens));
+    }
+
+    private function store(string $uid, string $email, Credentials $credentials, GarminTokens $tokens): SetupState
+    {
         $this->secrets->saveCredentials($uid, $credentials);
         $this->secrets->saveTokens($uid, $tokens);
 
@@ -76,8 +84,16 @@ final class AccountService
         return $setup;
     }
 
-    /** @throws \InvalidArgumentException bei Cleanup::Calendar für einen Kalender, den die App nicht angelegt hat */
+    /**
+     * @throws \InvalidArgumentException bei Cleanup::Calendar für einen Kalender, den die App nicht angelegt hat
+     * @throws PersonBusyException wenn gerade ein Sync läuft
+     */
     public function logout(string $uid, Cleanup $cleanup): void
+    {
+        $this->lock->run($uid, fn () => $this->disconnect($uid, $cleanup));
+    }
+
+    private function disconnect(string $uid, Cleanup $cleanup): void
     {
         $setup = $this->users->setup($uid);
         if ($cleanup === Cleanup::Calendar && !$setup->calendarCreatedByApp) {
@@ -134,13 +150,15 @@ final class AccountService
     /** Wie {@see logout()}, danach beginnt die Einrichtung mit Schritt Garmin von vorn. */
     public function reset(string $uid, Cleanup $cleanup): void
     {
-        $removalQueued = $cleanup === Cleanup::Events && $this->users->setup($uid)->calendarId !== null;
-        $this->logout($uid, $cleanup);
-        $this->users->clear($uid);
-        $this->secrets->clear($uid);
-        if ($removalQueued) {
-            // Der Wartungsjob löscht die Markierung am Ende; bis dahin darf kein Sync neue Termine anlegen.
-            $this->users->saveSetup($uid, new SetupState(maintenance: 'remove'));
-        }
+        $this->lock->run($uid, function () use ($uid, $cleanup): void {
+            $removalQueued = $cleanup === Cleanup::Events && $this->users->setup($uid)->calendarId !== null;
+            $this->disconnect($uid, $cleanup);
+            $this->users->clear($uid);
+            $this->secrets->clear($uid);
+            if ($removalQueued) {
+                // Der Wartungsjob löscht die Markierung am Ende; bis dahin darf kein Sync neue Termine anlegen.
+                $this->users->saveSetup($uid, new SetupState(maintenance: 'remove'));
+            }
+        });
     }
 }

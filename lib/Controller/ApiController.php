@@ -10,6 +10,8 @@ use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
 use OCA\WorkoutCalendar\Service\Cleanup;
+use OCA\WorkoutCalendar\Service\PersonBusyException;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\StatusService;
 use OCA\WorkoutCalendar\Service\SyncRunner;
 use OCA\WorkoutCalendar\Storage\SetupState;
@@ -32,7 +34,8 @@ use Psr\Log\LoggerInterface;
 
 /**
  * JSON-API der Einstellungsseite. Jede Route arbeitet nur mit den Daten der angemeldeten Person.
- * Fehler: Garmin → 422 mit Fehlerkategorie, ungültige Anfrage → 400, alles andere → 500.
+ * Fehler: Garmin → 422 mit Fehlerkategorie, ungültige Anfrage → 400, laufender Sync → 409 `busy`,
+ * alles andere → 500.
  */
 final class ApiController extends Controller
 {
@@ -50,6 +53,7 @@ final class ApiController extends Controller
         private readonly UserStore $users,
         private readonly ITimeFactory $time,
         private readonly LoggerInterface $logger,
+        private readonly PersonLock $lock,
     ) {
         parent::__construct($appName, $request);
     }
@@ -124,45 +128,58 @@ final class ApiController extends Controller
                 throw new \InvalidArgumentException('Ungültiger Zeitraum');
             }
             /** @var ?int $historyDays */
-            $setup = $this->users->setup($uid);
-            if ($setup->step !== SetupStep::History && $setup->step !== SetupStep::Done) {
-                throw new \InvalidArgumentException('Die Historie lässt sich erst nach der Kalenderwahl festlegen');
-            }
-
-            $settings = $this->users->settings($uid)->toArray();
-            $settings['historyDays'] = $historyDays;
-            $this->users->saveSettings($uid, SyncSettings::fromArray($settings));
             $now = $this->now();
-
-            if ($setup->step === SetupStep::History) {
-                $this->users->saveSetup($uid, new SetupState(
-                    SetupStep::Done,
-                    $setup->connected,
-                    $setup->accountKey,
-                    $setup->maskedEmail,
-                    $setup->calendarId,
-                    $setup->calendarCreatedByApp,
-                    $setup->maintenance,
-                ));
-                // WHY: Nach einem fehlenden Kalender stünde sonst der alte Zustand da (Historie fertig,
-                // letzter Erfolg), der neue Kalender bekäme keinen Import. Die Pause bleibt: ohne neue
-                // Zugangsdaten gibt es keinen weiteren Anmeldeversuch.
-                $previous = $this->users->state($uid);
-                $state = new SyncState();
-                $state->pausedFor = $previous->pausedFor;
-                $state->notifiedCategory = $previous->notifiedCategory;
-                $state->nextRunAt = $now->getTimestamp();
-                $this->users->saveState($uid, $state);
+            // WHY: Die Sperre ist nicht wiedereintrittsfähig, der erste Lauf startet erst nach ihrer Freigabe.
+            $finishedWizard = $this->lock->run($uid, fn (): bool => $this->applyHistory($uid, $historyDays, $now));
+            if ($finishedWizard) {
                 $this->runner->run($uid, $now);
-            } else {
-                $state = $this->users->state($uid);
-                SyncService::changeHistory($state, $historyDays, $now);
-                $state->nextRunAt = $now->getTimestamp();
-                $this->users->saveState($uid, $state);
             }
 
             return $this->status->status($uid);
         });
+    }
+
+    /** @return bool true, wenn die Wahl den Assistenten abgeschlossen hat */
+    private function applyHistory(string $uid, ?int $historyDays, \DateTimeImmutable $now): bool
+    {
+        $setup = $this->users->setup($uid);
+        if ($setup->step !== SetupStep::History && $setup->step !== SetupStep::Done) {
+            throw new \InvalidArgumentException('Die Historie lässt sich erst nach der Kalenderwahl festlegen');
+        }
+
+        $settings = $this->users->settings($uid)->toArray();
+        $settings['historyDays'] = $historyDays;
+        $this->users->saveSettings($uid, SyncSettings::fromArray($settings));
+
+        if ($setup->step === SetupStep::History) {
+            $this->users->saveSetup($uid, new SetupState(
+                SetupStep::Done,
+                $setup->connected,
+                $setup->accountKey,
+                $setup->maskedEmail,
+                $setup->calendarId,
+                $setup->calendarCreatedByApp,
+                $setup->maintenance,
+            ));
+            // WHY: Nach einem fehlenden Kalender stünde sonst der alte Zustand da (Historie fertig,
+            // letzter Erfolg), der neue Kalender bekäme keinen Import. Die Pause bleibt: ohne neue
+            // Zugangsdaten gibt es keinen weiteren Anmeldeversuch.
+            $previous = $this->users->state($uid);
+            $state = new SyncState();
+            $state->pausedFor = $previous->pausedFor;
+            $state->notifiedCategory = $previous->notifiedCategory;
+            $state->nextRunAt = $now->getTimestamp();
+            $this->users->saveState($uid, $state);
+
+            return true;
+        }
+
+        $state = $this->users->state($uid);
+        SyncService::changeHistory($state, $historyDays, $now);
+        $state->nextRunAt = $now->getTimestamp();
+        $this->users->saveState($uid, $state);
+
+        return false;
     }
 
     /** Ändert Intervall, Streuung, Umgang mit gelöschten Aktivitäten und Prüfzeitraum. Die Historie bleibt. */
@@ -175,7 +192,7 @@ final class ApiController extends Controller
         mixed $deletionCheckDays = null,
     ): JSONResponse {
         return $this->handle(function (string $uid) use ($intervalMinutes, $jitterPercent, $deletionMode, $deletionCheckDays): array {
-            $settings = $this->users->settings($uid)->toArray();
+            $changes = [];
             foreach (['intervalMinutes' => $intervalMinutes, 'jitterPercent' => $jitterPercent, 'deletionCheckDays' => $deletionCheckDays] as $key => $value) {
                 if ($value === null) {
                     continue;
@@ -183,15 +200,18 @@ final class ApiController extends Controller
                 if (!is_int($value)) {
                     throw new \InvalidArgumentException("$key muss eine ganze Zahl sein");
                 }
-                $settings[$key] = $value;
+                $changes[$key] = $value;
             }
             if ($deletionMode !== null) {
                 if (!is_string($deletionMode) || DeletionMode::tryFrom($deletionMode) === null) {
                     throw new \InvalidArgumentException('Ungültiger Umgang mit gelöschten Aktivitäten');
                 }
-                $settings['deletionMode'] = $deletionMode;
+                $changes['deletionMode'] = $deletionMode;
             }
-            $this->users->saveSettings($uid, SyncSettings::fromArray($settings));
+            $this->lock->run($uid, function () use ($uid, $changes): void {
+                $settings = [...$this->users->settings($uid)->toArray(), ...$changes];
+                $this->users->saveSettings($uid, SyncSettings::fromArray($settings));
+            });
 
             return $this->status->status($uid);
         });
@@ -244,6 +264,8 @@ final class ApiController extends Controller
             return new JSONResponse($action($user->getUID()));
         } catch (GarminException $e) {
             return new JSONResponse(['error' => $e->category->value], Http::STATUS_UNPROCESSABLE_ENTITY);
+        } catch (PersonBusyException) {
+            return new JSONResponse(['error' => 'busy'], Http::STATUS_CONFLICT);
         } catch (\InvalidArgumentException) {
             return new JSONResponse(['error' => 'invalidRequest'], Http::STATUS_BAD_REQUEST);
         } catch (\Throwable $e) {

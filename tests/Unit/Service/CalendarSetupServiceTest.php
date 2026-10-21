@@ -7,12 +7,15 @@ namespace OCA\WorkoutCalendar\Tests\Unit\Service;
 use OCA\WorkoutCalendar\BackgroundJob\CalendarMaintenanceJob;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
+use OCA\WorkoutCalendar\Service\PersonBusyException;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
 use OCA\WorkoutCalendar\Storage\UserStore;
 use OCA\WorkoutCalendar\Sync\SyncState;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
@@ -29,6 +32,7 @@ final class CalendarSetupServiceTest extends TestCase
     private array $store = [];
     private UserStore $users;
     private MemoryCalendarObjects $objects;
+    private MemoryLockingProvider $locking;
     /** @var list<array{string, mixed}> */
     private array $jobs = [];
 
@@ -36,6 +40,7 @@ final class CalendarSetupServiceTest extends TestCase
     {
         $this->users = new UserStore($this->memoryUserConfig($this->store));
         $this->objects = new MemoryCalendarObjects();
+        $this->locking = new MemoryLockingProvider();
     }
 
     public function testDefaultNameIsTranslated(): void
@@ -262,6 +267,24 @@ final class CalendarSetupServiceTest extends TestCase
         self::assertSame(self::NOW, $this->users->state(self::UID)->nextRunAt);
     }
 
+    public function testChoiceWaitsForRunningSync(): void
+    {
+        $old = $this->done();
+        $new = $this->objects->addCalendar(self::UID, 'y', 'Neu');
+        $before = $this->store;
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+
+        try {
+            $this->service()->choose(self::UID, null, $new, true, true);
+            self::fail('PersonBusyException erwartet');
+        } catch (PersonBusyException) {
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertSame($old, $this->users->setup(self::UID)->calendarId);
+        self::assertSame([], $this->jobs);
+    }
+
     private function wizard(): void
     {
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, true, 'abc', 'a***@b.de'));
@@ -286,6 +309,6 @@ final class CalendarSetupServiceTest extends TestCase
         $l = $this->createStub(IL10N::class);
         $l->method('t')->willReturnCallback(static fn (string $text): string => $text === 'Garmin activities' ? 'Garmin-Aktivitäten' : $text);
 
-        return new CalendarSetupService(new CalendarService($this->objects), $this->users, $jobList, $time, $l);
+        return new CalendarSetupService(new CalendarService($this->objects), $this->users, $jobList, $time, $l, new PersonLock($this->locking));
     }
 }

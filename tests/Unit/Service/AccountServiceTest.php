@@ -16,6 +16,8 @@ use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\Cleanup;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PersonBusyException;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -26,6 +28,7 @@ use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\Jwt;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCA\WorkoutCalendar\Tests\Support\RecordingNotification;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -48,6 +51,7 @@ final class AccountServiceTest extends TestCase
     private MemoryCalendarObjects $objects;
     private FakeHttpClient $http;
     private MemoryLogger $logger;
+    private MemoryLockingProvider $locking;
     private int $calendarId;
     /** @var list<array{string, mixed}> */
     private array $jobs = [];
@@ -62,6 +66,7 @@ final class AccountServiceTest extends TestCase
         $this->secrets = new SecretStore($config, $this->fakeCrypto(), $this->logger);
         $this->objects = new MemoryCalendarObjects();
         $this->http = new FakeHttpClient();
+        $this->locking = new MemoryLockingProvider();
         $this->calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training', null, ['VEVENT']);
     }
 
@@ -364,6 +369,61 @@ final class AccountServiceTest extends TestCase
         self::assertSame(['markProcessed:' . self::UID, 'markProcessed:' . self::UID], $this->notificationCalls);
     }
 
+    public function testLifecycleWaitsForRunningSync(): void
+    {
+        $this->connected();
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'geheim'));
+        $before = $this->store;
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+        $service = $this->service();
+
+        foreach ([
+            fn () => $service->logout(self::UID, Cleanup::None),
+            fn () => $service->reset(self::UID, Cleanup::Calendar),
+        ] as $call) {
+            try {
+                $call();
+                self::fail('PersonBusyException erwartet');
+            } catch (PersonBusyException) {
+            }
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertFalse($this->objects->calendars[$this->calendarId]['trashed']);
+        self::assertSame([], $this->jobs);
+        self::assertSame([], $this->notificationCalls);
+    }
+
+    public function testLoginWaitsForRunningSyncAndStoresNothing(): void
+    {
+        $this->connected();
+        $before = $this->store;
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+        $this->queueSuccessfulLogin();
+
+        try {
+            $this->service()->login(self::UID, 'a@b.de', 'geheim');
+            self::fail('PersonBusyException erwartet');
+        } catch (PersonBusyException) {
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertNull($this->secrets->credentials(self::UID));
+    }
+
+    public function testLifecycleReleasesLock(): void
+    {
+        $this->connected();
+        $this->queueSuccessfulLogin();
+        $service = $this->service();
+
+        $service->login(self::UID, 'a@b.de', 'geheim');
+        $service->logout(self::UID, Cleanup::None);
+        $service->reset(self::UID, Cleanup::None);
+
+        self::assertSame([], $this->locking->held());
+    }
+
     private function key(): string
     {
         return substr(hash('sha256', 'a@b.de'), 0, 16);
@@ -410,6 +470,7 @@ final class AccountServiceTest extends TestCase
             $jobList,
             new FailureNotifications($this->notificationManager(), $time),
             $time,
+            new PersonLock($this->locking),
         );
     }
 

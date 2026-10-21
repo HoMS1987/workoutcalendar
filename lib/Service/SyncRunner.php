@@ -25,8 +25,6 @@ use OCA\WorkoutCalendar\Sync\SyncState;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
-use OCP\Lock\ILockingProvider;
-use OCP\Lock\LockedException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -35,8 +33,6 @@ use Psr\Log\LoggerInterface;
  */
 final class SyncRunner
 {
-    private const LOCK_PREFIX = 'workoutcalendar/sync/';
-
     private readonly CalendarService $calendars;
     private readonly NotificationPolicy $policy;
 
@@ -46,7 +42,7 @@ final class SyncRunner
         private readonly CalendarObjects $objects,
         private readonly GarminClientFactory $garmin,
         private readonly FailureNotifications $notifications,
-        private readonly ILockingProvider $locking,
+        private readonly PersonLock $lock,
         private readonly IFactory $l10nFactory,
         private readonly IUserManager $userManager,
         private readonly LoggerInterface $logger,
@@ -57,29 +53,25 @@ final class SyncRunner
 
     public function run(string $uid, \DateTimeImmutable $now): RunOutcome
     {
-        // WHY md5: oc_file_locks.key fasst 64 Zeichen, Benutzer-IDs können länger sein (z. B. OIDC).
-        $lock = self::LOCK_PREFIX . md5($uid);
         try {
-            $this->locking->acquireLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
-        } catch (LockedException) {
-            $this->logger->debug('Sync-Lauf übersprungen, ein anderer Lauf hält die Sperre', ['uid' => $uid]);
+            return $this->lock->run($uid, function () use ($uid, $now): RunOutcome {
+                try {
+                    $outcome = $this->runLocked($uid, $now);
+                    if ($outcome !== RunOutcome::Done && $outcome !== RunOutcome::Skipped) {
+                        $this->leaveQueue($uid);
+                    }
+
+                    return $outcome;
+                } catch (\Throwable $e) {
+                    $this->postpone($uid, $now);
+
+                    throw $e;
+                }
+            });
+        } catch (PersonBusyException) {
+            $this->logger->debug('Sync-Lauf übersprungen, ein anderer Vorgang hält die Sperre', ['uid' => $uid]);
 
             return RunOutcome::Skipped;
-        }
-
-        try {
-            $outcome = $this->runLocked($uid, $now);
-            if ($outcome !== RunOutcome::Done && $outcome !== RunOutcome::Skipped) {
-                $this->leaveQueue($uid);
-            }
-
-            return $outcome;
-        } catch (\Throwable $e) {
-            $this->postpone($uid, $now);
-
-            throw $e;
-        } finally {
-            $this->locking->releaseLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
         }
     }
 

@@ -24,6 +24,7 @@ final class CalendarSetupService
         private readonly IJobList $jobs,
         private readonly ITimeFactory $time,
         private readonly IL10N $l,
+        private readonly PersonLock $lock,
     ) {
     }
 
@@ -38,8 +39,14 @@ final class CalendarSetupService
      * Bestätigung übernommen, bis dahin bleibt alles unverändert.
      *
      * @throws \InvalidArgumentException bei ungültiger Angabe, fremdem Kalender oder fehlender Anmeldung
+     * @throws PersonBusyException wenn gerade ein Sync läuft
      */
     public function choose(string $uid, ?string $newName, ?int $calendarId, bool $confirmed, bool $moveEvents): CalendarChoice
+    {
+        return $this->lock->run($uid, fn (): CalendarChoice => $this->chooseLocked($uid, $newName, $calendarId, $confirmed, $moveEvents));
+    }
+
+    private function chooseLocked(string $uid, ?string $newName, ?int $calendarId, bool $confirmed, bool $moveEvents): CalendarChoice
     {
         if (($newName === null) === ($calendarId === null)) {
             throw new \InvalidArgumentException('Entweder ein Name oder ein Kalender ist anzugeben');

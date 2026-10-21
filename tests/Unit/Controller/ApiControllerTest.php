@@ -14,6 +14,7 @@ use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\StatusService;
 use OCA\WorkoutCalendar\Service\SyncRunner;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -25,6 +26,7 @@ use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\Jwt;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
+use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCA\WorkoutCalendar\Tests\Support\RecordingNotification;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -35,7 +37,6 @@ use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OCP\L10N\IFactory;
-use OCP\Lock\ILockingProvider;
 use OCP\Notification\IManager;
 use OCP\Notification\INotification;
 use PHPUnit\Framework\TestCase;
@@ -56,6 +57,7 @@ final class ApiControllerTest extends TestCase
     private MemoryCalendarObjects $objects;
     private FakeHttpClient $http;
     private MemoryLogger $logger;
+    private MemoryLockingProvider $locking;
     /** @var array<string, mixed> */
     private array $requestParams = [];
     private ?string $sessionUid = self::UID;
@@ -68,6 +70,7 @@ final class ApiControllerTest extends TestCase
         $this->secrets = new SecretStore($config, $this->fakeCrypto(), new MemoryLogger());
         $this->objects = new MemoryCalendarObjects();
         $this->http = new FakeHttpClient();
+        $this->locking = new MemoryLockingProvider();
     }
 
     public function testWithoutUserIsUnauthorized(): void
@@ -308,6 +311,39 @@ final class ApiControllerTest extends TestCase
         self::assertSame([], $this->http->requests);
     }
 
+    public function testRunningSyncMakesLifecycleBusy(): void
+    {
+        $this->done();
+        $before = $this->store;
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+        $controller = $this->controller();
+
+        foreach ([
+            $controller->logout('none'),
+            $controller->reset('none'),
+            $controller->calendar('Neu'),
+            $controller->history(365),
+            $controller->updateSettings(intervalMinutes: 60),
+        ] as $response) {
+            self::assertSame(409, $response->getStatus());
+            self::assertSame(['error' => 'busy'], $response->getData());
+        }
+
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->http->requests);
+    }
+
+    public function testSyncWhileRunningIsSkipped(): void
+    {
+        $this->done();
+        $this->locking->hold('workoutcalendar/sync/' . md5(self::UID));
+
+        $response = $this->controller()->sync();
+
+        self::assertSame(200, $response->getStatus());
+        self::assertSame('skipped', $response->getData()['outcome']);
+    }
+
     private function done(): void
     {
         $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
@@ -344,6 +380,7 @@ final class ApiControllerTest extends TestCase
         $jobs = $this->createStub(IJobList::class);
         $notifications = new FailureNotifications($this->notificationManager(), $time);
         $calendars = new CalendarService($this->objects);
+        $lock = new PersonLock($this->locking);
         $l = $this->createStub(IL10N::class);
         $l->method('t')->willReturnCallback(static fn (string $text): string => $text);
         $l10nFactory = $this->createStub(IFactory::class);
@@ -367,8 +404,8 @@ final class ApiControllerTest extends TestCase
             'workoutcalendar',
             $request,
             $session,
-            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time),
-            new CalendarSetupService($calendars, $this->users, $jobs, $time, $l),
+            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock),
+            new CalendarSetupService($calendars, $this->users, $jobs, $time, $l, $lock),
             $calendars,
             new SyncRunner(
                 $this->users,
@@ -376,7 +413,7 @@ final class ApiControllerTest extends TestCase
                 $this->objects,
                 $garmin,
                 $notifications,
-                $this->createStub(ILockingProvider::class),
+                $lock,
                 $l10nFactory,
                 $this->createStub(IUserManager::class),
                 $garminLogger,
@@ -385,6 +422,7 @@ final class ApiControllerTest extends TestCase
             $this->users,
             $time,
             $this->logger,
+            $lock,
         );
     }
 

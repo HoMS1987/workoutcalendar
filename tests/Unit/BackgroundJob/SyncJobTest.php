@@ -9,6 +9,7 @@ use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\SyncRunner;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\UserStore;
@@ -137,7 +138,7 @@ final class SyncJobTest extends TestCase
             new MemoryCalendarObjects(),
             new GarminClientFactory($provider, $secrets, $this->logger),
             new FailureNotifications($this->createStub(IManager::class), $this->createStub(ITimeFactory::class)),
-            $locking,
+            new PersonLock($locking),
             $this->createStub(IFactory::class),
             $this->createStub(IUserManager::class),
             $this->logger,
