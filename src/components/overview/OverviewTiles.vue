@@ -3,7 +3,12 @@
 		<div class="tiles__grid">
 			<div class="tiles__tile" data-test="tile-connection">
 				<span class="tiles__label">{{ t('workoutcalendar', 'Connection') }}</span>
-				<strong>{{ hasProblem ? t('workoutcalendar', 'Needs attention') : t('workoutcalendar', 'Connected') }}</strong>
+				<strong class="tiles__state"
+					:class="'tiles__state--' + connectionSeverity"
+					data-test="connection-state">
+					<span class="tiles__marker" aria-hidden="true" />
+					{{ connectionSeverity === 'success' ? t('workoutcalendar', 'Connected') : t('workoutcalendar', 'Needs attention') }}
+				</strong>
 				<span v-if="status.setup.maskedEmail" class="tiles__detail">{{ status.setup.maskedEmail }}</span>
 			</div>
 			<div class="tiles__tile" data-test="tile-events">
@@ -41,12 +46,14 @@
 
 <script setup lang="ts">
 import type { RunOutcome, Status } from '../../types.ts'
+import type { Severity } from '../../viewState.ts'
 
 import { n, t } from '@nextcloud/l10n'
 import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { ApiError, syncNow } from '../../api.ts'
 import { apiErrorText } from '../../messages.ts'
+import { hintSeverity } from '../../viewState.ts'
 import { formatMonthYear, formatRelative } from './relativeTime.ts'
 
 const props = defineProps<{ status: Status }>()
@@ -56,7 +63,16 @@ const emit = defineEmits<{ status: [status: Status] }>()
 const busy = ref(false)
 const result = ref('')
 
-const hasProblem = computed(() => props.status.failure !== null || props.status.paused !== null)
+// The marker takes the colour of the hint that explains the problem; the text says the same in words.
+const connectionSeverity = computed<Severity | 'success'>(() => {
+	if (props.status.paused !== null) {
+		return hintSeverity('paused')
+	}
+	if (props.status.failure !== null) {
+		return hintSeverity('failure')
+	}
+	return 'success'
+})
 
 const nextText = computed(() => {
 	if (props.status.paused !== null) {
@@ -132,6 +148,39 @@ async function syncNowClicked() {
 .tiles__detail,
 .tiles__result {
 	color: var(--color-text-maxcontrast);
+}
+
+.tiles__state {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.tiles__marker {
+	flex: none;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+}
+
+.tiles__state--success .tiles__marker {
+	background-color: var(--color-success);
+}
+
+.tiles__state--warning .tiles__marker {
+	background-color: var(--color-warning);
+}
+
+.tiles__state--error .tiles__marker {
+	background-color: var(--color-error);
+}
+
+.tiles__state--error {
+	color: var(--color-error-text, var(--color-error));
+}
+
+.tiles__state--warning {
+	color: var(--color-warning-text, var(--color-warning));
 }
 
 .tiles__action {
