@@ -4,13 +4,13 @@ import { describe, expect, it } from 'vitest'
 
 const root = join(import.meta.dirname, '..', '..')
 
-function sourceFiles(dir: string): string[] {
+function sourceFiles(dir: string, extensions = /\.(ts|vue)$/): string[] {
 	return readdirSync(dir).flatMap((entry) => {
 		const path = join(dir, entry)
 		if (statSync(path).isDirectory()) {
-			return sourceFiles(path)
+			return sourceFiles(path, extensions)
 		}
-		return /\.(ts|vue)$/.test(entry) ? [path] : []
+		return extensions.test(entry) ? [path] : []
 	})
 }
 
@@ -75,6 +75,59 @@ function germanJs(): Record<string, string | string[]> {
 	return JSON.parse(match![1])
 }
 
+/**
+ * Every string literal in the PHP code. PHP reads the same l10n/de.json, partly with texts from
+ * constants (sport names) that are passed to $l->t() later, so any literal counts as a possible key.
+ */
+function phpStrings(): Set<string> {
+	const found = new Set<string>()
+	const files = [...sourceFiles(join(root, 'lib'), /\.php$/), ...sourceFiles(join(root, 'templates'), /\.php$/)]
+	for (const file of files) {
+		for (const literal of phpLiterals(readFileSync(file, 'utf8'))) {
+			found.add(literal)
+		}
+	}
+	return found
+}
+
+/**
+ * The contents of the quoted strings in PHP code, skipping comments (an apostrophe in a comment
+ * would otherwise pair up with the next quote).
+ *
+ * @param code PHP source
+ */
+function phpLiterals(code: string): string[] {
+	const literals: string[] = []
+	let i = 0
+	while (i < code.length) {
+		const char = code[i]
+		if (code.startsWith('//', i) || char === '#') {
+			const end = code.indexOf('\n', i)
+			i = end === -1 ? code.length : end
+		} else if (code.startsWith('/*', i)) {
+			const end = code.indexOf('*/', i + 2)
+			i = end === -1 ? code.length : end + 2
+		} else if (char === '\'' || char === '"') {
+			let text = ''
+			i++
+			while (i < code.length && code[i] !== char) {
+				if (code[i] === '\\' && i + 1 < code.length) {
+					text += code[i + 1] === char || code[i + 1] === '\\' ? code[i + 1] : code[i] + code[i + 1]
+					i += 2
+				} else {
+					text += code[i]
+					i++
+				}
+			}
+			literals.push(text)
+			i++
+		} else {
+			i++
+		}
+	}
+	return literals
+}
+
 describe('German translation', () => {
 	it('finds the UI strings in the sources', () => {
 		expect(uiStrings().length).toBeGreaterThan(100)
@@ -113,6 +166,24 @@ describe('German translation', () => {
 				expect(placeholders(form), key(source)).toEqual(placeholders(sources[index]))
 			})
 		}
+	})
+
+	it('finds the PHP texts that share the translation file', () => {
+		expect(phpStrings()).toContain('Garmin activities')
+		expect(phpStrings()).toContain('Strength training')
+		expect(phpStrings()).toContain('Workout Calendar needs your attention')
+	})
+
+	it('reads PHP strings without being misled by comments or escapes', () => {
+		const code = "// it's a comment\n/* don't */ $a = 'It\\'s'; $b = \"say \\\"hi\\\"\"; $u = 'https://x.org/a'; # isn't\n$c = 'last';"
+		expect(phpLiterals(code)).toEqual(['It\'s', 'say "hi"', 'https://x.org/a', 'last'])
+	})
+
+	it('has no translation that no source uses any more', () => {
+		const used = new Set([...uiStrings().map(key), ...phpStrings()])
+		const orphans = Object.keys(germanJson()).filter((k) => !used.has(k))
+
+		expect(orphans).toEqual([])
 	})
 
 	it('has no empty translation', () => {
