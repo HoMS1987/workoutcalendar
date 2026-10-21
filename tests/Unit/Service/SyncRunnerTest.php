@@ -10,6 +10,7 @@ use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\RunOutcome;
 use OCA\WorkoutCalendar\Service\SyncRunner;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -385,7 +386,7 @@ final class SyncRunnerTest extends TestCase
             $this->objects,
             new GarminClientFactory($provider, $this->secrets, $this->logger),
             new FailureNotifications($this->notificationManager(), $this->createStub(ITimeFactory::class)),
-            $this->locking(),
+            new PersonLock($this->locking()),
             $this->l10nFactory(),
             $this->userManager(),
             $this->logger,
