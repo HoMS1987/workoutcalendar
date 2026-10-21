@@ -16,4 +16,6 @@ enum RunOutcome: string
     case NotConnected = 'notConnected';
     /** Der Zielkalender fehlt oder ist nicht mehr eigener Kalender der Person. */
     case CalendarMissing = 'calendarMissing';
+    /** Die Einrichtung ist noch nicht abgeschlossen, die Person hat den Zeitraum der Historie noch nicht gewählt. */
+    case NotReady = 'notReady';
 }

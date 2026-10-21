@@ -117,6 +117,10 @@ final class SyncRunner
         if ($setup->accountKey === null) {
             return RunOutcome::NotConnected;
         }
+        if ($setup->step !== SetupStep::Done) {
+            // WHY: Ein Lauf vor der Wahl der Historie würde den Zustand mit dem Standardzeitraum initialisieren.
+            return RunOutcome::NotReady;
+        }
         if ($setup->maintenance === 'remove') {
             // Das Entfernen liest die Termine der App in jeder Etappe neu ein und würde frisch importierte mitlöschen.
             $state->nextRunAt = $this->users->settings($uid)->nextRunAt($now->getTimestamp());

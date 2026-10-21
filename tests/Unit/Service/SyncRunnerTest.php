@@ -172,6 +172,19 @@ final class SyncRunnerTest extends TestCase
         self::assertSame([], $this->http->requests);
     }
 
+    public function testUnfinishedSetupIsNotReadyAndLeavesQueue(): void
+    {
+        $this->connect();
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::History, true, self::ACCOUNT, 'a***@b.de', $this->calendarId, true));
+        $this->queued($this->users->state(self::UID));
+
+        self::assertSame(RunOutcome::NotReady, $this->runner()->run(self::UID, $this->now));
+
+        self::assertSame([], $this->http->requests);
+        self::assertFalse($this->users->state(self::UID)->initialized);
+        self::assertNotContains(self::UID, $this->users->dueUsers($this->now->getTimestamp(), 10));
+    }
+
     public function testFailureSendsNotificationOnce(): void
     {
         $this->connect(withTokens: false);
