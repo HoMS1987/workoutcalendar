@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\CalDav;
 
+use OCA\WorkoutCalendar\AppInfo\Application;
 use OCA\WorkoutCalendar\Calendar\CalendarEvent;
 use OCA\WorkoutCalendar\Calendar\DeletedMarker;
 use OCA\WorkoutCalendar\Calendar\IcsLines;
@@ -147,7 +148,7 @@ final class DavCalendarTarget implements CalendarTarget
     private function skip(string $operation, string $activityId): void
     {
         $this->logger->debug('Calendar object of activity {activityId} belongs to someone else, {operation} skipped', [
-            'app' => 'workoutcalendar',
+            'app' => Application::APP_ID,
             'activityId' => $activityId,
             'operation' => $operation,
         ]);
