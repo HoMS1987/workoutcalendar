@@ -18,7 +18,7 @@ use OCP\Server;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
-/** Läuft innerhalb eines echten Nextcloud-Servers (siehe tests/Integration/bootstrap.php). */
+/** Runs inside a real Nextcloud server (see tests/Integration/bootstrap.php). */
 final class StorageRoundTripTest extends TestCase
 {
     private IUserConfig $config;

@@ -9,7 +9,7 @@ use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 
 interface LoginStrategy
 {
-    /** Kurzname für das Log, z. B. "mobile" */
+    /** Short name for the log, e.g. "mobile" */
     public function name(): string;
 
     /**

@@ -11,8 +11,8 @@ use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Protokolliert jede Garmin-Anfrage (ADR 0004). Query, Header und Bodies werden nie geloggt,
- * weil sie Tickets, Tokens oder Passwörter enthalten können.
+ * Logs every Garmin request (ADR 0004). Query, headers and bodies are never logged,
+ * because they can contain tickets, tokens or passwords.
  */
 final class LoggingHttpClient implements HttpClient
 {
@@ -36,7 +36,7 @@ final class LoggingHttpClient implements HttpClient
         try {
             $response = $this->inner->send($request);
         } catch (NetworkException $e) {
-            // WHY: debug statt warning, die gedrosselte Warnung schreibt der Sync-Ablauf (ADR 0004, F-43).
+            // WHY: debug instead of warning; the throttled warning is written by the sync flow (ADR 0004, F-43).
             $this->logger->debug('Garmin-Anfrage ohne Antwort', $context + [
                 'category' => FailureCategory::Network->value,
                 'error' => $this->redactor->redact($e->getMessage()),

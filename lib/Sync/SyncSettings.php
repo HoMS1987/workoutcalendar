@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Sync;
 
-/** Einstellungen einer Person mit Standardwerten und Grenzen aus docs/anforderungen.md. */
+/** A person's settings with defaults and limits from docs/anforderungen.md. */
 final class SyncSettings
 {
-    /** Garmin-Web-Oberfläche und python-garminconnect laden 20 Aktivitäten pro Seite. */
+    /** The Garmin web UI and python-garminconnect load 20 activities per page. */
     public const PAGE_SIZE = 20;
-    /** Seiten Historien-Import pro Lauf, damit ein großer Import den Nextcloud-Cron nicht blockiert (F-22). */
+    /** Pages of history import per run so a large import does not block the Nextcloud cron (F-22). */
     public const BACKFILL_PAGES_PER_RUN = 5;
 
-    /** Wartezeit bis zum nächsten Lauf, solange der Historien-Import noch nicht fertig ist. */
+    /** Wait until the next run while the history import is not finished yet. */
     public const BACKFILL_NEXT_RUN_SECONDS = 60;
 
     /**
-     * @param ?int $historyDays null = komplette Historie
+     * @param ?int $historyDays null = complete history
      */
     public function __construct(
         public readonly ?int $historyDays = 90,
@@ -51,7 +51,7 @@ final class SyncSettings
     }
 
     /**
-     * Die Schlüssel, die fromArray() liest.
+     * The keys that fromArray() reads.
      *
      * @return array{historyDays: ?int, intervalMinutes: int, jitterPercent: int, deletionMode: string, deletionCheckDays: int}
      */
@@ -67,9 +67,9 @@ final class SyncSettings
     }
 
     /**
-     * Zeitpunkt des nächsten Laufs: Intervall, zufällig um ±jitterPercent gestreut (F-16).
+     * Time of the next run: interval, randomly spread by ±jitterPercent (F-16).
      *
-     * @param (callable(int, int): int)|null $random Zufallszahl im Bereich [min, max], in Tests ersetzbar
+     * @param (callable(int, int): int)|null $random Random number in the range [min, max], replaceable in tests
      */
     public function nextRunAt(int $now, ?callable $random = null): int
     {

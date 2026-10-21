@@ -216,7 +216,7 @@ final class CalendarMaintenanceJobTest extends TestCase
         $this->execute($this->job($jobList), $argument);
     }
 
-    /** Wirft bei jedem Zugriff, wie ein fehlschlagender CalDAV-Aufruf. */
+    /** Throws on every access, like a failing CalDAV call. */
     private function failingObjects(string $message = 'CalDAV nicht erreichbar'): CalendarObjects
     {
         $objects = $this->createStub(CalendarObjects::class);
@@ -225,7 +225,7 @@ final class CalendarMaintenanceJobTest extends TestCase
         return $objects;
     }
 
-    /** 250 Termine der App, von denen nichts verschwindet: nach jedem Lauf bleiben 50 übrig. */
+    /** 250 app events of which none disappear: 50 remain after each run. */
     private function stuckObjects(): CalendarObjects
     {
         $objects = $this->createStub(CalendarObjects::class);
@@ -259,7 +259,7 @@ final class CalendarMaintenanceJobTest extends TestCase
         );
     }
 
-    /** `start()` braucht einen laufenden Server (Logger), deshalb geht der Test direkt auf das protected `run()`. */
+    /** `start()` needs a running server (logger), so the test goes straight to the protected `run()`. */
     private function execute(CalendarMaintenanceJob $job, mixed $argument): void
     {
         (new \ReflectionMethod($job, 'run'))->invoke($job, $argument);

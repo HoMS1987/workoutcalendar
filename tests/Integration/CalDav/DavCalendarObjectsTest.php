@@ -22,7 +22,7 @@ use OCP\Server;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
-/** Läuft innerhalb eines echten Nextcloud-Servers (siehe tests/Integration/bootstrap.php). */
+/** Runs inside a real Nextcloud server (see tests/Integration/bootstrap.php). */
 final class DavCalendarObjectsTest extends TestCase
 {
     private const ACCOUNT = '0123456789abcdef';
@@ -40,7 +40,7 @@ final class DavCalendarObjectsTest extends TestCase
 
     protected function tearDown(): void
     {
-        // Das Löschen der Person entfernt über die DAV-App auch ihre Kalender.
+        // Deleting the person also removes their calendars via the DAV app.
         foreach ($this->users as $user) {
             $user->delete();
         }
@@ -108,13 +108,13 @@ final class DavCalendarObjectsTest extends TestCase
 
         self::assertSame(['garmin-42.ics'], $this->objects->urisInRange($id, self::utc('2026-10-01'), self::utc('2026-10-20')));
 
-        // Zweimal löschen: Beim zweiten Mal liegt garmin-42-deleted.ics schon im Papierkorb.
+        // Delete twice: the second time garmin-42-deleted.ics is already in the trash.
         $this->objects->delete($id, 'garmin-42.ics');
         $this->objects->create($id, 'garmin-42.ics', $ics);
         $this->objects->delete($id, 'garmin-42.ics');
         self::assertSame(['garmin-43.ics'], $this->objects->uris($id));
 
-        // Ein mit Anna geteilter Kalender von Bert gehört nicht zu Annas Kalendern.
+        // A calendar of Bert's shared with Anna is not one of Anna's calendars.
         $shared = (int)$this->backend->createCalendar("principals/users/$bert", 'bert-sport', ['{DAV:}displayname' => 'Bert Sport']);
         $calendar = new Calendar(
             $this->backend,

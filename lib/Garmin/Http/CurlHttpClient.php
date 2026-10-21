@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Garmin\Http;
 
 /**
- * HTTP-Transport über curl. Ein Handle pro Instanz hält die Cookies im Speicher
- * (CURLOPT_COOKIEFILE = ''); pro Lauf wird eine neue Instanz erzeugt, damit Cookies
- * nie zwischen Personen geteilt werden.
+ * HTTP transport via curl. One handle per instance keeps the cookies in memory
+ * (CURLOPT_COOKIEFILE = ''); a new instance is created per run so that cookies
+ * are never shared between people.
  */
 final class CurlHttpClient implements HttpClient
 {
@@ -29,14 +29,14 @@ final class CurlHttpClient implements HttpClient
             $headerLines[] = $name . ': ' . $value;
         }
 
-        // curl_reset() würde die Cookie-Engine verwerfen. Deshalb werden alle
-        // anfragespezifischen Optionen bei jedem Aufruf explizit neu gesetzt.
+        // curl_reset() would discard the cookie engine. Therefore all
+        // request-specific options are set explicitly anew on every call.
         $method = strtoupper($request->method);
         curl_setopt($handle, CURLOPT_HTTPGET, true);
         curl_setopt($handle, CURLOPT_NOBODY, $method === 'HEAD');
-        // CUSTOMREQUEST gilt bei libcurl für jeden Redirect-Schritt; deshalb nur für Sonderfälle
-        // (PUT, DELETE ...). GET/POST/HEAD nutzen die eingebauten Optionen, damit ein 302
-        // nach POST wie im Browser als GET weiterläuft.
+        // With libcurl CUSTOMREQUEST applies to every redirect step; therefore only for special cases
+        // (PUT, DELETE ...). GET/POST/HEAD use the built-in options so that a 302
+        // after POST continues as GET, like in a browser.
         curl_setopt($handle, CURLOPT_CUSTOMREQUEST, in_array($method, ['GET', 'POST', 'HEAD'], true) ? null : $method);
         if ($method === 'POST') {
             curl_setopt($handle, CURLOPT_POST, true);
@@ -49,7 +49,7 @@ final class CurlHttpClient implements HttpClient
         curl_setopt($handle, CURLOPT_HEADERFUNCTION, static function (\CurlHandle $ch, string $line) use (&$headers): int {
             $length = strlen($line);
             if (str_starts_with($line, 'HTTP/')) {
-                // Neue Statuszeile (z. B. nach einem Redirect): nur die letzte Antwort zählt.
+                // New status line (e.g. after a redirect): only the last response counts.
                 $headers = [];
             } elseif (str_contains($line, ':')) {
                 [$name, $value] = explode(':', $line, 2);

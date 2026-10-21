@@ -22,7 +22,7 @@ final class MemoryLogger extends AbstractLogger
         return array_values(array_filter($this->records, static fn (array $r): bool => $r['level'] === $level));
     }
 
-    /** Alles, was geloggt wurde, als ein Text – für Prüfungen auf durchgesickerte Geheimnisse. */
+    /** Everything that was logged as one text - for assertions about leaked secrets. */
     public function dump(): string
     {
         return json_encode($this->records, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);

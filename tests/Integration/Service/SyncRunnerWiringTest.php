@@ -16,8 +16,8 @@ use OCP\Server;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Läuft innerhalb eines echten Nextcloud-Servers. Ohne Zugangsdaten endet der Lauf vor jeder
- * Anfrage an Garmin.
+ * Runs inside a real Nextcloud server. Without credentials the run ends before any
+ * request to Garmin.
  */
 final class SyncRunnerWiringTest extends TestCase
 {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Die Quelltexte selbst, Zahlen mit Punkt als Dezimal- und Komma als Tausendertrennzeichen. */
+/** The source texts themselves, numbers with a dot as decimal and a comma as thousands separator. */
 final class EnglishEventTexts implements EventTexts
 {
     public function translate(string $text, array $parameters = []): string

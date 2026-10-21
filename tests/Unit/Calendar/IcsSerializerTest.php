@@ -31,7 +31,7 @@ final class IcsSerializerTest extends TestCase
         return (new IcsSerializer())->serialize($event, new \DateTimeImmutable('2026-10-20 08:00:00', new \DateTimeZone('UTC')));
     }
 
-    /** @return list<string> Logische Zeilen nach RFC 5545 entfaltet */
+    /** @return list<string> Logical lines unfolded per RFC 5545 */
     private static function unfold(string $ics): array
     {
         return explode("\r\n", rtrim(str_replace("\r\n ", '', $ics), "\r\n"));

@@ -8,7 +8,7 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Notification\IManager as INotificationManager;
 use OCP\Notification\INotification;
 
-/** Legt die Sync-Fehler-Benachrichtigung einer Person an oder nimmt sie zurück. Pro Person gibt es höchstens eine. */
+/** Creates a person's sync failure notification or withdraws it. There is at most one per person. */
 final class FailureNotifications
 {
     public function __construct(
@@ -17,7 +17,7 @@ final class FailureNotifications
     ) {
     }
 
-    /** Zieht eine ältere Benachrichtigung zurück und legt eine neue mit der Kategorie an. */
+    /** Withdraws an older notification and creates a new one with the category. */
     public function send(string $uid, string $category): void
     {
         $this->manager->markProcessed($this->template($uid));

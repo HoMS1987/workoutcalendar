@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Erzeugt ein iCalendar-Objekt (RFC 5545) mit genau einem VEVENT. */
+/** Produces an iCalendar object (RFC 5545) with exactly one VEVENT. */
 final class IcsSerializer
 {
     private const PRODID = '-//HoMS1987//workoutcalendar//DE';

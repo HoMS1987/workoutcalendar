@@ -13,15 +13,15 @@ use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Ein Sync-Lauf für eine Person:
- * 1. Aktuelles Fenster (seit letztem Erfolg, mindestens der Prüfzeitraum für Löschungen) vollständig
- *    abrufen und Termine anlegen bzw. aktualisieren.
- * 2. Im Prüfzeitraum Termine behandeln, deren Aktivität es in Garmin nicht mehr gibt (F-13).
- * 3. Historien-Import in Etappen fortsetzen (F-20 bis F-22).
+ * A sync run for a person:
+ * 1. Fetch the current window (since the last success, at least the check period for deletions) completely
+ *    and create or update events.
+ * 2. Within the check period, handle events whose activity no longer exists in Garmin (F-13).
+ * 3. Continue the history import in stages (F-20 to F-22).
  */
 final class SyncService
 {
-    /** Schutz gegen eine Paginierung, die nie endet. */
+    /** Safeguard against pagination that never ends. */
     private const MAX_RECENT_PAGES = 50;
 
     private readonly FailureLog $failureLog;
@@ -68,9 +68,9 @@ final class SyncService
     }
 
     /**
-     * Ändert den Historien-Zeitraum nachträglich. Ein längerer Zeitraum setzt den Import fort,
-     * ein gleicher oder kürzerer ändert nichts und löscht keine Termine. `null` bedeutet die komplette Historie.
-     * Statisch, weil dafür kein Garmin-Zugriff nötig ist (Einstellungsseite nach der Einrichtung).
+     * Changes the history period afterwards. A longer period resumes the import;
+     * an equal or shorter one changes nothing and deletes no events. `null` means the complete history.
+     * Static because no Garmin access is needed for it (settings page after the setup).
      */
     public static function changeHistory(SyncState $state, ?int $historyDays, \DateTimeImmutable $now): void
     {
@@ -96,7 +96,7 @@ final class SyncService
     private function initialize(SyncState $state, SyncSettings $settings, \DateTimeImmutable $now, \DateTimeImmutable $checkFrom): void
     {
         $state->initialized = true;
-        // Der Historien-Import beginnt dort, wo das aktuelle Fenster endet.
+        // The history import starts where the current window ends.
         $state->backfillBefore = $checkFrom->format('Y-m-d');
         $state->backfillUntil = $settings->historyDays === null ? null : $now->modify("-{$settings->historyDays} days")->format('Y-m-d');
         $state->backfillDone = $state->backfillUntil !== null && $state->backfillUntil >= $state->backfillBefore;
@@ -108,7 +108,7 @@ final class SyncService
         if ($state->lastSuccessAt !== null && $state->lastSuccessAt < $from->getTimestamp()) {
             $from = $now->setTimestamp($state->lastSuccessAt);
         }
-        // WHY: Garmin filtert nach lokalem Datum, ein Tag Vorlauf deckt jede Zeitzone ab.
+        // WHY: Garmin filters by local date; one day of lead covers every time zone.
         $startDate = $from->modify('-1 day')->format('Y-m-d');
 
         $activities = [];
@@ -131,7 +131,7 @@ final class SyncService
 
     /**
      * @param array<string, StoredEvent> $stored
-     * @param array<string, true> $seen Activity-IDs, die Garmin im Fenster geliefert hat
+     * @param array<string, true> $seen Activity IDs that Garmin returned in the window
      */
     private function handleDeleted(DeletionMode $mode, array $stored, array $seen, SyncResult $result): void
     {
@@ -160,8 +160,8 @@ final class SyncService
                 $state->backfillDone = true;
                 break;
             }
-            // Die nächste Seite endet am ältesten Datum dieser Seite (inklusive). Liegt die ganze Seite
-            // auf einem Tag, geht es einen Tag zurück, damit der Import sicher vorankommt.
+            // The next page ends at the oldest date of this page (inclusive). If the whole page
+            // falls on one day, step back one day so the import is guaranteed to make progress.
             $oldest = min(array_map(self::localDate(...), $page));
             if ($oldest === null || $oldest >= (string)$state->backfillBefore) {
                 $oldest = (new \DateTimeImmutable((string)$state->backfillBefore))->modify('-1 day')->format('Y-m-d');
@@ -176,7 +176,7 @@ final class SyncService
 
     /**
      * @param list<array<string, mixed>> $activities
-     * @return array<string, true> Activity-IDs der abgebildeten Aktivitäten
+     * @return array<string, true> Activity IDs of the mapped activities
      */
     private function upsert(array $activities, SyncState $state, SyncResult $result): array
     {
@@ -217,7 +217,7 @@ final class SyncService
     {
         $result->failure = $e->category;
         if ($e->category === FailureCategory::InvalidCredentials || $e->category === FailureCategory::MfaRequired) {
-            // Kein weiterer Login-Versuch, bis neue Zugangsdaten vorliegen (SyncRunner prüft das).
+            // No further login attempt until new credentials are available (SyncRunner checks this).
             $state->pausedFor = $e->category->value;
         }
         $this->failureLog->recordFailure($state, $e, $now->getTimestamp());

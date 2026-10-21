@@ -7,11 +7,11 @@ namespace OCA\WorkoutCalendar\Service;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 
 /**
- * Liefert den HTTP-Client für Garmin. Integrationstests ersetzen die Implementierung, damit sie nie
- * mit Garmin sprechen.
+ * Provides the HTTP client for Garmin. Integration tests replace the implementation so they never
+ * talk to Garmin.
  */
 interface HttpClientProvider
 {
-    /** Jeder Aufruf liefert einen neuen Client, Cookies werden nie zwischen Personen geteilt. */
+    /** Every call returns a new client; cookies are never shared between people. */
     public function create(): HttpClient;
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Sync;
 
 /**
- * Sync-Zustand einer Person. Feste Größe, wird als JSON gespeichert.
- * Zeitpunkte sind Unix-Sekunden, Daten lokale Garmin-Daten im Format YYYY-MM-DD.
+ * A person's sync state. Fixed size, stored as JSON.
+ * Times are Unix seconds, dates are local Garmin dates in the format YYYY-MM-DD.
  */
 final class SyncState
 {
@@ -15,25 +15,25 @@ final class SyncState
     public ?int $lastSuccessAt = null;
     public ?int $nextRunAt = null;
 
-    /** Historien-Import: Aktivitäten bis einschließlich dieses Datums sind noch zu holen. */
+    /** History import: activities up to and including this date are still to be fetched. */
     public ?string $backfillBefore = null;
-    /** Ältestes zu importierendes Datum, null = komplette Historie. */
+    /** Oldest date to import, null = complete history. */
     public ?string $backfillUntil = null;
     public bool $backfillDone = false;
 
     public ?string $failureCategory = null;
     public ?string $failureStep = null;
-    /** Bereinigte Kurzbeschreibung für die Einstellungsseite */
+    /** Sanitized short description for the settings page */
     public ?string $failureMessage = null;
     public ?int $failureSince = null;
     public int $failureCount = 0;
     public ?int $failureReportedAt = null;
 
-    /** FailureCategory-Wert, der den Sync anhält, bis neue Zugangsdaten vorliegen (INVALID_CREDENTIALS, MFA_REQUIRED). */
+    /** FailureCategory value that pauses the sync until new credentials are available (INVALID_CREDENTIALS, MFA_REQUIRED). */
     public ?string $pausedFor = null;
-    /** Für diese Fehlerkategorie wurde bereits eine Benachrichtigung gesendet. */
+    /** A notification has already been sent for this failure category. */
     public ?string $notifiedCategory = null;
-    /** Ältestes lokales Startdatum aller bisher importierten Aktivitäten, wandert nie nach vorn. */
+    /** Oldest local start date of all activities imported so far; it never moves forward. */
     public ?string $oldestActivityDate = null;
 
     private const INT_FIELDS = ['lastRunAt', 'lastSuccessAt', 'nextRunAt', 'failureSince', 'failureReportedAt'];

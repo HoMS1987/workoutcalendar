@@ -108,7 +108,7 @@ final class DavCalendarTargetTest extends TestCase
     {
         $this->target('fedcba9876543210')->create(self::event('7', '2026-10-10 06:00:00'));
         $this->target()->create(self::event('8', '2026-10-10 07:00:00'));
-        // Termin der App ohne Konto-Kennung (ältere Fassung) zählt nicht als eigener
+        // App event without account key (older version) does not count as own
         $this->objects->put(
             $this->calendarId,
             'garmin-9.ics',
@@ -121,7 +121,7 @@ final class DavCalendarTargetTest extends TestCase
     public function testInRangeUsesStartOfEvent(): void
     {
         $target = $this->target();
-        // Beginnt vor dem Zeitraum, endet darin: Das Backend liefert ihn, der Beginn liegt aber außerhalb.
+        // Starts before the range and ends within it: the backend returns it, but the start is outside.
         $target->create(self::event('1', '2026-09-30 23:50:00'));
         $target->create(self::event('2', '2026-10-01 00:00:00'));
         $target->create(self::event('3', '2026-10-20 00:00:00'));
@@ -176,7 +176,7 @@ final class DavCalendarTargetTest extends TestCase
 
     public function testInRangeIgnoresForeignUidUnderAppUri(): void
     {
-        // Fremde UID, aber Konto-Kennung und URI der App
+        // Foreign UID, but the app's account key and URI
         $ics = str_replace(
             'UID:garmin-42',
             'UID:etwas-anderes',

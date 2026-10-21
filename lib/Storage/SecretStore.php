@@ -11,7 +11,7 @@ use OCP\Config\IUserConfig;
 use OCP\Security\ICrypto;
 use Psr\Log\LoggerInterface;
 
-/** Zugangsdaten und Tokens einer Person, als ICrypto-verschlüsselter JSON-String in IUserConfig (ADR 0003). */
+/** A person's credentials and tokens, as an ICrypto-encrypted JSON string in IUserConfig (ADR 0003). */
 final class SecretStore
 {
     private const CREDENTIALS = 'credentials';
@@ -71,7 +71,7 @@ final class SecretStore
         }
     }
 
-    /** @return ?array<string, mixed> null bei fehlendem, nicht entschlüsselbarem oder ungültigem Wert */
+    /** @return ?array<string, mixed> null for a missing, undecryptable or invalid value */
     private function read(string $uid, string $key): ?array
     {
         $raw = $this->config->getValueString($uid, Application::APP_ID, $key, '', true);
@@ -106,7 +106,7 @@ final class SecretStore
         );
     }
 
-    /** Warnung ohne Wert: nur Person und Schlüsselname. */
+    /** Warning without the value: only person and key name. */
     private function warn(string $uid, string $key): void
     {
         $this->logger->warning('Gespeicherte Zugangsdaten sind nicht lesbar und gelten als nicht vorhanden', ['uid' => $uid, 'key' => $key]);

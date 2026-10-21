@@ -10,8 +10,8 @@ use OCP\Server;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Läuft innerhalb eines echten Nextcloud-Servers. Die App "notifications" gehört nicht zum
- * Server-Checkout, gespeicherte Benachrichtigungen lassen sich deshalb nicht auslesen.
+ * Runs inside a real Nextcloud server. The "notifications" app is not part of the
+ * server checkout, so stored notifications cannot be read back.
  */
 final class FailureNotificationsTest extends TestCase
 {

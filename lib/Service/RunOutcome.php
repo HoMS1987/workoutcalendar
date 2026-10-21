@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Service;
 
-/** Ergebnis eines Sync-Laufs für eine Person. */
+/** Result of a sync run for a person. */
 enum RunOutcome: string
 {
-    /** Garmin wurde abgefragt, der Zustand ist gespeichert (auch bei Fehlern von Garmin). */
+    /** Garmin was queried and the state is saved (also on errors from Garmin). */
     case Done = 'done';
-    /** Ein anderer Lauf für die Person hält die Sperre. */
+    /** Another run for the person holds the lock. */
     case Skipped = 'skipped';
-    /** Angehalten nach abgelehntem Passwort oder Verifizierungscode, bis neue Zugangsdaten vorliegen. */
+    /** Paused after a rejected password or verification code until new credentials are available. */
     case Paused = 'paused';
     case NotConnected = 'notConnected';
-    /** Der Zielkalender fehlt oder ist nicht mehr eigener Kalender der Person. */
+    /** The target calendar is missing or is no longer the person's own calendar. */
     case CalendarMissing = 'calendarMissing';
-    /** Die Einrichtung ist noch nicht abgeschlossen, die Person hat den Zeitraum der Historie noch nicht gewählt. */
+    /** The setup is not finished yet; the person has not chosen the history period. */
     case NotReady = 'notReady';
 }

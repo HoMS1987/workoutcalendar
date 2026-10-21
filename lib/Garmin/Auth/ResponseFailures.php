@@ -10,7 +10,7 @@ use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
-/** Gemeinsame Fehlerbehandlung der Login-Strategien. */
+/** Shared error handling of the login strategies. */
 final class ResponseFailures
 {
     private readonly ResponseClassifier $classifier;
@@ -22,7 +22,7 @@ final class ResponseFailures
         $this->redactor = $redactor ?? new Redactor();
     }
 
-    /** @throws GarminException bei HTTP-Fehlerstatus */
+    /** @throws GarminException on an HTTP error status */
     public function assertOk(HttpResponse $response, string $step): void
     {
         $category = $this->classifier->classify($response);

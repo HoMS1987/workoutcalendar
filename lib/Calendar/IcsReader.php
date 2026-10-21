@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
-/** Liest die Garmin-Eigenschaften aus einem gespeicherten Termin. */
+/** Reads the Garmin properties from a stored event. */
 final class IcsReader
 {
     public function activityId(string $ics): ?string

@@ -18,7 +18,7 @@ use OCA\WorkoutCalendar\Sync\SyncState;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 
-/** Anmelden, Abmelden und Zurücksetzen einer Person. Jede Änderung läuft unter der Sperre der Person. */
+/** Signing in, signing out and resetting a person. Every change runs under the person's lock. */
 final class AccountService
 {
     public function __construct(
@@ -34,18 +34,18 @@ final class AccountService
     }
 
     /**
-     * Prüft die Zugangsdaten bei Garmin und speichert sie erst bei Erfolg.
+     * Checks the credentials with Garmin and saves them only on success.
      *
-     * @throws GarminException unverändert, dann bleibt alles Gespeicherte wie es war
-     * @throws PersonBusyException wenn gerade ein Sync läuft, dann gibt es keine Anfrage an Garmin und
-     *         alles Gespeicherte bleibt wie es war
+     * @throws GarminException unchanged, in which case everything stored stays as it was
+     * @throws PersonBusyException if a sync is running; then there is no request to Garmin and
+     *         everything stored stays as it was
      */
     public function login(string $uid, string $email, string $password): SetupState
     {
         $email = trim($email);
         $credentials = new Credentials($email, $password);
 
-        // WHY Garmin in der Sperre: sonst prüft ein zweiter Vorgang parallel und überholt beim Speichern.
+        // WHY Garmin inside the lock: otherwise a second operation checks in parallel and overtakes on save.
         return $this->lock->run($uid, function () use ($uid, $email, $credentials): SetupState {
             $tokens = $this->garmin->authenticator()->login($credentials);
 
@@ -65,7 +65,7 @@ final class AccountService
             : $this->users->state($uid);
         $state->pausedFor = null;
         $state->notifiedCategory = null;
-        // Nach erfolgreicher Anmeldung zeigt der Status keinen alten Fehler mehr.
+        // After a successful sign-in the status no longer shows an old error.
         $state->failureCategory = null;
         $state->failureStep = null;
         $state->failureMessage = null;
@@ -99,9 +99,9 @@ final class AccountService
     }
 
     /**
-     * @throws \InvalidArgumentException bei Cleanup::Calendar für einen Kalender, den die App nicht angelegt hat
-     *         und bei Cleanup::Events oder Cleanup::Calendar, solange ein Wartungsjob läuft
-     * @throws PersonBusyException wenn gerade ein Sync läuft
+     * @throws \InvalidArgumentException for Cleanup::Calendar on a calendar the app did not create
+     *         and for Cleanup::Events or Cleanup::Calendar while a maintenance job is running
+     * @throws PersonBusyException if a sync is running
      */
     public function logout(string $uid, Cleanup $cleanup): void
     {
@@ -115,7 +115,7 @@ final class AccountService
             throw new \InvalidArgumentException('Nur ein von der App angelegter Kalender kann gelöscht werden');
         }
         if ($cleanup !== Cleanup::None && $setup->maintenance !== null) {
-            // WHY: Ein zweiter Wartungsjob oder das Löschen des Kalenders würde den laufenden Umzug oder das Entfernen überholen.
+            // WHY: A second maintenance job or deleting the calendar would overtake the running move or removal.
             throw new \InvalidArgumentException('Verschieben oder Entfernen der Termine läuft noch');
         }
 
@@ -132,8 +132,8 @@ final class AccountService
             case Cleanup::Events:
                 if ($calendarId !== null) {
                     $maintenance = 'remove';
-                    // WHY vorher speichern: Der Job kann sofort starten. So steht die Markierung fest, bevor
-                    // es einen Job gibt, der sie beim Abschluss wieder löscht.
+                    // WHY save first: The job can start immediately. This way the marker is set before
+                    // there is a job that clears it on completion.
                     $this->users->saveSetup($uid, new SetupState(
                         $setup->step,
                         $setup->connected,
@@ -153,7 +153,7 @@ final class AccountService
                             'to' => null,
                         ]);
                     } catch (\Throwable $e) {
-                        // Ohne Job löschte niemand die Markierung, Sync und Bereinigung blieben gesperrt.
+                        // Without a job nobody would clear the marker, and sync and cleanup would stay locked.
                         $this->users->saveSetup($uid, $setup);
 
                         throw $e;
@@ -171,7 +171,7 @@ final class AccountService
                 break;
         }
 
-        // WHY erst jetzt: Scheitert die Bereinigung, bleibt die Person angemeldet und kann es erneut versuchen.
+        // WHY only now: If the cleanup fails, the person stays signed in and can try again.
         $this->secrets->clear($uid);
         $this->notifications->dismiss($uid);
 
@@ -189,7 +189,7 @@ final class AccountService
         $this->users->saveState($uid, $state);
     }
 
-    /** Wie {@see logout()}, danach beginnt die Einrichtung mit Schritt Garmin von vorn. */
+    /** Like {@see logout()}, afterwards the setup starts over at the Garmin step. */
     public function reset(string $uid, Cleanup $cleanup): void
     {
         $this->lock->run($uid, function () use ($uid, $cleanup): void {
@@ -198,8 +198,8 @@ final class AccountService
             $this->users->clear($uid);
             $this->secrets->clear($uid);
             if ($maintenance !== null) {
-                // Der Wartungsjob löscht die Markierung am Ende; bis dahin darf kein Sync neue Termine anlegen
-                // und keine Bereinigung den laufenden Job überholen.
+                // The maintenance job clears the marker at the end; until then no sync may create new events
+                // and no cleanup may overtake the running job.
                 $this->users->saveSetup($uid, new SetupState(maintenance: $maintenance));
             }
         });

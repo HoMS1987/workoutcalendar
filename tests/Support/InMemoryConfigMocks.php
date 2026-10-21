@@ -8,7 +8,7 @@ use OCP\Config\IUserConfig;
 use OCP\Config\ValueType;
 use OCP\Security\ICrypto;
 
-/** Mocks für IUserConfig und ICrypto, die Werte im Speicher halten. Nur in TestCase-Klassen verwendbar. */
+/** Mocks for IUserConfig and ICrypto that keep values in memory. Usable in TestCase classes only. */
 trait InMemoryConfigMocks
 {
     /**
@@ -62,7 +62,7 @@ trait InMemoryConfigMocks
         return $config;
     }
 
-    /** Reversible "Verschlüsselung" ohne Klartext im Ergebnis. */
+    /** Reversible "encryption" without plain text in the result. */
     private function fakeCrypto(): ICrypto
     {
         $crypto = $this->createMock(ICrypto::class);

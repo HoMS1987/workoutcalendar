@@ -15,8 +15,8 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Zielkalender einer Person über `CalendarObjects`. Termine liegen unter `garmin-<activityId>.ics`.
- * Liegt unter dieser URI ein fremdes Objekt (andere UID), gilt sie als belegt und wird nie angefasst.
+ * A person's target calendar via `CalendarObjects`. Events live under `garmin-<activityId>.ics`.
+ * If a foreign object (different UID) is under this URI, it counts as taken and is never touched.
  */
 final class DavCalendarTarget implements CalendarTarget
 {
@@ -53,12 +53,12 @@ final class DavCalendarTarget implements CalendarTarget
     }
 
     /**
-     * Nur Termine der App mit Konto-Kennung dieses Kontos. Das Backend liefert alle Termine, die den
-     * Zeitraum berühren, deshalb wird zusätzlich der Beginn geprüft.
+     * Only app events carrying this account's key. The backend returns all events that touch the
+     * time range, so the start is checked as well.
      */
     public function inRange(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
-        // WHY +1 Sekunde: Der Zeitbereich von calendarQuery schließt Termine aus, die genau bei `to` beginnen.
+        // WHY +1 second: calendarQuery's time range excludes events that start exactly at `to`.
         $uris = array_values(array_filter(
             $this->objects->urisInRange($this->calendarId, $from, $to->modify('+1 second')),
             static fn (string $uri): bool => AppObjects::activityId($uri) !== null,
@@ -128,7 +128,7 @@ final class DavCalendarTarget implements CalendarTarget
         return $this->objects->get($this->calendarId, [$uri])[$uri] ?? null;
     }
 
-    /** ICS des Objekts der App unter der URI, sonst null (fehlt oder fremdes Objekt, dann mit Debug-Log). */
+    /** ICS of the app's object under the URI, otherwise null (missing or foreign object, the latter with a debug log). */
     private function appObject(string $uri, string $operation, string $activityId): ?string
     {
         $ics = $this->current($uri);
@@ -163,7 +163,7 @@ final class DavCalendarTarget implements CalendarTarget
         return new StoredEvent($activityId, $this->reader->fingerprint($ics), $this->reader->isMarkedDeleted($ics));
     }
 
-    /** Beginn des Termins. Die App schreibt UTC, `TZID` und ganztägige Termine werden trotzdem gelesen. */
+    /** Start of the event. The app writes UTC; `TZID` and all-day events are still read. */
     private static function start(string $ics): ?\DateTimeImmutable
     {
         foreach (IcsLines::unfold($ics) as $line) {

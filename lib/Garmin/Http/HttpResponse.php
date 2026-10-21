@@ -6,7 +6,7 @@ namespace OCA\WorkoutCalendar\Garmin\Http;
 
 final class HttpResponse
 {
-    /** @var array<string, string> Header-Namen in Kleinbuchstaben */
+    /** @var array<string, string> Header names in lower case */
     public readonly array $headers;
 
     /** @param array<string, string> $headers */
@@ -24,7 +24,7 @@ final class HttpResponse
         return $this->headers[strtolower($name)] ?? null;
     }
 
-    /** @return array<mixed>|null null, wenn der Body kein JSON-Objekt bzw. -Array ist */
+    /** @return array<mixed>|null null if the body is not a JSON object or array */
     public function json(): ?array
     {
         $data = json_decode($this->body, true);

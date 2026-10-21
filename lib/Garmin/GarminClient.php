@@ -18,8 +18,8 @@ use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use Psr\Log\LoggerInterface;
 
 /**
- * Datenzugriff auf Garmin Connect mit Token-Verwaltung: gespeicherte Tokens nutzen, bei Ablauf
- * erneuern und nur dann neu anmelden, wenn der Refresh-Token nicht mehr akzeptiert wird.
+ * Data access to Garmin Connect with token management: use stored tokens, refresh them on
+ * expiry and sign in again only when the refresh token is no longer accepted.
  */
 final class GarminClient
 {
@@ -30,7 +30,7 @@ final class GarminClient
     private readonly ResponseClassifier $classifier;
     private readonly Redactor $redactor;
 
-    /** @param (callable(): int)|null $now Aktuelle Unix-Zeit, in Tests ersetzbar */
+    /** @param (callable(): int)|null $now Current Unix time, replaceable in tests */
     public function __construct(
         private readonly HttpClient $http,
         private readonly Authenticator $authenticator,
@@ -46,10 +46,10 @@ final class GarminClient
     }
 
     /**
-     * Aktivitäten, neueste zuerst (Garmin sortiert absteigend nach lokaler Startzeit).
+     * Activities, newest first (Garmin sorts descending by local start time).
      *
-     * @param ?string $startDate Lokales Datum YYYY-MM-DD, inklusive
-     * @param ?string $endDate Lokales Datum YYYY-MM-DD, inklusive
+     * @param ?string $startDate Local date YYYY-MM-DD, inclusive
+     * @param ?string $endDate Local date YYYY-MM-DD, inclusive
      * @return list<array<string, mixed>>
      * @throws GarminException
      */
@@ -100,7 +100,7 @@ final class GarminClient
         return $tokens;
     }
 
-    /** Refresh, bei abgelehntem Refresh-Token neuer Login. */
+    /** Refresh; a new login if the refresh token is rejected. */
     private function renew(GarminTokens $tokens): GarminTokens
     {
         try {

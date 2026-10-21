@@ -6,10 +6,10 @@ namespace OCA\WorkoutCalendar\Garmin\Diagnostics;
 
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 
-/** Ordnet HTTP-Antworten von Garmin einer Fehlerkategorie zu. */
+/** Assigns HTTP responses from Garmin to a failure category. */
 final class ResponseClassifier
 {
-    /** Titel der Cloudflare-Challenge-Seiten, Stand 2026. */
+    /** Titles of the Cloudflare challenge pages, as of 2026. */
     private const CHALLENGE_TITLES = ['Just a moment...', 'Attention Required! | Cloudflare'];
 
     public function classify(HttpResponse $response): ?FailureCategory
@@ -23,7 +23,7 @@ final class ResponseClassifier
         };
     }
 
-    /** @return array<string, string> Gefundene Cloudflare-Merkmale für das Log */
+    /** @return array<string, string> Cloudflare markers found, for the log */
     public function cloudflareMarkers(HttpResponse $response): array
     {
         $markers = [];

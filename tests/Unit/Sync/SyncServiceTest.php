@@ -36,7 +36,7 @@ final class SyncServiceTest extends TestCase
     private MemoryLogger $logger;
     private SyncState $state;
     private \DateTimeImmutable $now;
-    /** Wenn gesetzt: keine gespeicherten Tokens, der Login wirft diesen Fehler. */
+    /** If set: no stored tokens, the login throws this error. */
     private ?FailureCategory $loginFailure = null;
 
     protected function setUp(): void
@@ -106,7 +106,7 @@ final class SyncServiceTest extends TestCase
     }
 
     /**
-     * Eine volle Seite: $count Aktivitäten, eine pro Tag rückwärts ab $newestDate.
+     * A full page: $count activities, one per day going backwards from $newestDate.
      *
      * @return list<array<string, mixed>>
      */

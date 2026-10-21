@@ -25,8 +25,8 @@ use OCP\Notification\IManager;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Der `SyncRunner` ist final und läuft hier echt, mit Fakes dahinter. Personen ohne Zugangsdaten
- * enden vor jeder Anfrage mit `NotConnected` und verlassen dabei die Warteschlange.
+ * The `SyncRunner` is final and runs for real here, with fakes behind it. People without credentials
+ * end with `NotConnected` before any request and leave the queue in the process.
  */
 final class SyncJobTest extends TestCase
 {
@@ -145,7 +145,7 @@ final class SyncJobTest extends TestCase
         );
     }
 
-    /** `start()` braucht einen laufenden Server (Logger), deshalb geht der Test direkt auf das protected `run()`. */
+    /** `start()` needs a running server (logger), so the test goes straight to the protected `run()`. */
     private function execute(SyncJob $job, mixed $argument): void
     {
         (new \ReflectionMethod($job, 'run'))->invoke($job, $argument);

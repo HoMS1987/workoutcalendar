@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin\Auth;
 
-/** Ablage der Garmin-Tokens eines Nutzers. Die Nextcloud-Implementierung speichert verschlüsselt (ADR 0003). */
+/** Storage for a user's Garmin tokens. The Nextcloud implementation stores them encrypted (ADR 0003). */
 interface TokenStore
 {
     public function load(): ?GarminTokens;

@@ -27,7 +27,7 @@ final class CalendarServiceTest extends TestCase
             . "DTSTART:20261010T080000Z\r\nDTEND:20261010T090000Z\r\nSUMMARY:Termin\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
     }
 
-    /** Legt n Termine der App (garmin-1.ics …) und m fremde Termine an. */
+    /** Creates n app events (garmin-1.ics …) and m foreign events. */
     private function fill(int $calendarId, int $appEvents, int $foreignEvents, int $firstId = 1): void
     {
         for ($i = $firstId; $i < $firstId + $appEvents; $i++) {
@@ -163,7 +163,7 @@ final class CalendarServiceTest extends TestCase
     {
         $id = $this->objects->addCalendar('anna', 'sport', 'Sport');
         $this->fill($id, 3, 1);
-        // Eigene URI-Form, aber fremde UID: kein Objekt der App
+        // Own URI form but foreign UID: not an app object
         $this->objects->put($id, 'garmin-99.ics', self::ics('etwas-anderes'));
 
         self::assertSame(1, $this->service->removeAppEvents($id, 2));

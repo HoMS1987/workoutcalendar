@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Tests\Support;
 use OCA\WorkoutCalendar\Calendar\EnglishEventTexts;
 use OCA\WorkoutCalendar\Calendar\EventTexts;
 
-/** Deutsche Texte für die Tests, Tabelle Englisch zu Deutsch wie in l10n/de.json. */
+/** German texts for the tests, English to German table as in l10n/de.json. */
 final class GermanEventTexts implements EventTexts
 {
     private const TABLE = [

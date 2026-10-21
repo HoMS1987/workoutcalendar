@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Service;
 use OCA\WorkoutCalendar\Calendar\EventTexts;
 use OCP\IL10N;
 
-/** Termintexte in der Sprache der Person über die Übersetzungen der App. */
+/** Event texts in the person's language via the app's translations. */
 final class L10nEventTexts implements EventTexts
 {
     public function __construct(private readonly IL10N $l)

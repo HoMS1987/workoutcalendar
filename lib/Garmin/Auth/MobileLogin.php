@@ -9,7 +9,7 @@ use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
 
-/** Login wie die iOS-App von Garmin Connect (python-garminconnect: Strategie "mobile"). */
+/** Login like the Garmin Connect iOS app (python-garminconnect: strategy "mobile"). */
 final class MobileLogin implements LoginStrategy
 {
     public const SSO_CLIENT_ID = 'GCM_IOS_DARK';
@@ -53,8 +53,8 @@ final class MobileLogin implements LoginStrategy
             throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Antwort ohne responseStatus.type', $response);
         }
 
-        // ANNAHME: Die Status-Namen für falsches Passwort und MFA stammen aus python-garminconnect,
-        // sie sind nicht mit einem echten Fehlversuch geprüft.
+        // ASSUMPTION: The status names for a wrong password and MFA come from python-garminconnect;
+        // they have not been verified with a real failed attempt.
         $category = match (true) {
             $type === 'SUCCESSFUL' => null,
             str_contains($type, 'MFA') => FailureCategory::MfaRequired,

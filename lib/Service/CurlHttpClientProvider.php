@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Service;
 use OCA\WorkoutCalendar\Garmin\Http\CurlHttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 
-/** Standard-Implementierung mit cURL. */
+/** Default implementation using cURL. */
 final class CurlHttpClientProvider implements HttpClientProvider
 {
     public function create(): HttpClient

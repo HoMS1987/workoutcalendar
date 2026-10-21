@@ -28,8 +28,8 @@ use OCP\L10N\IFactory;
 use Psr\Log\LoggerInterface;
 
 /**
- * Ein Sync-Lauf für eine Person: Sperre gegen Doppelläufe, Vorbedingungen prüfen, `SyncService`
- * ausführen, Zustand speichern und die Fehler-Benachrichtigung senden oder zurückziehen.
+ * A sync run for a person: lock against double runs, check preconditions, run `SyncService`,
+ * save the state and send or withdraw the failure notification.
  */
 final class SyncRunner
 {
@@ -57,9 +57,9 @@ final class SyncRunner
     }
 
     /**
-     * Manueller Sync und Abschluss des Assistenten: stellt die Person in die Warteschlange und führt
-     * den Lauf in derselben Sperre aus, damit kein anderer Vorgang dazwischen den Zustand ändert.
-     * Ist die Sperre belegt, bleibt alles unverändert.
+     * Manual sync and wizard completion: puts the person in the queue and runs
+     * the run within the same lock so no other operation changes the state in between.
+     * If the lock is taken, everything stays unchanged.
      */
     public function runNow(string $uid, \DateTimeImmutable $now): RunOutcome
     {
@@ -93,7 +93,7 @@ final class SyncRunner
         }
     }
 
-    /** Stellt die Person sofort in die Warteschlange. */
+    /** Puts the person in the queue immediately. */
     private function arm(string $uid, \DateTimeImmutable $now): void
     {
         $state = $this->users->state($uid);
@@ -101,7 +101,7 @@ final class SyncRunner
         $this->users->saveState($uid, $state);
     }
 
-    /** Ohne möglichen Lauf ist die Person nicht fällig. Anmeldung, Kalenderwahl und manueller Sync planen neu. */
+    /** Without a possible run the person is not due. Sign-in, calendar choice and manual sync reschedule. */
     private function leaveQueue(string $uid): void
     {
         $state = $this->users->state($uid);
@@ -109,7 +109,7 @@ final class SyncRunner
         $this->users->saveState($uid, $state);
     }
 
-    /** Unerwarteter Fehler: nächster Versuch nach dem normalen Intervall, damit die Person die Warteschlange nicht blockiert. */
+    /** Unexpected error: next attempt after the normal interval so the person does not block the queue. */
     private function postpone(string $uid, \DateTimeImmutable $now): void
     {
         try {
@@ -136,11 +136,11 @@ final class SyncRunner
             return RunOutcome::NotConnected;
         }
         if ($setup->step !== SetupStep::Done) {
-            // WHY: Ein Lauf vor der Wahl der Historie würde den Zustand mit dem Standardzeitraum initialisieren.
+            // WHY: A run before the history choice would initialize the state with the default period.
             return RunOutcome::NotReady;
         }
         if ($setup->maintenance === 'remove') {
-            // Das Entfernen liest die Termine der App in jeder Etappe neu ein und würde frisch importierte mitlöschen.
+            // Removal re-reads the app's events in every stage and would also delete freshly imported ones.
             $state->nextRunAt = $this->users->settings($uid)->nextRunAt($now->getTimestamp());
             $this->users->saveState($uid, $state);
 

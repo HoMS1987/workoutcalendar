@@ -7,7 +7,7 @@ namespace OCA\WorkoutCalendar\Tests\Support;
 use OCP\Notification\IAction;
 use OCP\Notification\INotification;
 
-/** Einfache Test-Implementierung von INotification, die gesetzte Werte nur festhält. */
+/** Simple test implementation of INotification that merely records the values set. */
 final class RecordingNotification implements INotification
 {
     private string $app = '';

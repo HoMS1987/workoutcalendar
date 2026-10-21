@@ -9,8 +9,8 @@ use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Storage\UserStore;
 
 /**
- * Stand einer Person für die Einstellungsseite. Zeiten sind Unix-Sekunden. Enthält nur die maskierte
- * E-Mail-Adresse, nie die Adresse selbst, Passwort, Tokens oder den Kontoschlüssel.
+ * A person's state for the settings page. Times are Unix seconds. Contains only the masked
+ * email address, never the address itself, the password, tokens or the account key.
  */
 final class StatusService
 {
@@ -62,7 +62,7 @@ final class StatusService
         ];
     }
 
-    /** Nur eigene Kalender, ein gelöschter oder fremder Kalender zählt nicht. */
+    /** Own calendars only; a deleted or foreign calendar does not count. */
     private function ownCalendar(string $uid, int $calendarId): ?CalendarInfo
     {
         foreach ($this->calendars->ownCalendars($uid) as $calendar) {

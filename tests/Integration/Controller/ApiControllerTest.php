@@ -26,12 +26,12 @@ use OCP\Server;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Läuft innerhalb eines echten Nextcloud-Servers. Der HTTP-Client für Garmin ist im App-Container
- * durch einen Ersatz mit vorbereiteten Antworten ersetzt, Garmin wird nie kontaktiert.
+ * Runs inside a real Nextcloud server. The HTTP client for Garmin is replaced in the app container
+ * by a stand-in with prepared responses; Garmin is never contacted.
  */
 final class ApiControllerTest extends TestCase
 {
-    /** Dienste, die den HTTP-Client direkt oder indirekt halten und deshalb neu gebaut werden. */
+    /** Services that hold the HTTP client directly or indirectly and are therefore rebuilt. */
     private const DEPENDENT = [
         AccountService::class,
         SyncRunner::class,
@@ -67,7 +67,7 @@ final class ApiControllerTest extends TestCase
             }
         };
 
-        // Die App-Dienste entstehen im App-Container, eine Registrierung am Server-Container erreicht sie nicht.
+        // The app services are created in the app container; a registration on the server container does not reach them.
         $container = $this->appContainer();
         $container->registerService(HttpClientProvider::class, static fn (): HttpClientProvider => $provider);
         $this->rebuildDependents($container);
@@ -84,7 +84,7 @@ final class ApiControllerTest extends TestCase
         $container = $this->appContainer();
         $container->registerAlias(HttpClientProvider::class, CurlHttpClientProvider::class);
         $this->rebuildDependents($container);
-        // Das Löschen der Person entfernt auch ihre Kalender und Einstellungen.
+        // Deleting the person also removes their calendars and settings.
         foreach ($this->users as $user) {
             $user->delete();
         }
@@ -184,7 +184,7 @@ final class ApiControllerTest extends TestCase
 
         self::assertSame(400, $controller->history(45)->getStatus());
         self::assertSame(400, $controller->history('90')->getStatus());
-        // Im Schritt Garmin gibt es noch keine Historie zu wählen.
+        // There is no history to choose in the Garmin step yet.
         self::assertSame(400, $controller->history(90)->getStatus());
         self::assertSame(400, $controller->logout('alles')->getStatus());
         self::assertSame(400, $controller->reset('alles')->getStatus());
@@ -242,7 +242,7 @@ final class ApiControllerTest extends TestCase
         return \OC::$server->getRegisteredAppContainer(Application::APP_ID);
     }
 
-    /** Zwischengespeicherte Instanzen würden noch den vorherigen HTTP-Client halten. */
+    /** Cached instances would still hold the previous HTTP client. */
     private function rebuildDependents(DIContainer $container): void
     {
         $container->registerService(

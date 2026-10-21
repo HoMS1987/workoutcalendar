@@ -11,7 +11,7 @@ use OCP\BackgroundJob\IJob;
 use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
-/** Alle 5 Minuten: arbeitet die fälligen Personen ab, höchstens `MAX_USERS_PER_RUN` pro Aufruf. */
+/** Every 5 minutes: processes the people who are due, at most `MAX_USERS_PER_RUN` per call. */
 final class SyncJob extends TimedJob
 {
     public const MAX_USERS_PER_RUN = 10;
@@ -34,7 +34,7 @@ final class SyncJob extends TimedJob
             try {
                 $this->runner->run($uid, $now);
             } catch (\Throwable $e) {
-                // Nur uid sowie Klasse und Meldung der Exception: Garmin-Meldungen sind in den unteren Schichten bereits bereinigt.
+                // Only the uid plus the exception's class and message: Garmin messages are already sanitized in the lower layers.
                 $this->logger->error('Sync-Lauf fehlgeschlagen', [
                     'uid' => $uid,
                     'exception' => $e::class,

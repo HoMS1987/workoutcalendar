@@ -9,8 +9,8 @@ use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
 use Sabre\DAV\Exception\Forbidden;
 
 /**
- * `CalendarObjects` über das interne `CalDavBackend` der DAV-App (ADR 0005). Einzige Klasse der App,
- * die `OCA\DAV` und Sabre verwendet. Abgesichert durch den Integrationstest gegen Nextcloud 33 bis 35.
+ * `CalendarObjects` via the DAV app's internal `CalDavBackend` (ADR 0005). The only class of the app
+ * that uses `OCA\DAV` and Sabre. Covered by the integration test against Nextcloud 33 to 35.
  */
 final class DavCalendarObjects implements CalendarObjects
 {
@@ -19,7 +19,7 @@ final class DavCalendarObjects implements CalendarObjects
     private const DELETED_AT = '{http://nextcloud.com/ns}deleted-at';
     private const DISPLAY_NAME = '{DAV:}displayname';
     private const COLOR = '{http://apple.com/ns/ical/}calendar-color';
-    /** Der Geburtstagskalender wird von der DAV-App erzeugt und neu geschrieben. */
+    /** The birthday calendar is generated and rewritten by the DAV app. */
     private const BIRTHDAY_URI = 'contact_birthdays';
 
     public function __construct(
@@ -121,20 +121,20 @@ final class DavCalendarObjects implements CalendarObjects
         try {
             $this->backend->deleteCalendarObject($calendarId, $uri);
         } catch (Forbidden) {
-            // WHY: Der Papierkorb benennt das Objekt in `<name>-deleted.ics` um. Liegt dort schon eine
-            // ältere Fassung desselben Termins, lehnt das Backend ab. Dann wird endgültig gelöscht.
+            // WHY: The trash renames the object to `<name>-deleted.ics`. If an
+            // older version of the same event is already there, the backend refuses. Then it is deleted permanently.
             $this->backend->deleteCalendarObject($calendarId, $uri, CalDavBackend::CALENDAR_TYPE_CALENDAR, true);
         }
     }
 
-    /** @return list<array<string, mixed>> Kalender der Person ohne die mit ihr geteilten */
+    /** @return list<array<string, mixed>> Calendars of the person without those shared with them */
     private function owned(string $uid): array
     {
         $principal = self::principal($uid);
 
         return array_values(array_filter(
             $this->backend->getCalendarsForUser($principal),
-            // Geteilte Kalender tragen die Person in `principaluri`, den Eigentümer aber in `owner-principal`.
+            // Shared calendars carry the person in `principaluri`, but the owner in `owner-principal`.
             static fn (array $row): bool => ($row[self::OWNER] ?? $row['principaluri'] ?? null) === $principal,
         ));
     }

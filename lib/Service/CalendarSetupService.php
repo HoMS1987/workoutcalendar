@@ -15,7 +15,7 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
 
-/** Kalender wählen (Assistent) und wechseln (nach der Einrichtung). */
+/** Choosing a calendar (wizard) and switching it (after the setup). */
 final class CalendarSetupService
 {
     public function __construct(
@@ -28,18 +28,18 @@ final class CalendarSetupService
     ) {
     }
 
-    /** Vorschlag für den Namen eines neuen Kalenders. */
+    /** Suggested name for a new calendar. */
     public function defaultName(): string
     {
         return $this->l->t('Garmin activities');
     }
 
     /**
-     * Legt einen Kalender an oder wählt einen vorhandenen. Ein vorhandener Kalender wird erst nach
-     * Bestätigung übernommen, bis dahin bleibt alles unverändert.
+     * Creates a calendar or picks an existing one. An existing calendar is adopted only after
+     * confirmation; until then everything stays unchanged.
      *
-     * @throws \InvalidArgumentException bei ungültiger Angabe, fremdem Kalender oder fehlender Anmeldung
-     * @throws PersonBusyException wenn gerade ein Sync läuft
+     * @throws \InvalidArgumentException for an invalid input, a foreign calendar or a missing sign-in
+     * @throws PersonBusyException if a sync is running
      */
     public function choose(string $uid, ?string $newName, ?int $calendarId, bool $confirmed, bool $moveEvents): CalendarChoice
     {
@@ -133,7 +133,7 @@ final class CalendarSetupService
             $calendar->id,
             $createdByApp,
             $maintenance,
-            // Ein neu gewählter Kalender beendet die Hinweise auf aufgegebene Wartung und fehlenden Kalender.
+            // A newly chosen calendar ends the hints about abandoned maintenance and a missing calendar.
             null,
             false,
         ));

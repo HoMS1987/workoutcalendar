@@ -7,13 +7,13 @@ namespace OCA\WorkoutCalendar\Tests\Support;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 
-/** Exklusive Sperren im Speicher, nicht wiedereintrittsfähig wie die Sperren von Nextcloud. */
+/** Exclusive locks in memory, not reentrant like Nextcloud's locks. */
 final class MemoryLockingProvider implements ILockingProvider
 {
     /** @var array<string, true> */
     private array $locks = [];
 
-    /** Simuliert einen anderen Lauf, der die Sperre hält. */
+    /** Simulates another run that holds the lock. */
     public function hold(string $path): void
     {
         $this->locks[$path] = true;

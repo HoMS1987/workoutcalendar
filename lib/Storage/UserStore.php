@@ -11,8 +11,8 @@ use OCP\Config\IUserConfig;
 use OCP\Config\ValueType;
 
 /**
- * Einstellungen, Sync-Zustand und Einrichtungsstand einer Person in IUserConfig.
- * Typen je Schlüssel sind fest: settings, state und setup sind JSON-Strings, next_run_at ist ein int.
+ * A person's settings, sync state and setup progress in IUserConfig.
+ * Types per key are fixed: settings, state and setup are JSON strings, next_run_at is an int.
  */
 final class UserStore
 {
@@ -41,7 +41,7 @@ final class UserStore
         return SyncState::fromArray($this->readJson($uid, self::STATE));
     }
 
-    /** Schreibt auch next_run_at, damit dueUsers() ohne das Laden aller Zustände auskommt. */
+    /** Also writes next_run_at so dueUsers() does not have to load all states. */
     public function saveState(string $uid, SyncState $state): void
     {
         $this->writeJson($uid, self::STATE, $state->toArray());
@@ -63,7 +63,7 @@ final class UserStore
     }
 
     /**
-     * Personen, deren nächster Lauf fällig ist, die am längsten wartende zuerst.
+     * People whose next run is due, the longest-waiting first.
      *
      * @return list<string>
      */
@@ -81,7 +81,7 @@ final class UserStore
         return array_slice(array_map('strval', array_keys($due)), 0, max(0, $limit));
     }
 
-    /** Entfernt alle Schlüssel dieses Speichers für die Person. */
+    /** Removes all keys of this store for the person. */
     public function clear(string $uid): void
     {
         foreach (self::KEYS as $key) {

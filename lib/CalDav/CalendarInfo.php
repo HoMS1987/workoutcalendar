@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\CalDav;
 
-/** Ein eigener Kalender einer Person. */
+/** A calendar owned by a person. */
 final class CalendarInfo
 {
     public function __construct(

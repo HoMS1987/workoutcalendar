@@ -10,7 +10,7 @@ use OCP\Notification\INotification;
 use OCP\Notification\INotifier;
 use OCP\Notification\UnknownNotificationException;
 
-/** Setzt Titel, Text und Link der Sync-Fehler-Benachrichtigung in der Sprache der Person. */
+/** Sets title, text and link of the sync failure notification in the person's language. */
 final class Notifier implements INotifier
 {
     public const APP_ID = 'workoutcalendar';
