@@ -49,8 +49,9 @@
 				{{ t('workoutcalendar', 'Start import') }}
 			</NcButton>
 			<NcButton
+				v-if="started"
 				data-test="next"
-				:variant="started ? 'primary' : 'tertiary'"
+				variant="primary"
 				@click="emit('next')">
 				{{ t('workoutcalendar', 'Next') }}
 			</NcButton>
@@ -100,7 +101,7 @@ const progressText = computed(() => {
 	if (backfill.reachedDate === null) {
 		return count
 	}
-	const date = new Intl.DateTimeFormat(getCanonicalLocale(), { year: 'numeric', month: 'long' }).format(new Date(backfill.reachedDate))
+	const date = new Intl.DateTimeFormat(getCanonicalLocale(), { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(backfill.reachedDate))
 	return t('workoutcalendar', '{count}, back to {date}', { count, date }, { escape: false })
 })
 

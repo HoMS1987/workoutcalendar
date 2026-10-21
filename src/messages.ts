@@ -9,6 +9,13 @@ const APP = 'workoutcalendar'
 // Vue escapes interpolated text itself, so t()/n() must not escape user values a second time.
 const RAW = { escape: false }
 
+// Failure categories the login route reports for Garmin itself.
+const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
+
+export function isLoginFailure(code: string): boolean {
+	return LOGIN_FAILURES.includes(code)
+}
+
 // Text for a failed Garmin sign-in, by failure category.
 export function loginError(code: string): string {
 	switch (code) {

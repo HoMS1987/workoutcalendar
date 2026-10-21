@@ -3,6 +3,10 @@
 		<h3>{{ t('workoutcalendar', 'Sign in to Garmin') }}</h3>
 		<p>{{ t('workoutcalendar', 'Enter the email address and password of your Garmin account. The password is stored encrypted and only used to sign in.') }}</p>
 
+		<p v-if="maskedEmail" class="step__last">
+			{{ t('workoutcalendar', 'Last connected as {email}.', { email: maskedEmail }, { escape: false }) }}
+		</p>
+
 		<NcTextField
 			v-model="email"
 			type="email"
@@ -42,12 +46,14 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcPasswordField from '@nextcloud/vue/components/NcPasswordField'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { ApiError, login } from '../../api.ts'
-import { apiErrorText, loginError } from '../../messages.ts'
+import { apiErrorText, isLoginFailure, loginError } from '../../messages.ts'
+
+defineProps<{
+	/** Masked address of the account that was connected before, if any. */
+	maskedEmail?: string | null
+}>()
 
 const emit = defineEmits<{ status: [status: Status] }>()
-
-// Failure categories the login route reports for Garmin itself; everything else is a plain API error.
-const GARMIN_CODES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
 
 const email = ref('')
 const password = ref('')
@@ -65,7 +71,7 @@ async function submit() {
 		emit('status', await login(email.value, password.value))
 	} catch (e) {
 		const apiError = e instanceof ApiError ? e : new ApiError(0, 'internal')
-		error.value = GARMIN_CODES.includes(apiError.code) ? loginError(apiError.code) : apiErrorText(apiError)
+		error.value = isLoginFailure(apiError.code) ? loginError(apiError.code) : apiErrorText(apiError)
 	} finally {
 		busy.value = false
 	}
