@@ -15,6 +15,7 @@ use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -81,10 +82,14 @@ final class GarminClient
 
     private function get(string $step, string $url, GarminTokens $tokens): HttpResponse
     {
-        return $this->http->send(new HttpRequest($step, 'GET', $url, GarminConstants::NATIVE_HEADERS + [
-            'Authorization' => 'Bearer ' . $tokens->accessToken,
-            'Accept' => 'application/json',
-        ]));
+        try {
+            return $this->http->send(new HttpRequest($step, 'GET', $url, GarminConstants::NATIVE_HEADERS + [
+                'Authorization' => 'Bearer ' . $tokens->accessToken,
+                'Accept' => 'application/json',
+            ]));
+        } catch (NetworkException $e) {
+            throw $this->networkFailure($step, $e);
+        }
     }
 
     private function validTokens(): GarminTokens
@@ -105,6 +110,8 @@ final class GarminClient
     {
         try {
             $renewed = $this->diTokens->refresh($tokens);
+        } catch (NetworkException $e) {
+            throw $this->networkFailure('refresh', $e);
         } catch (GarminException $e) {
             if ($e->category !== FailureCategory::TokenRejected) {
                 throw $e;
@@ -124,6 +131,12 @@ final class GarminClient
         $this->store->save($tokens);
 
         return $tokens;
+    }
+
+    /** Keeps the step of the request without a response, so a failed refresh is not reported as the activity request. */
+    private function networkFailure(string $step, NetworkException $e): GarminException
+    {
+        return new GarminException(FailureCategory::Network, $step, $this->redactor->redact($e->getMessage()), previous: $e);
     }
 
     private function failure(FailureCategory $category, string $step, string $message, HttpResponse $response): GarminException

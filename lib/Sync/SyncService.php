@@ -9,7 +9,6 @@ use OCA\WorkoutCalendar\Calendar\CalendarEvent;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
 use OCA\WorkoutCalendar\Garmin\GarminException;
-use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -57,8 +56,6 @@ final class SyncService
             $this->failureLog->recordSuccess($state, $now->getTimestamp());
         } catch (GarminException $e) {
             $this->fail($state, $result, $e, $now);
-        } catch (NetworkException $e) {
-            $this->fail($state, $result, new GarminException(FailureCategory::Network, 'api.activities', $e->getMessage(), previous: $e), $now);
         }
 
         $level = $result->hasChanges() ? 'info' : 'debug';

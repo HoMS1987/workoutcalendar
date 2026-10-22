@@ -13,6 +13,7 @@ use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
 use OCA\WorkoutCalendar\Tests\Support\Jwt;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
@@ -189,6 +190,29 @@ final class GarminClientTest extends TestCase
         $this->http->queue(FakeHttpClient::json(200, ['activities' => []]));
 
         self::assertSame(FailureCategory::ProtocolChanged, $this->failure()->category);
+    }
+
+    public function testNetworkErrorOfRequestIsNetworkFailureOfThatStep(): void
+    {
+        $this->store->tokens = self::validTokens();
+        $this->http->queue(new NetworkException('Could not resolve host: connectapi.garmin.com'));
+
+        $e = $this->failure();
+
+        self::assertSame(FailureCategory::Network, $e->category);
+        self::assertSame('api.activities', $e->step);
+    }
+
+    public function testNetworkErrorDuringRefreshNamesRefreshStep(): void
+    {
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW - 10]), 'r-old', 'C');
+        $this->http->queue(new NetworkException('Could not resolve host: diauth.garmin.com'));
+
+        $e = $this->failure();
+
+        self::assertSame(FailureCategory::Network, $e->category);
+        self::assertSame('refresh', $e->step);
+        self::assertSame(['refresh'], $this->http->steps());
     }
 
     private function failure(): GarminException
