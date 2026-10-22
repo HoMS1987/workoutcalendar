@@ -34,11 +34,12 @@ use Psr\Log\LoggerInterface;
 
 /**
  * JSON API of the settings page. Every route works only with the signed-in person's data.
- * Errors: Garmin → 422 with failure category, invalid request → 400, running sync → 409 `busy`,
- * anything else → 500.
+ * Errors: no signed-in person → 401 `notLoggedIn`, Garmin → 422 with failure category, invalid
+ * request → 400, running sync → 409 `busy`, anything else → 500.
  */
 final class ApiController extends Controller
 {
+    /** Same choices as the wizard and the settings page (StepHistory.vue), besides null for the complete history. */
     private const HISTORY_DAYS = [30, 90, 365];
 
     public function __construct(
@@ -66,6 +67,7 @@ final class ApiController extends Controller
     }
 
     #[NoAdminRequired]
+    // Every attempt reaches Garmin, and repeated failed sign-ins could lock the Garmin account.
     #[UserRateLimit(limit: 10, period: 3600)]
     #[FrontpageRoute(verb: 'POST', url: '/api/login')]
     public function login(string $email = '', string $password = ''): JSONResponse

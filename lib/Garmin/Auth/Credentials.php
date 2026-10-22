@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin\Auth;
 
+/** Garmin sign-in data of a person. The password never reaches the log (see Redactor). */
 final class Credentials
 {
     public function __construct(

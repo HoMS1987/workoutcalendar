@@ -118,6 +118,7 @@ final class ActivityEventMapper
         );
     }
 
+    /** Garmin sends startTimeGMT as "Y-m-d H:i:s" in UTC, without an offset. */
     private function parseStart(mixed $value, string $id): \DateTimeImmutable
     {
         $start = is_string($value)

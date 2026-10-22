@@ -12,6 +12,7 @@ final class ResponseClassifier
     /** Titles of the Cloudflare challenge pages, as of 2026. */
     private const CHALLENGE_TITLES = ['Just a moment...', 'Attention Required! | Cloudflare'];
 
+    /** null for a usable response (below 400); 401 token, 403 and 429 blocked, 5xx server, any other 4xx protocol changed. */
     public function classify(HttpResponse $response): ?FailureCategory
     {
         return match (true) {

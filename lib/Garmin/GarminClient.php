@@ -63,6 +63,7 @@ final class GarminClient
 
         $tokens = $this->validTokens();
         $response = $this->get($step, $url, $tokens);
+        // One retry with a renewed token, as in python-garminconnect; a second 401 is reported as TokenRejected.
         if ($response->status === 401) {
             $this->logger->info('Garmin rejected the access token, renewing it', ['step' => $step]);
             $response = $this->get($step, $url, $this->renew($tokens));

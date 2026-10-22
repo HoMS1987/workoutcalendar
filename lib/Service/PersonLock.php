@@ -10,8 +10,9 @@ use OCP\Lock\LockedException;
 /**
  * Exclusive lock per person for sync runs and all changes to sign-in, calendar and
  * settings. A sync run keeps state in memory and saves it at the end, so a change
- * in between would otherwise be lost. Not reentrant: whoever holds the lock must not
- * call `run()` for the same person again.
+ * in between would otherwise be lost (ADR 0006). Not reentrant: whoever holds the lock must not
+ * call `run()` for the same person again. A lock left behind by a killed process expires with the
+ * locking provider's TTL (`filelocking.ttl`, one hour by default).
  */
 final class PersonLock
 {

@@ -48,6 +48,7 @@ final class SyncService
 
         try {
             $this->syncRecent($settings, $state, $now, $checkFrom, $result);
+            // Set before the history import, so a failing import stage does not fetch this window again next time.
             $state->lastSuccessAt = $now->getTimestamp();
             $this->continueBackfill($state, $result);
             if (!$state->backfillDone) {
@@ -149,6 +150,8 @@ final class SyncService
 
     private function continueBackfill(SyncState $state, SyncResult $result): void
     {
+        // Pages by date instead of by offset: Garmin sorts newest first, so activities added between
+        // runs would shift offset-based pages.
         while (!$state->backfillDone && $result->backfillPages < SyncSettings::BACKFILL_PAGES_PER_RUN) {
             $page = $this->garmin->activities(0, SyncSettings::PAGE_SIZE, $state->backfillUntil, $state->backfillBefore);
             $result->backfillPages++;
@@ -160,6 +163,7 @@ final class SyncService
             }
             // The next page ends at the oldest date of this page (inclusive). If the whole page
             // falls on one day, step back one day so the import is guaranteed to make progress.
+            // Activities beyond PAGE_SIZE on that single day are then skipped (known limitation).
             $oldest = min(array_map(self::localDate(...), $page));
             if ($oldest === null || $oldest >= (string)$state->backfillBefore) {
                 $oldest = (new \DateTimeImmutable((string)$state->backfillBefore))->modify('-1 day')->format('Y-m-d');
@@ -194,6 +198,7 @@ final class SyncService
             }
         }
 
+        // PHP turns numeric string keys into int, hence the casts back to string.
         $stored = $this->calendar->find(array_map('strval', array_keys($events)));
         foreach ($events as $activityId => $event) {
             $existing = $stored[(string)$activityId] ?? null;
@@ -201,6 +206,7 @@ final class SyncService
                 $this->calendar->create($event);
                 $result->created++;
             } elseif ($existing->markedDeleted || $existing->fingerprint !== $event->fingerprint()) {
+                // A marked event whose activity is back in Garmin is rewritten, which drops the marker.
                 $this->calendar->update($event);
                 $result->updated++;
             } else {

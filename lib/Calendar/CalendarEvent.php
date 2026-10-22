@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Calendar;
 
+/** Calendar event for one Garmin activity, times in UTC. */
 final class CalendarEvent
 {
     /** @param list<string> $categories */

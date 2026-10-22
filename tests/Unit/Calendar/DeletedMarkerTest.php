@@ -116,7 +116,7 @@ final class DeletedMarkerTest extends TestCase
 
         foreach (explode("\r\n", rtrim($ics, "\r\n")) as $line) {
             self::assertLessThanOrEqual(75, strlen($line), "Line too long: $line");
-            self::assertTrue(mb_check_encoding($line, 'UTF-8'), "Mehrbytezeichen zerschnitten: $line");
+            self::assertTrue(mb_check_encoding($line, 'UTF-8'), "Multibyte character split: $line");
         }
         self::assertContains('SUMMARY:' . str_replace(',', '\\,', $summary) . ' (in Garmin gelöscht)', self::unfold($ics));
     }

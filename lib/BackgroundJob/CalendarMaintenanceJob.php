@@ -31,8 +31,9 @@ use Psr\Log\LoggerInterface;
  */
 final class CalendarMaintenanceJob extends QueuedJob
 {
+    /** Objects per run, so one run stays short. */
     public const BATCH = 200;
-    /** Failed runs in a row after which the job gives up. */
+    /** Retries after failed runs in a row; the job gives up when the last retry fails too, i.e. after MAX_ATTEMPTS + 1 failed runs. */
     public const MAX_ATTEMPTS = 5;
 
     public function __construct(

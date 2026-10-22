@@ -39,6 +39,7 @@ final class MobileLogin implements LoginStrategy
             'Accept' => 'application/json, text/plain, */*',
             'Content-Type' => 'application/json',
             'Origin' => GarminConstants::SSO,
+        // Body as in python-garminconnect, which follows the iOS app.
         ], json_encode([
             'username' => $credentials->email,
             'password' => $credentials->password,

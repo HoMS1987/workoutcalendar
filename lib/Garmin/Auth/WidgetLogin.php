@@ -41,6 +41,7 @@ final class WidgetLogin implements LoginStrategy
     {
         $browser = ['User-Agent' => GarminConstants::DESKTOP_USER_AGENT, 'Accept-Language' => 'en-US,en;q=0.9'];
         $embedParams = ['id' => 'gauth-widget', 'embedWidget' => 'true', 'gauthHost' => self::SSO_BASE];
+        // Parameters as in python-garminconnect: the sign-in form takes gauthHost=embed, the embed page the SSO base.
         $signinUrl = self::SSO_BASE . '/signin?' . http_build_query([
             ...$embedParams,
             'gauthHost' => self::EMBED,
@@ -50,6 +51,7 @@ final class WidgetLogin implements LoginStrategy
             'redirectAfterAccountCreationUrl' => self::EMBED,
         ]);
 
+        // The embed page sets the SSO session cookies that the sign-in form needs.
         $step = 'widget.embed';
         $response = $this->http->send(new HttpRequest($step, 'GET', self::EMBED . '?' . http_build_query($embedParams), $browser));
         $this->failures->assertOk($response, $step);
@@ -88,6 +90,7 @@ final class WidgetLogin implements LoginStrategy
             };
             throw $this->failures->create($category, $step, "Unexpected page title: '$title'", $response);
         }
+        // The ticket URL is in a JavaScript string; it ends at a quote, &, whitespace or the backslash of the next escape.
         if (!preg_match('/[?&]ticket=(ST-[^"&\s\\\\]+)/', $response->body, $ticket)) {
             throw $this->failures->create(FailureCategory::ProtocolChanged, $step, 'No service ticket on the success page', $response);
         }

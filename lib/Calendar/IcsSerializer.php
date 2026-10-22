@@ -22,6 +22,7 @@ final class IcsSerializer
             'DTEND:' . self::utc($event->endUtc),
             'SUMMARY:' . self::escape($event->summary),
             'DESCRIPTION:' . self::escape($event->description),
+            // URL has the value type URI, not TEXT, so it is not escaped.
             'URL:' . $event->url,
             'CATEGORIES:' . implode(',', array_map(self::escape(...), $event->categories)),
             'X-GARMIN-ACTIVITY-ID:' . self::escape($event->activityId),
@@ -39,6 +40,7 @@ final class IcsSerializer
         return $time->setTimezone(new \DateTimeZone('UTC'))->format('Ymd\THis\Z');
     }
 
+    /** Escapes a TEXT value (RFC 5545, 3.3.11). */
     public static function escape(string $text): string
     {
         $text = str_replace(['\\', ';', ','], ['\\\\', '\\;', '\\,'], $text);

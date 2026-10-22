@@ -63,6 +63,7 @@ function newOption(name: string): CalendarSelectOption {
 }
 
 const options = computed<CalendarSelectOption[]>(() => {
+	// The default name always comes first; a typed copy of it is not listed twice.
 	const list: CalendarSelectOption[] = [newOption(props.defaultName)]
 	for (const option of typed.value) {
 		if (option.key !== list[0].key) {

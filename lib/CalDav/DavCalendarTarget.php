@@ -21,7 +21,11 @@ use Psr\Log\NullLogger;
  */
 final class DavCalendarTarget implements CalendarTarget
 {
-    /** @param \Closure(): \DateTimeImmutable $now */
+    /**
+     * @param string $accountKey Marks the events of this Garmin account, so deletion handling never touches
+     *        events of another account in the same calendar
+     * @param \Closure(): \DateTimeImmutable $now
+     */
     public function __construct(
         private readonly CalendarObjects $objects,
         private readonly int $calendarId,

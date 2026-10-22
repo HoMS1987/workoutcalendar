@@ -41,7 +41,9 @@ export function hintSeverity(hint: Hint, status: Status): Severity {
 export interface ViewState {
 	view: View
 	hints: Hint[]
+	/** Actions the page offers but disables while a move or removal of events runs. */
 	locks: { calendarChange: boolean, cleanup: boolean }
+	/** Whether the page reloads the status: while a history import or a move or removal runs. */
 	polling: boolean
 }
 
@@ -63,7 +65,7 @@ function viewOf(status: Status, wizardFinished: boolean): View {
 }
 
 /**
- * Hints ordered by severity, independent of the view (docs/architecture.md, "Zustände für die Oberfläche").
+ * Hints ordered by severity, independent of the view (docs/architecture.md, table of the UI states).
  *
  * @param status Current status
  */

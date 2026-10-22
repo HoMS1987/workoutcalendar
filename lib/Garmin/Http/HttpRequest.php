@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin\Http;
 
+/** One request to Garmin, named by its step in the flow. */
 final class HttpRequest
 {
     /**

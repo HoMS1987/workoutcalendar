@@ -21,6 +21,7 @@ final class L10nEventTexts implements EventTexts
 
     public function number(float $value, int $decimals): string
     {
+        // German separators for German; every other language uses the format of the English source texts.
         return str_starts_with($this->l->getLanguageCode(), 'de')
             ? number_format($value, $decimals, ',', '.')
             : number_format($value, $decimals, '.', ',');

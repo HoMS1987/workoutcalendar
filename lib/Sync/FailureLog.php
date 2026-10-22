@@ -23,8 +23,10 @@ final class FailureLog
     {
     }
 
+    /** Updates the failure fields of the state and logs, throttled. */
     public function recordFailure(SyncState $state, GarminException $e, int $now): void
     {
+        // Same category and step count as the same failure, even if the message differs.
         $same = $state->failureCategory === $e->category->value && $state->failureStep === $e->step;
         $state->failureMessage = $e->getMessage();
 
@@ -55,6 +57,7 @@ final class FailureLog
         }
     }
 
+    /** Clears the failure fields of the state; logs once if a failure is over. */
     public function recordSuccess(SyncState $state, int $now): void
     {
         if ($state->failureCount > 0) {

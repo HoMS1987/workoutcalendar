@@ -95,6 +95,7 @@ async function next(confirmed: boolean) {
 	try {
 		const picked = choice.value
 		const input = picked.kind === 'new' ? { name: picked.name } : { calendarId: picked.id }
+		// The wizard has no events to move yet; the server ignores moveEvents during the setup.
 		const result = await chooseCalendar({ ...input, confirmed, moveEvents: false })
 		if (result.needsConfirmation) {
 			confirming.value = { name: picked.name, events: result.existingEvents }

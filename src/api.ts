@@ -3,6 +3,7 @@ import type { CalendarOption, Cleanup, RunOutcome, Settings, Status } from './ty
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 
+/** Failed API call: HTTP status (0 without a response) and the error code from the JSON body. */
 export class ApiError extends Error {
 	readonly status: number
 	readonly code: string
@@ -32,6 +33,7 @@ async function request<T>(method: Method, path: string, body?: object): Promise<
 		if (response) {
 			throw new ApiError(response.status, response.data?.error ?? 'internal')
 		}
+		// No HTTP response at all, e.g. offline: status 0, code "network".
 		throw new ApiError(0, 'network')
 	}
 }

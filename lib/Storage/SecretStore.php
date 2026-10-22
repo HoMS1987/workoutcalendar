@@ -74,6 +74,7 @@ final class SecretStore
     /** @return ?array<string, mixed> null for a missing, undecryptable or invalid value */
     private function read(string $uid, string $key): ?array
     {
+        // lazy: not loaded with the person's other settings on every request.
         $raw = $this->config->getValueString($uid, Application::APP_ID, $key, '', true);
         if ($raw === '') {
             return null;
@@ -102,13 +103,13 @@ final class SecretStore
             Application::APP_ID,
             $key,
             $this->crypto->encrypt(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)),
-            true,
+            true, // lazy
         );
     }
 
-    /** Warning without the value: only person and key name. */
+    /** Never logs the value, only person and key name. */
     private function warn(string $uid, string $key): void
     {
-        $this->logger->warning('Stored credentials are unreadable and treated as missing', ['uid' => $uid, 'key' => $key]);
+        $this->logger->warning('Stored secret is unreadable and treated as missing', ['uid' => $uid, 'key' => $key]);
     }
 }

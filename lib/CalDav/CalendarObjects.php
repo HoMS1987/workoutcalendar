@@ -10,7 +10,7 @@ namespace OCA\WorkoutCalendar\CalDav;
  */
 interface CalendarObjects
 {
-    /** @return list<CalendarInfo> Own calendars (not shared ones), not in the trash, with VEVENT */
+    /** @return list<CalendarInfo> Own calendars (not shared ones), not in the trash, with VEVENT, without the birthday calendar */
     public function ownCalendars(string $uid): array;
 
     /** @return list<string> URIs of all own calendars, including those in the trash. These URIs are taken. */

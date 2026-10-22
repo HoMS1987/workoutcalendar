@@ -51,6 +51,7 @@ final class SyncRunner
         $this->policy = new NotificationPolicy();
     }
 
+    /** Background job entry; `Skipped` if another operation holds the person's lock. */
     public function run(string $uid, \DateTimeImmutable $now): RunOutcome
     {
         return $this->underLock($uid, $now, false);

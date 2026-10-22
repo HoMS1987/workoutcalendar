@@ -52,6 +52,7 @@ function clampInt(raw: string, min: number, max: number, fallback: number): numb
  * @param current Settings the server currently has
  */
 export function payloadFromDraft(draft: SettingsDraft, current: Settings): SettingsPayload {
+	// Same limits as SyncSettings::fromArray() on the server.
 	return {
 		intervalMinutes: clampInt(String(draft.intervalMinutes), 15, 1440, current.intervalMinutes),
 		jitterPercent: draft.jitterEnabled ? clampInt(draft.jitterPercent, 0, 50, current.jitterPercent) : 0,

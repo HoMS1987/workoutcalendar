@@ -84,6 +84,7 @@ final class CalendarService
      * app under the URI, only the source is deleted. If a foreign object is there, the source stays and
      * no longer counts towards the remainder, so the maintenance job can finish.
      *
+     * @param int $limit Batch size, so one maintenance job run stays short
      * @return int Number of the app's events that can still be moved
      */
     public function moveAppEvents(int $from, int $to, int $limit): int
@@ -114,7 +115,10 @@ final class CalendarService
         return count($pending);
     }
 
-    /** @return int Number of the app's events still in the calendar */
+    /**
+     * @param int $limit Batch size, so one maintenance job run stays short
+     * @return int Number of the app's events still in the calendar
+     */
     public function removeAppEvents(int $calendarId, int $limit): int
     {
         $pending = $this->appObjects($calendarId);

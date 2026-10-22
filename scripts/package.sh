@@ -8,7 +8,8 @@ APP_ID=workoutcalendar
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 ARTIFACTS="$ROOT/build/artifacts"
 STAGE="$ARTIFACTS/$APP_ID"
-# Runtime files only; vendor, node_modules and the sources in src/ are not needed by Nextcloud.
+# Runtime files plus CHANGELOG.md (the App Store reads the release notes from it) and README.md;
+# vendor, node_modules and the sources in src/ are not needed by Nextcloud.
 CONTENT=(appinfo lib templates img js css l10n LICENSE CHANGELOG.md README.md)
 
 cd "$ROOT"

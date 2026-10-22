@@ -40,12 +40,12 @@ final class IcsLines
         }
         $parts = [];
         $current = '';
-        // Continuation lines start with a space, which counts.
         $limit = self::MAX_LINE_OCTETS;
         foreach (mb_str_split($line, 1, 'UTF-8') as $char) {
             if (strlen($current) + strlen($char) > $limit) {
                 $parts[] = $current;
                 $current = '';
+                // Continuation lines start with a space, which counts.
                 $limit = self::MAX_LINE_OCTETS - 1;
             }
             $current .= $char;

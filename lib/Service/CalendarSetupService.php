@@ -41,7 +41,7 @@ final class CalendarSetupService
      * confirmation; until then everything stays unchanged.
      *
      * @throws \InvalidArgumentException for an invalid input, a foreign calendar or a missing sign-in
-     * @throws PersonBusyException if a sync is running
+     * @throws PersonBusyException if a sync run or another change holds the person's lock
      */
     public function choose(string $uid, ?string $newName, ?int $calendarId, bool $confirmed, bool $moveEvents): CalendarChoice
     {
@@ -62,6 +62,8 @@ final class CalendarSetupService
             throw new \InvalidArgumentException('Sign in to Garmin first');
         }
 
+        // In the wizard a removal left over from a reset may still run. Choosing a calendar is fine then:
+        // SyncRunner writes no events until the removal is done.
         if ($setup->step === SetupStep::Done && $setup->maintenance !== null) {
             throw new \InvalidArgumentException('Calendar change is still running');
         }
@@ -83,6 +85,7 @@ final class CalendarSetupService
             return new CalendarChoice(false, $calendar);
         }
 
+        // The current calendar picked again: nothing to change or confirm.
         if ($setup->step !== SetupStep::Calendar && $setup->calendarId === $existing->id) {
             return new CalendarChoice(false, $existing);
         }
@@ -117,6 +120,7 @@ final class CalendarSetupService
             if ($move) {
                 $maintenance = 'move';
             } else {
+                // The new calendar holds none of the old events: start over with a fresh import.
                 $state = new SyncState();
             }
             $state->nextRunAt = $this->time->getTime();

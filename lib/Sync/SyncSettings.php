@@ -12,7 +12,7 @@ final class SyncSettings
     /** Pages of history import per run so a large import does not block the Nextcloud cron (F-22). */
     public const BACKFILL_PAGES_PER_RUN = 5;
 
-    /** Wait until the next run while the history import is not finished yet. */
+    /** Wait until the next run while the history import is not finished yet; in effect the next cron run. */
     public const BACKFILL_NEXT_RUN_SECONDS = 60;
 
     /**
@@ -31,6 +31,7 @@ final class SyncSettings
     public static function fromArray(array $data): self
     {
         $defaults = new self();
+        // Limits from docs/anforderungen.md; the settings form clamps to the same (settingsDraft.ts).
         $int = static fn (string $key, int $min, int $max, ?int $default): ?int => is_int($data[$key] ?? null)
             ? max($min, min($max, $data[$key]))
             : $default;

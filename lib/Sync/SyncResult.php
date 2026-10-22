@@ -6,6 +6,7 @@ namespace OCA\WorkoutCalendar\Sync;
 
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
+/** Counters of one sync run, logged at its end. */
 final class SyncResult
 {
     public int $created = 0;
@@ -18,6 +19,7 @@ final class SyncResult
     public int $backfillPages = 0;
     public ?FailureCategory $failure = null;
 
+    /** A history import stage counts as a change, so it is logged at info level even if no event changed. */
     public function hasChanges(): bool
     {
         return $this->created + $this->updated + $this->markedDeleted + $this->deleted + $this->backfillPages > 0;

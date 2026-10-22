@@ -30,6 +30,7 @@ if [[ ! -f "$STAGE/appinfo/signature.json" ]]; then
 fi
 
 tar --owner=0 --group=0 -czf "$ARTIFACTS/$APP_ID.tar.gz" -C "$ARTIFACTS" "$APP_ID"
+# The App Store takes the base64 SHA-512 signature of the archive; -A keeps it on one line for the JSON body.
 openssl dgst -sha512 -sign "$KEY" "$ARTIFACTS/$APP_ID.tar.gz" | openssl base64 -A > "$ARTIFACTS/$APP_ID.tar.gz.sig"
 
 echo "$ARTIFACTS/$APP_ID.tar.gz signed"

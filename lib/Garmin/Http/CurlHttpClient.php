@@ -24,6 +24,8 @@ final class CurlHttpClient implements HttpClient
         $handle = $this->handle();
 
         $headers = [];
+        // An empty Expect header stops curl from sending "Expect: 100-continue" and waiting for an answer
+        // before larger POST bodies; python-garminconnect does not send it either.
         $headerLines = ['Expect:'];
         foreach ($request->headers as $name => $value) {
             $headerLines[] = $name . ': ' . $value;
@@ -90,6 +92,7 @@ final class CurlHttpClient implements HttpClient
             CURLOPT_MAXREDIRS => self::MAX_REDIRECTS,
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
             CURLOPT_CONNECTTIMEOUT => $this->timeoutSeconds,
+            // Empty string: offer every encoding curl supports and decode the response transparently.
             CURLOPT_ENCODING => '',
         ]);
 

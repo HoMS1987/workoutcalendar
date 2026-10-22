@@ -39,8 +39,8 @@ final class AccountService
      * Checks the credentials with Garmin and saves them only on success.
      *
      * @throws GarminException unchanged, in which case everything stored stays as it was
-     * @throws PersonBusyException if a sync is running; then there is no request to Garmin and
-     *         everything stored stays as it was
+     * @throws PersonBusyException if a sync run or another change holds the person's lock; then there is
+     *         no request to Garmin and everything stored stays as it was
      */
     public function login(string $uid, string $email, string $password): SetupState
     {
@@ -61,7 +61,9 @@ final class AccountService
         $this->secrets->saveTokens($uid, $tokens);
 
         $previous = $this->users->setup($uid);
+        // Stable ID of the Garmin account, derived from the email address: marks the app's events and detects a switch of account.
         $accountKey = substr(hash('sha256', strtolower($email)), 0, 16);
+        // Another account starts over: the window and the history import of the old one do not apply.
         $state = $previous->accountKey !== null && $previous->accountKey !== $accountKey
             ? new SyncState()
             : $this->users->state($uid);
@@ -75,6 +77,7 @@ final class AccountService
         $state->failureCount = 0;
         $state->failureReportedAt = null;
 
+        // Signing in again keeps the setup position; without a calendar it continues at the calendar choice.
         $step = match (true) {
             $previous->calendarId === null => SetupStep::Calendar,
             $previous->step === SetupStep::History => SetupStep::History,
@@ -103,7 +106,7 @@ final class AccountService
     /**
      * @throws \InvalidArgumentException for Cleanup::Calendar on a calendar the app did not create
      *         and for Cleanup::Events or Cleanup::Calendar while a maintenance job is running
-     * @throws PersonBusyException if a sync is running
+     * @throws PersonBusyException if a sync run or another change holds the person's lock
      */
     public function logout(string $uid, Cleanup $cleanup): void
     {

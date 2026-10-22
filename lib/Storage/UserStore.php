@@ -92,6 +92,7 @@ final class UserStore
     /** @return array<string, mixed> */
     private function readJson(string $uid, string $key): array
     {
+        // lazy: not loaded with the person's other settings on every request.
         $raw = $this->config->getValueString($uid, Application::APP_ID, $key, '', true);
         $data = $raw === '' ? null : json_decode($raw, true);
 
@@ -106,7 +107,7 @@ final class UserStore
             Application::APP_ID,
             $key,
             json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
-            true,
+            true, // lazy
         );
     }
 }

@@ -85,6 +85,7 @@ async function save() {
 		}
 		// The history has its own route: a longer period starts an import.
 		if (historyChanged(draft.value, before)) {
+			// The select only offers these values.
 			last = await chooseHistory(draft.value.historyDays as 30 | 90 | 365 | null)
 			emit('status', last)
 		}

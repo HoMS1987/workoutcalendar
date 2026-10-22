@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin;
 
-/** Endpoints and headers of the Garmin Connect mobile app, taken from python-garminconnect 0.3.19. */
+/** Endpoints, app headers and user agents of the login strategies, taken from python-garminconnect 0.3.19. */
 final class GarminConstants
 {
     public const SSO = 'https://sso.garmin.com';
     public const CONNECT_API = 'https://connectapi.garmin.com';
 
+    /** API and token requests use the Android app identity, as python-garminconnect does; MobileLogin signs in as the iOS app. */
     public const NATIVE_HEADERS = [
         'User-Agent' => 'GCM-Android-5.23',
         'X-Garmin-User-Agent' => 'com.garmin.android.apps.connectmobile/5.23; ; Google/sdk_gphone64_arm64/google; Android/33; Dalvik/2.1.0',

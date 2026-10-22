@@ -66,6 +66,7 @@ final class DavCalendarObjects implements CalendarObjects
 
     public function deleteCalendar(int $calendarId): void
     {
+        // false: into the trash, not deleted permanently.
         $this->backend->deleteCalendar($calendarId, false);
     }
 
@@ -76,6 +77,7 @@ final class DavCalendarObjects implements CalendarObjects
 
     public function urisInRange(int $calendarId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
+        // Structure as documented by Sabre's CalendarQueryParser, which calendarQuery() expects.
         $filters = [
             'name' => 'VCALENDAR',
             'comp-filters' => [[

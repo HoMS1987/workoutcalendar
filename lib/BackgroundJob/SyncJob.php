@@ -14,6 +14,7 @@ use Psr\Log\LoggerInterface;
 /** Every 5 minutes: processes the people who are due, at most `MAX_USERS_PER_RUN` per call. */
 final class SyncJob extends TimedJob
 {
+    /** Limits one cron run: every person means several Garmin requests, a widget login alone waits 3-8 s. */
     public const MAX_USERS_PER_RUN = 10;
 
     public function __construct(

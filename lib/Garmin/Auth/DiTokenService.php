@@ -36,6 +36,13 @@ final class DiTokenService
         $this->redactor = new Redactor();
     }
 
+    /**
+     * Exchanges the service ticket of a successful sign-in for DI tokens.
+     *
+     * @param string $serviceUrl Service the ticket was issued for
+     * @param string $strategy Name of the login strategy, prefix of the log step
+     * @throws GarminException
+     */
     public function exchangeTicket(string $ticket, string $serviceUrl, string $strategy): GarminTokens
     {
         $step = "$strategy.di-exchange";
@@ -53,6 +60,7 @@ final class DiTokenService
 
                 return new GarminTokens($access, is_string($refresh) ? $refresh : null, GarminTokens::clientIdFromJwt($access) ?? $clientId);
             }
+            // As in python-garminconnect, a failed exchange moves on to the next client ID; a block ends the attempt.
             if ($this->classifier->classify($last) === FailureCategory::Blocked) {
                 throw $this->failure(FailureCategory::Blocked, $step, 'Ticket exchange blocked', $last);
             }
@@ -61,6 +69,11 @@ final class DiTokenService
         throw $this->failure(FailureCategory::ProtocolChanged, $step, 'Ticket exchange failed for every known client ID', $last);
     }
 
+    /**
+     * New tokens from the refresh token. If Garmin sends no new refresh token, the old one is kept.
+     *
+     * @throws GarminException TokenRejected if Garmin no longer accepts the refresh token
+     */
     public function refresh(GarminTokens $tokens): GarminTokens
     {
         $step = 'refresh';
@@ -73,6 +86,8 @@ final class DiTokenService
             'refresh_token' => $tokens->refreshToken,
         ]);
         if ($response->status !== 200) {
+            // OAuth 2.0 (RFC 6749, 5.2) answers an invalid or expired grant with 400 and a rejected client
+            // with 401; both need a new sign-in.
             $category = in_array($response->status, [400, 401], true)
                 ? FailureCategory::TokenRejected
                 : ($this->classifier->classify($response) ?? FailureCategory::ProtocolChanged);
@@ -92,6 +107,7 @@ final class DiTokenService
     private function post(string $step, string $clientId, array $form): HttpResponse
     {
         return $this->http->send(new HttpRequest($step, 'POST', self::TOKEN_URL, GarminConstants::NATIVE_HEADERS + [
+            // Client authentication as in python-garminconnect: client ID as user name, empty secret.
             'Authorization' => 'Basic ' . base64_encode("$clientId:"),
             'Accept' => 'application/json',
             'Content-Type' => 'application/x-www-form-urlencoded',

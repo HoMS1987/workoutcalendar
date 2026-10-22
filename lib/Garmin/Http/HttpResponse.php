@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin\Http;
 
+/** Response to a request; after redirects, the response of the last step. */
 final class HttpResponse
 {
     /** @var array<string, string> Header names in lower case */
