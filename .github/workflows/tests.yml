@@ -31,6 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # From the oldest server with the oldest PHP the app supports to the newest server with the newest PHP.
         include:
           - server: stable33
             php: '8.2'
@@ -39,14 +40,14 @@ jobs:
           - server: stable35
             php: '8.5'
     steps:
-      - name: Nextcloud Server auschecken
+      - name: Check out Nextcloud server
         uses: actions/checkout@v7
         with:
           repository: nextcloud/server
           ref: ${{ matrix.server }}
           submodules: true
           path: server
-      - name: App auschecken
+      - name: Check out the app
         uses: actions/checkout@v7
         with:
           path: server/apps/workoutcalendar
@@ -55,15 +56,15 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl, gd, zip, curl, xml, pdo_sqlite, sqlite3, sodium, openssl, fileinfo, posix, ctype, dom, json, simplexml, xmlreader, xmlwriter, bcmath, gmp
           coverage: none
-      - name: Nextcloud installieren
+      - name: Install Nextcloud
         working-directory: server
         run: |
           php occ maintenance:install --database sqlite --admin-user admin --admin-pass admin
           php occ app:enable workoutcalendar
-      - name: Abhängigkeiten der App installieren
+      - name: Install app dependencies
         working-directory: server/apps/workoutcalendar
         run: composer install --no-interaction --no-progress
-      - name: Integrationstests
+      - name: Run integration tests
         working-directory: server/apps/workoutcalendar
         run: composer test:integration
 
