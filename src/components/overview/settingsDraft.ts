@@ -12,7 +12,8 @@ export interface SettingsDraft {
 
 export type SettingsPayload = Pick<Settings, 'intervalMinutes' | 'jitterPercent' | 'deletionMode' | 'deletionCheckDays'>
 
-const DEFAULT_JITTER = 10
+/** Offered when the spread is switched on again; same default as SyncSettings. */
+const DEFAULT_JITTER = 20
 
 export function draftFromSettings(settings: Settings): SettingsDraft {
 	return {
