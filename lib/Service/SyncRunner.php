@@ -166,19 +166,20 @@ final class SyncRunner
             return RunOutcome::CalendarMissing;
         }
 
+        $texts = new L10nEventTexts($this->l10n($uid));
         $target = new DavCalendarTarget(
             $this->objects,
             $setup->calendarId,
             $setup->accountKey,
             new IcsSerializer(),
             new IcsReader(),
-            new DeletedMarker(),
+            new DeletedMarker($texts),
             static fn (): \DateTimeImmutable => $now,
             $this->logger,
         );
         $sync = new SyncService(
             $this->garmin->client($uid, $credentials),
-            new ActivityEventMapper(new L10nEventTexts($this->l10n($uid))),
+            new ActivityEventMapper($texts),
             $target,
             $this->logger,
         );

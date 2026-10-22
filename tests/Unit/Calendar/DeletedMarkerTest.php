@@ -8,6 +8,7 @@ use OCA\WorkoutCalendar\Calendar\CalendarEvent;
 use OCA\WorkoutCalendar\Calendar\DeletedMarker;
 use OCA\WorkoutCalendar\Calendar\IcsReader;
 use OCA\WorkoutCalendar\Calendar\IcsSerializer;
+use OCA\WorkoutCalendar\Tests\Support\GermanEventTexts;
 use PHPUnit\Framework\TestCase;
 
 final class DeletedMarkerTest extends TestCase
@@ -34,6 +35,11 @@ final class DeletedMarkerTest extends TestCase
         return new \DateTimeImmutable('2026-11-02 12:30:00', new \DateTimeZone('UTC'));
     }
 
+    private static function marker(): DeletedMarker
+    {
+        return new DeletedMarker(new GermanEventTexts());
+    }
+
     /** @return list<string> */
     private static function unfold(string $ics): array
     {
@@ -42,7 +48,7 @@ final class DeletedMarkerTest extends TestCase
 
     public function testMarksEventAsCancelledAndDeleted(): void
     {
-        $lines = self::unfold((new DeletedMarker())->apply(self::ics(), self::now()));
+        $lines = self::unfold(self::marker()->apply(self::ics(), self::now()));
 
         self::assertContains('SUMMARY:🏃 Laufen – 7\\,6 km (in Garmin gelöscht)', $lines);
         self::assertContains('STATUS:CANCELLED', $lines);
@@ -51,10 +57,17 @@ final class DeletedMarkerTest extends TestCase
         self::assertNotContains('DTSTAMP:20261020T080000Z', $lines);
     }
 
+    public function testSuffixIsEnglishWithoutTranslation(): void
+    {
+        $lines = self::unfold((new DeletedMarker())->apply(self::ics('🏃 Run – 7.6 km'), self::now()));
+
+        self::assertContains('SUMMARY:🏃 Run – 7.6 km (deleted in Garmin)', $lines);
+    }
+
     public function testOtherLinesStayUnchanged(): void
     {
         $before = self::unfold(self::ics());
-        $after = self::unfold((new DeletedMarker())->apply(self::ics(), self::now()));
+        $after = self::unfold(self::marker()->apply(self::ics(), self::now()));
 
         $changed = static fn (string $line): bool => (bool)preg_match('/^(SUMMARY|STATUS|DTSTAMP|X-GARMIN-DELETED)[:;]/', $line);
         self::assertSame(
@@ -65,7 +78,7 @@ final class DeletedMarkerTest extends TestCase
 
     public function testMarkedEventStaysInsideVevent(): void
     {
-        $lines = self::unfold((new DeletedMarker())->apply(self::ics(), self::now()));
+        $lines = self::unfold(self::marker()->apply(self::ics(), self::now()));
         $end = array_search('END:VEVENT', $lines, true);
 
         self::assertLessThan($end, array_search('STATUS:CANCELLED', $lines, true));
@@ -74,7 +87,7 @@ final class DeletedMarkerTest extends TestCase
 
     public function testApplyingTwiceEqualsApplyingOnce(): void
     {
-        $marker = new DeletedMarker();
+        $marker = self::marker();
         $once = $marker->apply(self::ics(), self::now());
 
         self::assertSame($once, $marker->apply($once, self::now()));
@@ -84,7 +97,7 @@ final class DeletedMarkerTest extends TestCase
     {
         $ics = str_replace("END:VEVENT\r\n", "STATUS:CONFIRMED\r\nEND:VEVENT\r\n", self::ics());
 
-        $lines = self::unfold((new DeletedMarker())->apply($ics, self::now()));
+        $lines = self::unfold(self::marker()->apply($ics, self::now()));
 
         self::assertNotContains('STATUS:CONFIRMED', $lines);
         self::assertCount(1, array_filter($lines, static fn (string $l): bool => str_starts_with($l, 'STATUS:')));
@@ -92,14 +105,14 @@ final class DeletedMarkerTest extends TestCase
 
     public function testReaderRecognisesMarkedEvent(): void
     {
-        self::assertTrue((new IcsReader())->isMarkedDeleted((new DeletedMarker())->apply(self::ics(), self::now())));
+        self::assertTrue((new IcsReader())->isMarkedDeleted(self::marker()->apply(self::ics(), self::now())));
     }
 
     public function testLongSummaryWithUmlautsAndEmojisIsRefoldedCorrectly(): void
     {
         $summary = '🏃 Größter Lauf über die Brücke – Fußgängerzone, Ölmühle & Äußere Straße 🌧️ ' . str_repeat('äöüß🚴', 12);
 
-        $ics = (new DeletedMarker())->apply(self::ics($summary), self::now());
+        $ics = self::marker()->apply(self::ics($summary), self::now());
 
         foreach (explode("\r\n", rtrim($ics, "\r\n")) as $line) {
             self::assertLessThanOrEqual(75, strlen($line), "Line too long: $line");
@@ -112,7 +125,7 @@ final class DeletedMarkerTest extends TestCase
     {
         $ics = str_replace("\r\n", "\n", self::ics());
 
-        $result = (new DeletedMarker())->apply($ics, self::now());
+        $result = self::marker()->apply($ics, self::now());
 
         self::assertStringNotContainsString("\n", str_replace("\r\n", '', $result));
         self::assertContains('X-GARMIN-DELETED:TRUE', self::unfold($result));

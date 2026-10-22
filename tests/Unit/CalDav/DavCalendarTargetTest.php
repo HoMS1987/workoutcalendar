@@ -138,7 +138,7 @@ final class DavCalendarTargetTest extends TestCase
 
         $ics = $this->objects->objects[$this->calendarId]['garmin-42.ics'];
         self::assertTrue((new IcsReader())->isMarkedDeleted($ics));
-        self::assertStringContainsString(DeletedMarker::SUMMARY_SUFFIX, $ics);
+        self::assertStringContainsString('(deleted in Garmin)', $ics);
 
         $target->update(self::event('42'));
         self::assertFalse((new IcsReader())->isMarkedDeleted($this->objects->objects[$this->calendarId]['garmin-42.ics']));

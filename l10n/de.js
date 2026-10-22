@@ -38,6 +38,7 @@ OC.L10N.register("workoutcalendar", {
     "Heart rate: avg %s bpm": "Herzfrequenz: Ø %s bpm",
     ", max %s bpm": ", max %s bpm",
     "Elevation gain: ↑ %s m": "Höhenmeter: ↑ %s m",
+    "(deleted in Garmin)": "(in Garmin gelöscht)",
     "Calendar": "Kalender",
     "New calendar “{name}”": "Neuer Kalender „{name}“",
     "Existing calendars": "Vorhandene Kalender",

@@ -7,14 +7,16 @@ namespace OCA\WorkoutCalendar\Calendar;
 /** Marks a stored event as "deleted in Garmin" (F-13, F-34). Applying it repeatedly changes nothing. */
 final class DeletedMarker
 {
-    public const SUMMARY_SUFFIX = ' (in Garmin gelöscht)';
-
     /** Properties that are set anew when marking. */
     private const REPLACED = ['STATUS', 'X-GARMIN-DELETED'];
 
+    public function __construct(private readonly EventTexts $texts = new EnglishEventTexts())
+    {
+    }
+
     public function apply(string $ics, \DateTimeImmutable $now): string
     {
-        $suffix = IcsSerializer::escape(self::SUMMARY_SUFFIX);
+        $suffix = IcsSerializer::escape(' ' . $this->texts->translate('(deleted in Garmin)'));
         $result = [];
         $inEvent = false;
 

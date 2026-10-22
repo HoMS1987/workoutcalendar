@@ -43,6 +43,7 @@ final class GermanEventTexts implements EventTexts
         'Heart rate: avg %s bpm' => 'Herzfrequenz: Ø %s bpm',
         ', max %s bpm' => ', max %s bpm',
         'Elevation gain: ↑ %s m' => 'Höhenmeter: ↑ %s m',
+        '(deleted in Garmin)' => '(in Garmin gelöscht)',
     ];
 
     public function translate(string $text, array $parameters = []): string

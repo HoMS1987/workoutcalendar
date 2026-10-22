@@ -396,6 +396,23 @@ final class SyncRunnerTest extends TestCase
         self::assertStringContainsString('Distanz: 5\,00 km', $ics);
     }
 
+    public function testMarksDeletedEventInLanguageOfPerson(): void
+    {
+        $this->connect();
+        $this->http->queue(
+            FakeHttpClient::json(200, [self::activity(101, '2026-10-19 07:00:00')]),
+            FakeHttpClient::json(200, []),
+        );
+        $this->runner()->run(self::UID, $this->now);
+        $this->http->queue(FakeHttpClient::json(200, []));
+
+        $this->runner()->run(self::UID, $this->now->modify('+1 hour'));
+
+        $ics = str_replace("\r\n ", '',$this->objects->objects[$this->calendarId]['garmin-101.ics']);
+        self::assertStringContainsString('(in Garmin gelöscht)', $ics);
+        self::assertStringNotContainsString('(deleted in Garmin)', $ics);
+    }
+
     /** Person is in the queue with a due run. */
     private function queued(SyncState $state): void
     {
@@ -486,7 +503,7 @@ final class SyncRunnerTest extends TestCase
     {
         $l = $this->createStub(IL10N::class);
         $l->method('t')->willReturnCallback(static function (string $text, $parameters = []): string {
-            $table = ['Running' => 'Laufen', 'Distance: %s' => 'Distanz: %s'];
+            $table = ['Running' => 'Laufen', 'Distance: %s' => 'Distanz: %s', '(deleted in Garmin)' => '(in Garmin gelöscht)'];
 
             return vsprintf($table[$text] ?? $text, (array)$parameters);
         });
