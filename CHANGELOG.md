@@ -6,7 +6,7 @@ All notable changes to this app are documented here. The format follows
 
 ## [Unreleased]
 
-## 1.0.0 – 2026-10-21
+## 1.0.0 – 2026-11-02
 
 First release.
 
