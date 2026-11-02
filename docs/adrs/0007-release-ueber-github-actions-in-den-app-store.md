@@ -22,7 +22,7 @@ Die Vorlage `appstore-build-publish.yml` aus `nextcloud/.github` läuft nur in d
 ## Entscheidung
 
 - Ein eigener Workflow `.github/workflows/release.yml` nach dem Muster der Vorlage startet, sobald
-  ein GitHub-Release veröffentlicht wird. Er prüft, dass das Tag `v` plus die Version aus
+  ein GitHub-Release veröffentlicht wird. Er prüft, dass das Tag genau die Version aus
   `info.xml` ist, baut die Oberfläche, packt mit `scripts/package.sh`, signiert mit
   `scripts/sign.sh` (`occ integrity:sign-app` aus einem Checkout von `nextcloud/server`, danach die
   Signatur über das Archiv), hängt das Archiv an das Release und meldet es über die REST-API beim

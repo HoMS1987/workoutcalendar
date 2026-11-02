@@ -37,9 +37,9 @@ Repository geteilt wird, etwa einen Passwortmanager.
    Klammern um die Version. `ReleaseMetadataTest` prüft beides.
 3. Commit, Push, warten bis die Tests grün sind.
 4. `dev` nach `main` mergen.
-5. Auf GitHub ein Release mit dem Tag `v<x.y.z>` auf `main` veröffentlichen, als Text den Abschnitt
+5. Auf GitHub ein Release mit dem Tag `<x.y.z>` auf `main` veröffentlichen, als Text den Abschnitt
    aus dem Changelog.
-6. Der Workflow *Release* baut, signiert, hängt `workoutcalendar-v<x.y.z>.tar.gz` an das Release und
+6. Der Workflow *Release* baut, signiert, hängt `workoutcalendar-<x.y.z>.tar.gz` an das Release und
    lädt die Version in den App Store. Nach einigen Minuten erscheint sie dort.
 
 Eine Version mit Zusatz wie `1.1.0-beta.1` behandelt der App Store als Beta. Ihre Versionshinweise

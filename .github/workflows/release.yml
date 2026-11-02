@@ -24,7 +24,7 @@ jobs:
       - name: Check that the tag matches the version in info.xml
         run: |
           version=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' appinfo/info.xml)
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+          if [ "$GITHUB_REF_NAME" != "$version" ]; then
             echo "Tag $GITHUB_REF_NAME does not match info.xml version $version" >&2
             exit 1
           fi
