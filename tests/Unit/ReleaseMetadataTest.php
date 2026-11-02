@@ -41,6 +41,31 @@ final class ReleaseMetadataTest extends TestCase
         );
     }
 
+    /** The App Store asks for SPDX identifiers for apps targeting Nextcloud 31 or newer. */
+    public function testLicenceIsTheSpdxIdentifierOfTheLicenseFile(): void
+    {
+        $info = simplexml_load_file(self::ROOT . '/appinfo/info.xml');
+        self::assertNotFalse($info);
+
+        self::assertSame('AGPL-3.0-or-later', (string) $info->licence);
+    }
+
+    public function testSummaryAndDescriptionExistInEnglishAndGerman(): void
+    {
+        $info = simplexml_load_file(self::ROOT . '/appinfo/info.xml');
+        self::assertNotFalse($info);
+
+        foreach (['summary', 'description'] as $element) {
+            $languages = [];
+            foreach ($info->{$element} as $text) {
+                self::assertNotSame('', trim((string) $text));
+                $languages[] = (string) $text['lang'];
+            }
+            sort($languages);
+            self::assertSame(['de', 'en'], $languages, $element);
+        }
+    }
+
     private function infoXmlVersion(): string
     {
         $info = simplexml_load_file(self::ROOT . '/appinfo/info.xml');
