@@ -32,6 +32,12 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "Build with the Node major that nextcloud/server declares in its engines (24); approve on the dashboard when the server moves on",
+      "matchDepNames": ["node"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
       "description": "Node 24 ships npm 11, the workflows install no other npm; approve on the dashboard when Node does",
       "matchDepTypes": ["engines"],
       "matchPackageNames": ["npm"],
