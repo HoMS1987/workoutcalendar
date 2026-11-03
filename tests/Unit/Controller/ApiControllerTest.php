@@ -229,6 +229,22 @@ final class ApiControllerTest extends TestCase
         self::assertSame('sms', $state->mfaMethod);
     }
 
+    public function testHistoryChoiceInTheWizardKeepsTheDerivedFlagOfA10Install(): void
+    {
+        $this->done();
+        $setup = $this->users->setup(self::UID);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::History, true, self::ACCOUNT, $setup->maskedEmail, $setup->calendarId, true));
+        $state = $this->users->state(self::UID);
+        $state->pausedFor = 'MFA_REQUIRED';
+        $state->mfaAccount = false;
+        $this->users->saveState(self::UID, $state);
+
+        $response = $this->controller()->history(90);
+
+        self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
+        self::assertTrue($this->users->state(self::UID)->mfaAccount);
+    }
+
     public function testHistoryInOtherStepsIsRejected(): void
     {
         self::assertSame(400, $this->controller()->history(90)->getStatus());

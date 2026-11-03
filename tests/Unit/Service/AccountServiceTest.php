@@ -707,6 +707,21 @@ final class AccountServiceTest extends TestCase
         self::assertSame('sms', $state->mfaMethod);
     }
 
+    public function testCompleteLoginKeepsTheDerivedFlagOfA10Install(): void
+    {
+        $this->connected();
+        $state = new SyncState();
+        $state->pausedFor = 'MFA_REQUIRED';
+        $state->mfaAccount = false;
+        $this->users->saveState(self::UID, $state);
+
+        $this->service()->completeLogin(self::UID, 'a@b.de', new Credentials('a@b.de', 'secret'), new GarminTokens(Jwt::make([]), 'r', 'C'));
+
+        $state = $this->users->state(self::UID);
+        self::assertNull($state->pausedFor);
+        self::assertTrue($state->mfaAccount);
+    }
+
     public function testWidgetMfaWithoutChallengeStillFails(): void
     {
         $before = $this->store;

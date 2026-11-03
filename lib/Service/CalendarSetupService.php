@@ -124,7 +124,7 @@ final class CalendarSetupService
                 // belongs to the Garmin account, not the calendar; without it the sync would sign in with the password again.
                 $previousState = $state;
                 $state = new SyncState();
-                $state->mfaAccount = $previousState->mfaAccount;
+                $state->mfaAccount = $previousState->isMfaAccount();
                 $state->mfaMethod = $previousState->mfaMethod;
             }
             $state->nextRunAt = $this->time->getTime();

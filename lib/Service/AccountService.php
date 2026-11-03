@@ -101,6 +101,8 @@ final class AccountService
             // and its MFA flag could then never be cleared.
             $this->secrets->deleteSsoCookies($uid);
         }
+        // WHY: A 1.0.x installation is flagged only through the pause cleared below; the flag must outlive it.
+        $state->mfaAccount = $state->isMfaAccount();
         $state->pausedFor = null;
         $state->notifiedCategory = null;
         // After a successful sign-in the status no longer shows an old error.

@@ -215,7 +215,7 @@ final class ApiController extends Controller
             $state = new SyncState();
             $state->pausedFor = $previous->pausedFor;
             $state->notifiedCategory = $previous->notifiedCategory;
-            $state->mfaAccount = $previous->mfaAccount;
+            $state->mfaAccount = $previous->isMfaAccount();
             $state->mfaMethod = $previous->mfaMethod;
             $state->nextRunAt = $now->getTimestamp();
             $this->users->saveState($uid, $state);
