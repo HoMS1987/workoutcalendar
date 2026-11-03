@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Garmin\Auth;
 
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
 use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
@@ -23,11 +24,13 @@ final class MobileLogin implements LoginStrategy
 
     private readonly ResponseFailures $failures;
 
+    /** @param ?Redactor $redactor Masks response excerpts, e.g. with the values of the session cookies */
     public function __construct(
         private readonly HttpClient $http,
         private readonly DiTokenService $tokens,
+        ?Redactor $redactor = null,
     ) {
-        $this->failures = new ResponseFailures();
+        $this->failures = new ResponseFailures($redactor);
     }
 
     public function name(): string

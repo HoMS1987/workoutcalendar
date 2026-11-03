@@ -156,7 +156,7 @@ final class SyncJobTest extends TestCase
             $this->createStub(IFactory::class),
             $this->createStub(IUserManager::class),
             $this->logger,
-            new PendingMfaSaver($secrets, $this->createStub(IJobList::class), $this->logger),
+            new PendingMfaSaver($secrets, $this->createStub(IJobList::class), $this->logger, $this->users),
         );
     }
 

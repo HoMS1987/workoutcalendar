@@ -86,7 +86,12 @@ final class StatusService
     private function mfa(string $uid, SyncState $state): array
     {
         $now = $this->time->getTime();
-        $pending = $this->secrets->pendingMfa($uid, $now);
+        // WHY not pendingMfa($uid, $now): that deletes an expired request, and the status runs without the
+        // person's lock. Removing it is left to the locked paths and the cleanup job.
+        $pending = $this->secrets->pendingMfa($uid, PHP_INT_MIN);
+        if ($pending?->isExpired($now)) {
+            $pending = null;
+        }
 
         return [
             'account' => $state->isMfaAccount(),

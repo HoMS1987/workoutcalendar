@@ -82,9 +82,10 @@ final class MfaService
 
             // The remembered cookies belong to the connected account, not to a new one from the setup.
             $cookies = $setupCredentials === null ? $this->secrets->ssoCookies($uid) : [];
-            $login = $this->garmin->mobileLogin($cookies, [$credentials->password, $credentials->email]);
+            $secrets = [$credentials->password, $credentials->email, ...GarminClientFactory::cookieValues($cookies)];
+            $login = $this->garmin->mobileLogin($cookies, $secrets);
             try {
-                $tokens = $this->network('mobile.login', $credentials, fn (): GarminTokens => $login->login($credentials));
+                $tokens = $this->network('mobile.login', $secrets, fn (): GarminTokens => $login->login($credentials));
             } catch (GarminException $e) {
                 if ($e->category === FailureCategory::MfaRequired && $e->mfaChallenge !== null) {
                     $origin = $setupCredentials !== null ? MfaOrigin::Setup : MfaOrigin::Relogin;
@@ -135,8 +136,9 @@ final class MfaService
                 throw new MfaException(MfaException::NOT_PENDING);
             }
 
-            $login = $this->garmin->mobileLogin([], [$code, ...$pending->challenge->cookies]);
-            $tokens = $this->network('mobile.mfa-verify', $credentials, fn (): GarminTokens => $login->verifyCode($pending->challenge, $code));
+            $secrets = [$code, $credentials->password, $credentials->email, ...GarminClientFactory::cookieValues($pending->challenge->cookies)];
+            $login = $this->garmin->mobileLogin([], $secrets);
+            $tokens = $this->network('mobile.mfa-verify', $secrets, fn (): GarminTokens => $login->verifyCode($pending->challenge, $code));
 
             $this->accounts->completeLogin($uid, $credentials->email, $credentials, $tokens);
             $this->accounts->setMfaAccount($uid, true, $pending->challenge->method);
@@ -189,15 +191,16 @@ final class MfaService
      * MobileLogin is used without the Authenticator here, so a missing HTTP response is turned into a
      * GarminException the same way.
      *
+     * @param list<string> $secrets Values the message must never contain (password, code, cookie values)
      * @param callable(): GarminTokens $fn
      * @throws GarminException
      */
-    private function network(string $step, Credentials $credentials, callable $fn): GarminTokens
+    private function network(string $step, array $secrets, callable $fn): GarminTokens
     {
         try {
             return $fn();
         } catch (NetworkException $e) {
-            $redactor = new Redactor([$credentials->password, $credentials->email]);
+            $redactor = new Redactor($secrets);
 
             throw new GarminException(FailureCategory::Network, $step, $redactor->redact($e->getMessage()), previous: $e);
         }

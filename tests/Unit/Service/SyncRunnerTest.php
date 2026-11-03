@@ -137,6 +137,19 @@ final class SyncRunnerTest extends TestCase
         self::assertSame([[MfaCleanupJob::class, $this->now->getTimestamp() + 1800, ['uid' => self::UID]]], $this->scheduled);
     }
 
+    public function testCodeSentByTheSyncCountsForTheRequestLimit(): void
+    {
+        $this->connect(withTokens: false);
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        $this->runner()->run(self::UID, $this->now);
+
+        self::assertSame([$this->now->getTimestamp()], $this->users->mfaRequests(self::UID));
+    }
+
     public function testStoredSsoCookiesAreSentWithTheSync(): void
     {
         $this->connect();
@@ -515,7 +528,7 @@ final class SyncRunnerTest extends TestCase
             $this->l10nFactory(),
             $this->userManager(),
             $this->logger,
-            new PendingMfaSaver($this->secrets, $jobList, $this->logger),
+            new PendingMfaSaver($this->secrets, $jobList, $this->logger, $this->users),
         );
     }
 

@@ -13,6 +13,7 @@ use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
+use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
@@ -279,6 +280,17 @@ final class MfaServiceTest extends TestCase
         self::assertNull($this->secrets->credentials(self::UID));
     }
 
+    public function testRequestDuringSetupCountsOnlyOnceForTheLimit(): void
+    {
+        $this->pending(MfaOrigin::Setup, new Credentials('new@b.de', 'typed'));
+        $this->now = self::NOW + 120;
+        $this->http->queue(self::mfaRequired('email'));
+
+        $this->service()->request(self::UID);
+
+        self::assertSame([self::NOW + 120], $this->users->mfaRequests(self::UID));
+    }
+
     public function testRequestAfterAnExpiredSetupRequestNeverUsesTheStoredCredentials(): void
     {
         $this->connected();
@@ -308,6 +320,24 @@ final class MfaServiceTest extends TestCase
 
         self::assertSame(['mobile.mfa-verify', 'mobile.di-exchange'], $this->http->steps());
         self::assertSame('123456', json_decode((string)$this->http->requests[0]->body, true)['mfaVerificationCode']);
+        self::assertStringNotContainsString('123456', $this->logger->dump());
+    }
+
+    public function testVerifyMasksCodeAndCookieValuesInNetworkErrors(): void
+    {
+        $this->connected();
+        $this->pending(MfaOrigin::Relogin, cookies: ["sso.garmin.com\tFALSE\t/\tTRUE\t0\tCASTGC\tTGT-SESSION-VALUE-4711"]);
+        $this->http->queue(new NetworkException('reset after 123456 and TGT-SESSION-VALUE-4711'));
+
+        try {
+            $this->service()->verify(self::UID, '123456');
+            self::fail('GarminException expected');
+        } catch (GarminException $e) {
+            self::assertSame(FailureCategory::Network, $e->category);
+            self::assertSame('reset after *** and ***', $e->getMessage());
+        }
+
+        self::assertStringNotContainsString('TGT-SESSION-VALUE-4711', $this->logger->dump());
         self::assertStringNotContainsString('123456', $this->logger->dump());
     }
 
@@ -546,7 +576,7 @@ final class MfaServiceTest extends TestCase
             $time,
             $lock,
             $this->logger,
-            new PendingMfaSaver($this->secrets, $jobList, $this->logger),
+            new PendingMfaSaver($this->secrets, $jobList, $this->logger, $this->users),
         );
 
         return new MfaService($accounts, $garmin, $this->secrets, $this->users, $lock, $time, $this->logger);

@@ -20,18 +20,23 @@ ausweisen kann. Zugangsdaten und Tokens liegen bereits verschlüsselt im `Secret
 ## Entscheidung
 
 - Die laufende Code-Anfrage steht verschlüsselt im `SecretStore` unter dem Schlüssel `mfa_pending`:
-  SSO-Cookies (Cookie-Liste von curl), Query-Parameter, Weg (`mfaLastMethodUsed`, unverändert),
-  Login-Strategie (Mobile oder Portal), Herkunft (`MfaOrigin`: Einrichtung, „Code anfordern“ oder
-  Versuch im Hintergrund) und Zeitpunkt.
+  SSO-Cookies (Cookie-Liste von curl), Weg (`mfaLastMethodUsed`, unverändert), Herkunft
+  (`MfaOrigin`: Einrichtung, „Code anfordern“ oder Versuch im Hintergrund) und Zeitpunkt.
+- Query-Parameter und Login-Strategie werden nicht gespeichert. Die Code-Anfrage entsteht immer über
+  den Login der iOS-App (`MobileLogin`), dessen Parameter feste Werte im Code sind. `verifyCode`
+  schickt den Code zuerst an den Endpunkt der iOS-App und danach, wie python-garminconnect, an den
+  Portal-Endpunkt mit dessen festen Parametern.
 - Bei der Einrichtung fehlen die Zugangsdaten noch im `SecretStore`. Dort gehören E-Mail und Passwort
   zur Code-Anfrage und werden nach einem richtigen Code als Zugangsdaten gespeichert.
 - Eine Code-Anfrage gilt höchstens 30 Minuten (`PendingMfa::LIFETIME_SECONDS`). Beim Lesen gilt eine
-  abgelaufene Anfrage als nicht vorhanden. Der `MfaCleanupJob` löscht abgelaufene Einträge, auch von
-  Personen, die die Einstellungen nicht mehr öffnen.
+  abgelaufene Anfrage als nicht vorhanden. Gelöscht wird sie nur unter der Sperre der Person (Anfordern,
+  Bestätigen) und vom `MfaCleanupJob`, auch bei Personen, die die Einstellungen nicht mehr öffnen. Der
+  Status liest sie nur.
 - Gelöscht wird die Anfrage außerdem nach einem richtigen Code, bei „Zurück“ und „Abbrechen“
   (`POST /api/mfa/cancel`), beim Abmelden und beim Zurücksetzen.
-- Der Code selbst wird nie gespeichert und nie geloggt. Der `Redactor` schwärzt Code und
-  Cookie-Werte.
+- Der Code selbst wird nie gespeichert und nie geloggt. Der `Redactor` schwärzt den Code und die
+  Werte der mitgeschickten Cookies (die Wert-Spalte der Cookie-Zeilen, ab acht Zeichen; kürzere Werte
+  wie `1` sind Schalter und kein Geheimnis) im Log und in Auszügen aus Antworten von Garmin.
 - Setzt Garmin nach dem Code ein Cookie („Browser merken“), wird es verschlüsselt unter `sso_cookies`
   aufgehoben, als Teil der Anmeldung nach einem erfolgreichen Code, und bei jedem Login mit Passwort
   mitgeschickt.
@@ -41,7 +46,8 @@ ausweisen kann. Zugangsdaten und Tokens liegen bereits verschlüsselt im `Secret
   benachrichtigt.
 - Wer wie oft einen Code anfordern darf, steht in `mfa_requests` (Zeitpunkte, Benutzerdaten):
   höchstens einmal pro Minute und fünfmal pro Stunde je Person (`MfaRequestLimit`), weil jedes
-  Anfordern ein vollständiger Login mit Passwort ist.
+  Anfordern ein vollständiger Login mit Passwort ist. Mitgezählt werden auch der Login der Einrichtung
+  und der Versuch im Hintergrund, wenn Garmin dabei einen Code verlangt.
 
 ## Konsequenzen
 

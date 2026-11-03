@@ -665,6 +665,31 @@ final class AccountServiceTest extends TestCase
         self::assertSame([], $this->notificationCalls);
     }
 
+    public function testCodeSentByTheSetupLoginCountsForTheRequestLimit(): void
+    {
+        $this->users->saveMfaRequests(self::UID, [self::NOW - 600]);
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
+
+        self::assertSame([self::NOW - 600, self::NOW], $this->users->mfaRequests(self::UID));
+    }
+
+    public function testSetupLoginWithoutCodeDoesNotCountForTheRequestLimit(): void
+    {
+        $this->http->queue(
+            FakeHttpClient::json(200, ['responseStatus' => ['type' => 'SUCCESSFUL'], 'serviceTicketId' => 'ST-1']),
+            FakeHttpClient::json(200, ['access_token' => Jwt::make(['client_id' => 'C']), 'refresh_token' => 'r']),
+        );
+
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
+
+        self::assertSame([], $this->users->mfaRequests(self::UID));
+    }
+
     public function testLoginWithMfaForAnotherAccountLeavesTheFlagOfTheCurrentOne(): void
     {
         $this->connected();
@@ -809,7 +834,7 @@ final class AccountServiceTest extends TestCase
             $time,
             new PersonLock($this->locking),
             $this->logger,
-            new PendingMfaSaver($this->secrets, $jobList, $this->logger),
+            new PendingMfaSaver($this->secrets, $jobList, $this->logger, $this->users),
         );
     }
 

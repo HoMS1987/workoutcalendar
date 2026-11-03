@@ -270,6 +270,20 @@ final class StatusServiceTest extends TestCase
         self::assertNull($this->service()->status(self::UID)['mfa']['pending']);
     }
 
+    public function testStatusLeavesAnExpiredRequestToTheLockedPaths(): void
+    {
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(
+            new MfaChallenge('email', ['c']),
+            MfaOrigin::Setup,
+            self::NOW - PendingMfa::LIFETIME_SECONDS,
+        ));
+
+        $this->service()->status(self::UID);
+
+        // WHY: The status runs without the person's lock; deleting here could remove a request saved meanwhile.
+        self::assertNotNull($this->secrets->pendingMfa(self::UID, PHP_INT_MIN));
+    }
+
     public function testPausedForMfaCountsAsMfaAccount(): void
     {
         $state = $this->users->state(self::UID);

@@ -605,7 +605,7 @@ final class ApiControllerTest extends TestCase
         $time = $this->createStub(ITimeFactory::class);
         $time->method('getTime')->willReturn(self::NOW);
         $jobs = $this->createStub(IJobList::class);
-        $pendingRequests = new PendingMfaSaver($this->secrets, $jobs, $garminLogger);
+        $pendingRequests = new PendingMfaSaver($this->secrets, $jobs, $garminLogger, $this->users);
         $notifications = new FailureNotifications($this->notificationManager(), $time);
         $calendars = new CalendarService($this->objects);
         $lock = new PersonLock($this->locking);
