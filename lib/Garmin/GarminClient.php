@@ -31,7 +31,11 @@ final class GarminClient
     private readonly ResponseClassifier $classifier;
     private readonly Redactor $redactor;
 
-    /** @param (callable(): int)|null $now Current Unix time, replaceable in tests */
+    /**
+     * @param (callable(): int)|null $now Current Unix time, replaceable in tests
+     * @param bool $passwordLogin False for an account with two-step verification: a due login is not attempted
+     *                            but reported as MFA_REQUIRED, so the background sync never uses the password
+     */
     public function __construct(
         private readonly HttpClient $http,
         private readonly Authenticator $authenticator,
@@ -40,6 +44,7 @@ final class GarminClient
         private readonly Credentials $credentials,
         private readonly LoggerInterface $logger,
         ?callable $now = null,
+        private readonly bool $passwordLogin = true,
     ) {
         $this->now = $now !== null ? \Closure::fromCallable($now) : static fn (): int => time();
         $this->classifier = new ResponseClassifier();
@@ -128,6 +133,9 @@ final class GarminClient
 
     private function login(): GarminTokens
     {
+        if (!$this->passwordLogin) {
+            throw new GarminException(FailureCategory::MfaRequired, 'login.skipped', 'Account uses two-step verification, no background sign-in');
+        }
         $tokens = $this->authenticator->login($this->credentials);
         $this->store->save($tokens);
 

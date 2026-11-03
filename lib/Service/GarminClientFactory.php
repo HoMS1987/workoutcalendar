@@ -31,9 +31,13 @@ final class GarminClientFactory
     ) {
     }
 
-    public function client(string $uid, Credentials $credentials): GarminClient
+    public function client(string $uid, Credentials $credentials, bool $passwordLogin = true): GarminClient
     {
         $http = $this->http([$credentials->password, $credentials->email]);
+        $cookies = $this->secrets->ssoCookies($uid);
+        if ($cookies !== []) {
+            $http->importCookies($cookies);
+        }
 
         return new GarminClient(
             $http,
@@ -42,7 +46,24 @@ final class GarminClientFactory
             new UserTokenStore($this->secrets, $uid),
             $credentials,
             $this->logger,
+            passwordLogin: $passwordLogin,
         );
+    }
+
+    /**
+     * Login with its own HTTP connection, e.g. to confirm a code in the SSO session of a challenge.
+     *
+     * @param list<string> $cookies Netscape cookie lines to continue a session
+     * @param list<string> $knownSecrets Values the log must never contain
+     */
+    public function mobileLogin(array $cookies = [], array $knownSecrets = []): MobileLogin
+    {
+        $http = $this->http($knownSecrets);
+        if ($cookies !== []) {
+            $http->importCookies($cookies);
+        }
+
+        return new MobileLogin($http, new DiTokenService($http));
     }
 
     /** Login without stored tokens, e.g. to check new credentials. */

@@ -224,6 +224,13 @@ final class SyncService
             // No further login attempt until new credentials are available (SyncRunner checks this).
             $state->pausedFor = $e->category->value;
         }
+        if ($e->category === FailureCategory::MfaRequired) {
+            $state->mfaAccount = true;
+            if ($e->mfaChallenge !== null) {
+                $state->mfaMethod = $e->mfaChallenge->method;
+                $result->mfaChallenge = $e->mfaChallenge;
+            }
+        }
         $this->failureLog->recordFailure($state, $e, $now->getTimestamp());
     }
 

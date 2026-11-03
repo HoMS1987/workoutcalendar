@@ -40,4 +40,30 @@ final class GarminClientFactoryTest extends TestCase
 
         self::assertSame(3, $provider->created);
     }
+
+    public function testMobileLoginGetsItsOwnHttpClientWithImportedCookies(): void
+    {
+        $clients = [];
+        $provider = new class ($clients) implements HttpClientProvider {
+            /** @param list<FakeHttpClient> $clients */
+            public function __construct(private array &$clients)
+            {
+            }
+
+            public function create(): HttpClient
+            {
+                return $this->clients[] = new FakeHttpClient();
+            }
+        };
+        $store = [];
+        $logger = new MemoryLogger();
+        $factory = new GarminClientFactory($provider, new SecretStore($this->memoryUserConfig($store), $this->fakeCrypto(), $logger), $logger);
+
+        $factory->mobileLogin(['c1', 'c2'], ['pw']);
+        $factory->mobileLogin();
+
+        self::assertCount(2, $clients);
+        self::assertSame(['c1', 'c2'], $clients[0]->cookies);
+        self::assertSame([], $clients[1]->cookies);
+    }
 }

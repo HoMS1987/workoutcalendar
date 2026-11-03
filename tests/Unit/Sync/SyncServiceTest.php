@@ -9,6 +9,7 @@ use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
@@ -38,6 +39,7 @@ final class SyncServiceTest extends TestCase
     private \DateTimeImmutable $now;
     /** If set: no stored tokens, the login throws this error. */
     private ?FailureCategory $loginFailure = null;
+    private ?MfaChallenge $loginChallenge = null;
 
     protected function setUp(): void
     {
@@ -56,8 +58,8 @@ final class SyncServiceTest extends TestCase
         $strategies = [];
         if ($this->loginFailure !== null) {
             $category = $this->loginFailure;
-            $strategies[] = new class ($category) implements LoginStrategy {
-                public function __construct(private readonly FailureCategory $category)
+            $strategies[] = new class ($category, $this->loginChallenge) implements LoginStrategy {
+                public function __construct(private readonly FailureCategory $category, private readonly ?MfaChallenge $challenge)
                 {
                 }
 
@@ -68,7 +70,7 @@ final class SyncServiceTest extends TestCase
 
                 public function login(\OCA\WorkoutCalendar\Garmin\Auth\Credentials $credentials): GarminTokens
                 {
-                    throw new GarminException($this->category, 'fake.login', 'rejected');
+                    throw new GarminException($this->category, 'fake.login', 'rejected', mfaChallenge: $this->challenge);
                 }
             };
         }
@@ -412,6 +414,43 @@ final class SyncServiceTest extends TestCase
         $this->sync();
 
         self::assertSame('MFA_REQUIRED', $this->state->pausedFor);
+    }
+
+    public function testMfaRequiredMarksTheAccountAndKeepsTheChallenge(): void
+    {
+        $this->loginFailure = FailureCategory::MfaRequired;
+        $this->loginChallenge = new MfaChallenge('email', ['cookie-line']);
+
+        $result = $this->sync();
+
+        self::assertTrue($this->state->mfaAccount);
+        self::assertSame('email', $this->state->mfaMethod);
+        self::assertSame('MFA_REQUIRED', $this->state->pausedFor);
+        self::assertSame($this->loginChallenge, $result->mfaChallenge);
+    }
+
+    public function testMfaRequiredWithoutChallengeStillMarksTheAccount(): void
+    {
+        $this->loginFailure = FailureCategory::MfaRequired;
+        $this->state->mfaMethod = 'sms';
+
+        $result = $this->sync();
+
+        self::assertTrue($this->state->mfaAccount);
+        self::assertSame('sms', $this->state->mfaMethod);
+        self::assertNull($result->mfaChallenge);
+    }
+
+    public function testResultLogContainsNoChallenge(): void
+    {
+        $this->loginFailure = FailureCategory::MfaRequired;
+        $this->loginChallenge = new MfaChallenge('email', ['secret-cookie-value']);
+
+        $result = $this->sync();
+
+        self::assertArrayNotHasKey('mfaChallenge', $result->toArray());
+        self::assertStringNotContainsString('secret-cookie-value', json_encode($result->toArray(), JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('secret-cookie-value', json_encode($this->logger->records ?? [], JSON_THROW_ON_ERROR));
     }
 
     public function testNetworkErrorDoesNotPause(): void
