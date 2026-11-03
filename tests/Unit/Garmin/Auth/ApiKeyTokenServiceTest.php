@@ -108,6 +108,15 @@ final class ApiKeyTokenServiceTest extends TestCase
         self::assertSame(FailureCategory::Network, $network->category);
         self::assertStringNotContainsString($key, $network->getMessage());
         self::assertStringNotContainsString($key, $network->excerpt);
+        // The original NetworkException carries the unredacted text, so it must not stay in the chain.
+        self::assertNull($network->getPrevious());
+    }
+
+    public function testEmptyAccessTokenIsProtocolChanged(): void
+    {
+        $e = $this->exchangeFailure(new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => ''])));
+
+        self::assertSame(FailureCategory::ProtocolChanged, $e->category);
     }
 
     public function testGarminUserIdReadsTheFirstKnownClaim(): void

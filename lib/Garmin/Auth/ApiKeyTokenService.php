@@ -42,7 +42,8 @@ final class ApiKeyTokenService
                 'Accept' => '*/*',
             ]));
         } catch (NetworkException $e) {
-            throw new GarminException(FailureCategory::Network, self::STEP, $this->redactor->redact($e->getMessage()), previous: $e);
+            // No previous: the original exception carries the unredacted text, which may contain the key.
+            throw new GarminException(FailureCategory::Network, self::STEP, $this->redactor->redact($e->getMessage()));
         }
 
         if ($response->status === 401 || $response->status === 403) {
