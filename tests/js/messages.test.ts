@@ -155,6 +155,8 @@ describe('mfaKind', () => {
 		['EMAIL', 'email'],
 		['sms', 'sms'],
 		['SMS', 'sms'],
+		// Garmin reports a text message as "phone" (seen on a real account).
+		['phone', 'sms'],
 		['totp', 'app'],
 		['authenticator', 'app'],
 		['push', 'other'],
@@ -168,6 +170,7 @@ describe('mfaPromptText', () => {
 	it.each([
 		['email', 'Garmin has sent you a code by email.'],
 		['sms', 'Garmin has sent you a code by SMS.'],
+		['phone', 'Garmin has sent you a code by SMS.'],
 		['totp', 'Enter the code from your authenticator app.'],
 		['push', 'Enter the code Garmin has sent you.'],
 		[null, 'Garmin has sent you a code by email or SMS.'],

@@ -18,7 +18,8 @@ use Psr\Log\LoggerInterface;
  */
 final class PendingMfaSaver
 {
-    private const KNOWN_METHODS = ['email', 'sms'];
+    /** "phone" is what Garmin reports for a text message. */
+    private const KNOWN_METHODS = ['email', 'sms', 'phone'];
 
     public function __construct(
         private readonly SecretStore $secrets,

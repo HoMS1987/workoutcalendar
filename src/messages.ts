@@ -79,7 +79,8 @@ export function mfaKind(method: string | null): MfaKind {
 	if (/^email$/i.test(method)) {
 		return 'email'
 	}
-	if (/^sms$/i.test(method)) {
+	// Garmin reports a text message as "phone".
+	if (/^(sms|phone)$/i.test(method)) {
 		return 'sms'
 	}
 	return /totp|authenticator/i.test(method) ? 'app' : 'other'

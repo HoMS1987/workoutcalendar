@@ -134,6 +134,18 @@ final class MfaServiceTest extends TestCase
         self::assertSame([], $this->logger->byLevel('info'), 'sms is a known method');
     }
 
+    /** Garmin reports a text message as "phone" (seen on a real account in the 1.1.0-rc.1 test). */
+    public function testPhoneIsAKnownMethod(): void
+    {
+        $this->connected();
+        $this->http->queue(self::mfaRequired('phone'));
+
+        $this->service()->request(self::UID);
+
+        self::assertSame('phone', $this->users->state(self::UID)->mfaMethod);
+        self::assertSame([], $this->logger->byLevel('info'), 'phone is a known method');
+    }
+
     public function testRequestWithAnUnknownMethodLogsOnlyTheMethodName(): void
     {
         $this->connected();
