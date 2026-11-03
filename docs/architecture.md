@@ -133,6 +133,7 @@ Fehlerantworten der Code-Routen:
 | 422 | `{"error": "MFA_CODE_INVALID"}` | `POST /api/mfa/verify`: Garmin lehnt den Code ab |
 | 422 | `{"error": "MFA_EXPIRED"}` | Die Code-Anfrage ist älter als 30 Minuten; auch bei `POST /api/mfa/request`, wenn die Anfrage aus der Einrichtung stammt und die Zugangsdaten nicht mehr gelten |
 | 422 | `{"error": "MFA_NOT_PENDING"}` | Es gibt keine Code-Anfrage zum Bestätigen |
+| 422 | `{"error": "MFA_CREDENTIALS_REJECTED"}` | `POST /api/mfa/request`, während der Sync wegen `INVALID_CREDENTIALS` pausiert; Garmin wird nicht gefragt (außer mit den Zugangsdaten einer Code-Anfrage aus der Einrichtung) |
 | 400 | `{"error": "invalidRequest"}` | Der Code hat nicht sechs Ziffern (Leerzeichen werden entfernt); Garmin wird nicht gefragt |
 
 ### Zustände für die Oberfläche

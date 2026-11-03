@@ -28,6 +28,7 @@ describe('loginError', () => {
 		['MFA_REQUIRED', 'Your Garmin account asks for a verification code.'],
 		['MFA_CODE_INVALID', 'The code is not correct. Please check it and try again.'],
 		['MFA_EXPIRED', 'The code request has expired. Please request a new code.'],
+		['MFA_CREDENTIALS_REJECTED', 'Garmin rejected the saved password. Please sign out and sign in with your current password.'],
 		['BLOCKED', 'Garmin is blocking the sign-in right now. Please try again later.'],
 		['PROTOCOL_CHANGED', 'The Garmin sign-in seems to have changed. Details are in the Nextcloud log.'],
 		['SERVER_ERROR', 'Garmin cannot be reached right now. Please try again later.'],
@@ -178,5 +179,6 @@ describe('MFA login failures', () => {
 	it('knows the code failures as login failures', () => {
 		expect(isLoginFailure('MFA_CODE_INVALID')).toBe(true)
 		expect(isLoginFailure('MFA_EXPIRED')).toBe(true)
+		expect(isLoginFailure('MFA_CREDENTIALS_REJECTED')).toBe(true)
 	})
 })

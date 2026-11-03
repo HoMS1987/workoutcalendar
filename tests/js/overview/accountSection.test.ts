@@ -76,6 +76,23 @@ describe('AccountSection', () => {
 		wrapper.unmount()
 	})
 
+	it('hidesSignInAgainWhilePausedForRejectedPassword', async () => {
+		const wrapper = mountSection(makeStatus({ paused: 'INVALID_CREDENTIALS' }))
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+
+		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(false)
+		expect(wrapper.find('button[data-test="logout"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('offersSignInAgainWhilePausedForACode', async () => {
+		const wrapper = mountSection(makeStatus({ paused: 'MFA_REQUIRED' }))
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+
+		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
 	it('is collapsed by default', async () => {
 		const wrapper = mountSection()
 

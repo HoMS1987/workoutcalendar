@@ -218,6 +218,39 @@ final class MfaServiceTest extends TestCase
         self::assertNull($this->secrets->pendingMfa(self::UID, self::NOW));
     }
 
+    public function testRequestWhilePausedForRejectedPasswordDoesNotContactGarmin(): void
+    {
+        $this->connected();
+        $state = $this->users->state(self::UID);
+        $state->pausedFor = 'INVALID_CREDENTIALS';
+        $this->users->saveState(self::UID, $state);
+
+        try {
+            $this->service()->request(self::UID);
+            self::fail('MfaException expected');
+        } catch (MfaException $e) {
+            self::assertSame('MFA_CREDENTIALS_REJECTED', $e->error);
+        }
+
+        self::assertSame([], $this->http->requests);
+        self::assertSame([], $this->users->mfaRequests(self::UID));
+        self::assertSame('INVALID_CREDENTIALS', $this->users->state(self::UID)->pausedFor);
+    }
+
+    public function testRequestDuringSetupSignsInDespiteAPauseForRejectedPassword(): void
+    {
+        $this->connected();
+        $state = $this->users->state(self::UID);
+        $state->pausedFor = 'INVALID_CREDENTIALS';
+        $this->users->saveState(self::UID, $state);
+        $this->pending(MfaOrigin::Setup, new Credentials('a@b.de', 'new-password'));
+        $this->http->queue(self::mfaRequired('email'));
+
+        self::assertSame(LoginOutcome::CodeRequired, $this->service()->request(self::UID));
+
+        self::assertSame('new-password', json_decode((string)$this->http->requests[0]->body, true)['password']);
+    }
+
     public function testRequestWithoutCredentialsDoesNotContactGarmin(): void
     {
         $this->expectException(\InvalidArgumentException::class);

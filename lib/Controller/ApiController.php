@@ -38,7 +38,8 @@ use Psr\Log\LoggerInterface;
  * JSON API of the settings page. Every route works only with the signed-in person's data.
  * Errors: no signed-in person → 401 `notLoggedIn`, Garmin → 422 with failure category, invalid
  * request → 400, running sync → 409 `busy`, too many code requests → 429 `MFA_RATE_LIMITED` with
- * `retryAfter`, expired or missing code request → 422 `MFA_EXPIRED` / `MFA_NOT_PENDING`, anything else → 500.
+ * `retryAfter`, expired or missing code request → 422 `MFA_EXPIRED` / `MFA_NOT_PENDING`, code request while
+ * paused for a rejected password → 422 `MFA_CREDENTIALS_REJECTED`, anything else → 500.
  */
 final class ApiController extends Controller
 {

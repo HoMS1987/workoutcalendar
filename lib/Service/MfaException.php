@@ -10,6 +10,7 @@ final class MfaException extends \RuntimeException
     public const RATE_LIMITED = 'MFA_RATE_LIMITED';
     public const EXPIRED = 'MFA_EXPIRED';
     public const NOT_PENDING = 'MFA_NOT_PENDING';
+    public const CREDENTIALS_REJECTED = 'MFA_CREDENTIALS_REJECTED';
 
     /**
      * @param string $error One of the constants above

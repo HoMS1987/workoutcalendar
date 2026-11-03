@@ -7,7 +7,12 @@
 			{{ reloginError }}
 		</NcNoteCard>
 		<div class="account__buttons">
-			<NcButton data-test="relogin" :disabled="busy" @click="signInAgain">
+			<!-- WHY hidden after a rejected password: it would only send the same password to Garmin again. -->
+			<NcButton
+				v-if="status.paused !== 'INVALID_CREDENTIALS'"
+				data-test="relogin"
+				:disabled="busy"
+				@click="signInAgain">
 				{{ t('workoutcalendar', 'Sign in again') }}
 			</NcButton>
 			<NcButton data-test="logout" @click="open = 'logout'">

@@ -43,7 +43,8 @@ final class MfaService
      * Garmin then either signs in directly or sends a code, which waits as a pending request.
      *
      * @throws MfaException MFA_RATE_LIMITED with the seconds until the next allowed request, MFA_EXPIRED
-     *         if the setup request has expired (the wizard then starts over with email and password)
+     *         if the setup request has expired (the wizard then starts over with email and password),
+     *         MFA_CREDENTIALS_REJECTED while the sync is paused for a rejected password (outside the setup)
      * @throws GarminException for any other answer from Garmin; INVALID_CREDENTIALS also pauses the sync
      * @throws \InvalidArgumentException if there are no credentials to sign in with
      * @throws PersonBusyException if a sync run or another change holds the person's lock
@@ -62,6 +63,10 @@ final class MfaService
                 $pending = null;
             }
             $setupCredentials = $pending?->origin === MfaOrigin::Setup ? $pending->credentials : null;
+            if ($setupCredentials === null && $this->users->state($uid)->pausedFor === FailureCategory::InvalidCredentials->value) {
+                // WHY: Garmin already rejected the stored password; another attempt only counts towards an account lock.
+                throw new MfaException(MfaException::CREDENTIALS_REJECTED);
+            }
             $credentials = $setupCredentials ?? $this->secrets->credentials($uid);
             if ($credentials === null) {
                 throw new \InvalidArgumentException('No Garmin credentials to sign in with');
