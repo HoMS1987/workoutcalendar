@@ -75,6 +75,24 @@ final class CurlHttpClient implements HttpClient
         );
     }
 
+    public function exportCookies(): array
+    {
+        if ($this->handle === null) {
+            return [];
+        }
+        $cookies = curl_getinfo($this->handle, CURLINFO_COOKIELIST);
+
+        return is_array($cookies) ? array_values($cookies) : [];
+    }
+
+    public function importCookies(array $lines): void
+    {
+        $handle = $this->handle();
+        foreach ($lines as $line) {
+            curl_setopt($handle, CURLOPT_COOKIELIST, $line);
+        }
+    }
+
     private function handle(): \CurlHandle
     {
         if ($this->handle !== null) {

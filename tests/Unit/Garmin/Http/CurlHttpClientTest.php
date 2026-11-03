@@ -150,4 +150,18 @@ final class CurlHttpClientTest extends TestCase
         $this->expectException(NetworkException::class);
         $client->send(new HttpRequest('test.down', 'GET', 'http://127.0.0.1:' . self::freePort() . '/'));
     }
+
+    public function testImportedCookiesAreExportedAgain(): void
+    {
+        $client = new CurlHttpClient();
+        $line = "sso.garmin.com	FALSE	/	TRUE	0	SESSION	abc";
+        $client->importCookies([$line]);
+
+        self::assertSame([$line], $client->exportCookies());
+    }
+
+    public function testExportWithoutRequestIsEmpty(): void
+    {
+        self::assertSame([], (new CurlHttpClient())->exportCookies());
+    }
 }

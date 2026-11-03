@@ -41,6 +41,19 @@ final class FakeHttpClient implements HttpClient
         return $next;
     }
 
+    /** @var list<string> Netscape cookie lines */
+    public array $cookies = [];
+
+    public function exportCookies(): array
+    {
+        return $this->cookies;
+    }
+
+    public function importCookies(array $lines): void
+    {
+        $this->cookies = $lines;
+    }
+
     /** @return list<string> */
     public function steps(): array
     {

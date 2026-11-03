@@ -12,4 +12,18 @@ interface HttpClient
 {
     /** @throws NetworkException if no HTTP response is obtained */
     public function send(HttpRequest $request): HttpResponse;
+
+    /**
+     * Cookies currently held, as Netscape lines like CURLINFO_COOKIELIST returns them.
+     *
+     * @return list<string>
+     */
+    public function exportCookies(): array;
+
+    /**
+     * Loads cookies in the same Netscape line format, e.g. from an earlier export.
+     *
+     * @param list<string> $lines
+     */
+    public function importCookies(array $lines): void;
 }
