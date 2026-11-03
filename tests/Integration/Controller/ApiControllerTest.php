@@ -235,6 +235,17 @@ final class ApiControllerTest extends TestCase
         self::assertFalse($response->getData()['mfa']['account']);
     }
 
+    public function testApiKeyWithoutValueIs400(): void
+    {
+        $controller = $this->controller();
+
+        foreach ([$controller->apiKey(), $controller->apiKey(' ')] as $response) {
+            self::assertSame(400, $response->getStatus());
+            self::assertSame(['error' => 'invalidRequest'], $response->getData());
+        }
+        self::assertSame([], $this->http->requests);
+    }
+
     public function testMfaRequestWithoutAccountIs400(): void
     {
         $response = $this->controller()->mfaRequest();

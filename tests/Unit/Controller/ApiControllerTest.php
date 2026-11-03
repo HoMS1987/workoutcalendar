@@ -10,6 +10,7 @@ use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
@@ -34,6 +35,7 @@ use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLockingProvider;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCA\WorkoutCalendar\Tests\Support\RecordingNotification;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
@@ -55,6 +57,7 @@ final class ApiControllerTest extends TestCase
     private const UID = 'anna';
     private const NOW = 1_792_497_600;
     private const ACCOUNT = '0123456789abcdef';
+    private const API_KEY = 'personal-key-0123456789';
 
     /** @var array<string, array<string, string|int>> */
     private array $store = [];
@@ -569,6 +572,76 @@ final class ApiControllerTest extends TestCase
             self::assertCount(1, $attributes, $method);
             self::assertSame(['limit' => 10, 'period' => 3600], $attributes[0]->getArguments());
         }
+    }
+
+    public function testApiKeyRouteReturnsStatus(): void
+    {
+        $this->http->queue(FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => self::NOW + 86_400, 'garmin_guid' => 'g-1'])]));
+
+        $response = $this->controller()->apiKey(" \t" . self::API_KEY . "\n");
+
+        self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
+        self::assertSame('calendar', $response->getData()['setup']['step']);
+        self::assertTrue($response->getData()['setup']['connected']);
+        self::assertSame('apiKey', $response->getData()['setup']['authMethod']);
+        self::assertSame(self::NOW, $response->getData()['setup']['apiKeyEnteredAt']);
+        self::assertSame(self::API_KEY, $this->secrets->apiKey(self::UID)?->key);
+    }
+
+    public function testRejectedApiKeyIs422(): void
+    {
+        $this->http->queue(new HttpResponse(401, [], 'Unauthorized'));
+
+        $response = $this->controller()->apiKey(self::API_KEY);
+
+        self::assertSame(422, $response->getStatus());
+        self::assertSame(['error' => 'API_KEY_REJECTED'], $response->getData());
+        self::assertNull($this->secrets->apiKey(self::UID));
+    }
+
+    public function testEmptyApiKeyIs400(): void
+    {
+        $controller = $this->controller();
+
+        foreach ([$controller->apiKey(), $controller->apiKey(''), $controller->apiKey(" \n\t "), $controller->apiKey(12345), $controller->apiKey(['a'])] as $response) {
+            self::assertSame(400, $response->getStatus());
+            self::assertSame(['error' => 'invalidRequest'], $response->getData());
+        }
+        self::assertSame([], $this->http->requests);
+    }
+
+    public function testApiKeyRouteIsRateLimited(): void
+    {
+        $method = new \ReflectionMethod(ApiController::class, 'apiKey');
+        $attributes = $method->getAttributes(UserRateLimit::class);
+
+        self::assertCount(1, $attributes);
+        self::assertSame(['limit' => 10, 'period' => 3600], $attributes[0]->getArguments());
+        self::assertCount(1, $method->getAttributes(NoAdminRequired::class));
+    }
+
+    public function testApiKeyNeverInLogOrResponse(): void
+    {
+        // 422: Garmin rejects the key and echoes it.
+        $this->http->queue(new HttpResponse(401, [], 'Unauthorized ' . self::API_KEY));
+        $rejected = $this->controller()->apiKey(self::API_KEY);
+        self::assertSame(422, $rejected->getStatus());
+
+        // 500: an unexpected exception whose message contains the key.
+        $this->http->queue(new \RuntimeException('Broken with ' . self::API_KEY));
+        $failed = $this->controller()->apiKey(self::API_KEY);
+        self::assertSame(500, $failed->getStatus());
+        self::assertSame(['exceptionClass' => \RuntimeException::class], $this->logger->records[0]['context']);
+
+        // 200: the status names the method, never the key.
+        $this->http->queue(FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => self::NOW + 86_400])]));
+        $success = $this->controller()->apiKey(self::API_KEY);
+        self::assertSame(200, $success->getStatus());
+
+        foreach ([$rejected, $failed, $success] as $response) {
+            self::assertStringNotContainsString(self::API_KEY, (string)json_encode($response->getData()));
+        }
+        self::assertStringNotContainsString(self::API_KEY, $this->logger->dump());
     }
 
     private function done(): void

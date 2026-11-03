@@ -32,12 +32,17 @@ final class StatusService
         $setup = $this->users->setup($uid);
         $state = $this->users->state($uid);
         $calendar = $setup->calendarId === null ? null : $this->ownCalendar($uid, $setup->calendarId);
+        $apiKey = $this->secrets->apiKey($uid);
+        // Only the method and the entry time are exposed, never the key.
+        $authMethod = $apiKey !== null ? 'apiKey' : ($this->secrets->credentials($uid) !== null ? 'password' : null);
 
         return [
             'setup' => [
                 'step' => $setup->step->value,
                 'connected' => $setup->connected,
                 'maskedEmail' => $setup->maskedEmail,
+                'authMethod' => $authMethod,
+                'apiKeyEnteredAt' => $apiKey?->enteredAt,
                 'calendar' => $setup->calendarId === null ? null : [
                     'id' => $setup->calendarId,
                     'name' => $calendar?->name,

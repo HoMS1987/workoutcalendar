@@ -87,6 +87,23 @@ final class ApiController extends Controller
         }, logMessage: false);
     }
 
+    /** Connects with Garmin's personal API key; the key is exchanged for a token before anything is saved. */
+    #[NoAdminRequired]
+    // Every attempt reaches Garmin.
+    #[UserRateLimit(limit: 10, period: 3600)]
+    #[FrontpageRoute(verb: 'POST', url: '/api/apikey')]
+    public function apiKey(mixed $apiKey = null): JSONResponse
+    {
+        return $this->handle(function (string $uid) use ($apiKey): array {
+            if (!is_string($apiKey) || trim($apiKey) === '') {
+                throw new \InvalidArgumentException('API key is required');
+            }
+            $this->accounts->connectApiKey($uid, $apiKey);
+
+            return $this->status->status($uid);
+        }, logMessage: false);
+    }
+
     /** Signs in with the stored password (or the pending setup request); Garmin then signs in or sends a code. */
     #[NoAdminRequired]
     // Every request reaches Garmin and counts towards an account lock.
