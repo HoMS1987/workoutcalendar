@@ -6,8 +6,20 @@ All notable changes to this app are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Garmin accounts with two-step verification. The setup step asks for the code Garmin sends, and
+  the overview shows a box at the top when Garmin wants a new code. A code is only requested when
+  you ask for it, at most once per minute and five times per hour. "Sign in again" in the Garmin
+  account section switches an existing account over.
+- A pending code request is kept encrypted for at most 30 minutes and removed by a background job
+  afterwards.
+
 ### Changed
 
+- The notification for a sign-in that needs a code now says that Garmin asks for a verification
+  code and that Workout Calendar is paused until you enter it in the settings.
+- The code field is prepared for other ways of delivering the code, such as authenticator apps.
 - The App Store entry shows the settings page with the corrected margin from 1.0.1.
 
 ## 1.0.1 – 2026-11-03

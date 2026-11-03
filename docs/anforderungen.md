@@ -1,6 +1,6 @@
 # Anforderungen
 
-Stand: 2026-10-20. Offene Punkte stehen am Ende und werden hier nachgetragen, sobald sie geklärt
+Stand: 2026-11-03. Offene Punkte stehen am Ende und werden hier nachgetragen, sobald sie geklärt
 sind.
 
 ## Ziel
@@ -18,7 +18,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | R-01 | Nextcloud läuft selbst gehostet als Helm-Chart auf einem Talos-Kubernetes-Cluster. |
 | R-02 | AppAPI und Deploy-Daemon sind nicht aktiv und sollen nicht nötig sein. |
 | R-03 | Das Nextcloud-Konto nutzt Zwei-Faktor-Anmeldung. |
-| R-04 | Das Garmin-Konto nutzt keine Zwei-Faktor-Anmeldung. |
+| R-04 | Das Garmin-Konto des Autors nutzte bis 1.0.x keine Zwei-Faktor-Anmeldung. Ab 1.1.0 sind Konten mit Zwei-Faktor-Anmeldung unterstützt (F-07). |
 | R-05 | Garmin bietet Privatpersonen keine offizielle API. Der Zugriff läuft über inoffizielle Schnittstellen (ADR 0003). |
 | R-06 | Strava kommt als Datenquelle nur in Frage, wenn die API kostenlos ist. |
 | R-07 | Auf dem Entwicklungsrechner laufen keine Dienste und nichts startet automatisch mit dem System. |
@@ -35,7 +35,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | F-04 | Der Zielkalender ist einstellbar: ein neuer, von der App angelegter Kalender oder ein vorhandener. Standard: neuer Kalender „Garmin-Aktivitäten“. | Muss |
 | F-05 | Jede Person der Instanz hinterlegt ihr eigenes Garmin-Konto und hat eigene Einstellungen. | Muss |
 | F-06 | Nach der Installation sind alle Einstellungen mit sinnvollen Standardwerten belegt (siehe Standardwerte). | Muss |
-| F-07 | Vorgemerkt: Garmin-Konten mit Two-Step Verification. Verlangt Garmin einen Code (`MFA_REQUIRED`), wird er einmalig in den Einstellungen eingegeben. Danach arbeitet der Sync nur mit dem Refresh-Token weiter. Scheitert der Refresh, zeigen die Einstellungen an, dass ein neuer Code nötig ist. Voraussetzung: Der Refresh funktioniert ohne zweiten Faktor (ungeprüft). | Kann |
+| F-07 | Garmin-Konten mit Zwei-Faktor-Anmeldung (1.1.0). Antwortet Garmin beim Login mit `MFA_REQUIRED`, ersetzt im Schritt „Garmin“ ein Codefeld das Formular, und die Person gibt den Code beim Einrichten einmal ein. Danach arbeitet der Sync mit dem Refresh-Token weiter. Lehnt Garmin das Refresh-Token ab, meldet sich die App bei einem als Zwei-Faktor-Konto bekannten Konto nicht mehr mit dem Passwort an, sondern pausiert und benachrichtigt über die Glocke. Auf der Übersicht fordert die Person den Code dann selbst an (Hinweiskasten ganz oben), höchstens einmal pro Minute und fünfmal pro Stunde. Der Knopf „Neu anmelden“ stellt auch ein bestehendes Konto um. Ein Code wird nur auf Knopfdruck angefordert, einzige Ausnahme ist der eine Login-Versuch eines noch unbekannten Kontos im Sync. Die Eingabe ist für weitere Wege wie Authenticator-Apps ausgelegt. Eine Code-Anfrage gilt 30 Minuten (ADR 0008). | Muss |
 
 ### Synchronisation
 
@@ -114,7 +114,7 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 - Keine Rückrichtung: Termine in Nextcloud ändern nichts in Garmin.
 - Keine Gesundheitsdaten außer den Aktivitäten (Schlaf, Schritte, Gewicht).
 - Kein Import über Strava, solange Garmin direkt funktioniert.
-- Garmin-Konten mit Zwei-Faktor-Anmeldung werden vorerst nicht unterstützt (vorgemerkt als F-07).
+- Zwei-Faktor-Anmeldung über den zweiten Login-Weg (`WidgetLogin`) und ein Codefeld in der Benachrichtigung selbst (F-07).
 
 ## Offene Fragen
 
@@ -126,6 +126,6 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 | O-04 | Nur ein Garmin-Konto für die eigene Nutzung, oder jede Person der Instanz mit eigenem Konto? | geklärt: mehrere Personen (F-05) |
 | O-05 | Sprache der Oberfläche und Termine: nur Deutsch oder übersetzbar (App Store)? | geklärt: übersetzbar (NF-07) |
 | O-08 | Die Standardwerte der Einstellungen sind ein Vorschlag. Passen sie so? | geklärt: bestätigt |
-| O-09 | Garmin-Konten mit Two-Step Verification später unterstützen? Relevant, sobald EKG an einer Uhr aktiviert wird. | geklärt: vorgemerkt als F-07 |
+| O-09 | Garmin-Konten mit Two-Step Verification später unterstützen? Relevant, sobald EKG an einer Uhr aktiviert wird. | geklärt: ab 1.1.0 (F-07) |
 | O-06 | Welche Nextcloud-Version läuft auf der Instanz? | geklärt: 35.0.2, liegt im unterstützten Bereich (NF-05) |
 | O-07 | Funktioniert der Garmin-Login aus dem Nextcloud-Container im Cluster? | geklärt: ja, Mobile-Login und Datenabruf aus dem Nextcloud-Pod getestet (MACHBARKEIT.md, Abschnitt 4) |

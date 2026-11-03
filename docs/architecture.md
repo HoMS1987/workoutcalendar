@@ -33,18 +33,18 @@ Einstellungsseite (Vue)  ──► ApiController
 | Ordner | Inhalt | Stand |
 |---|---|---|
 | `lib/Garmin/Diagnostics` | `LoggingHttpClient`, `ResponseClassifier`, `FailureCategory`, `Redactor` (ADR 0004) | ✅ |
-| `lib/Garmin/Auth` | `MobileLogin`, `WidgetLogin`, `Authenticator`, `DiTokenService`, `GarminTokens`, `TokenStore` | ✅ |
+| `lib/Garmin/Auth` | `MobileLogin` (auch `verifyCode` mit Portal-Ausweichweg), `WidgetLogin`, `Authenticator`, `MfaChallenge`, `DiTokenService`, `GarminTokens`, `TokenStore` | ✅ |
 | `lib/Garmin` | `GarminClient`: Aktivitäten abrufen, Tokens erneuern, bei Bedarf neu anmelden | ✅ |
 | `lib/Calendar` | `ActivityEventMapper`, `CalendarEvent` (mit Fingerabdruck), `IcsSerializer`, `IcsReader`, `DeletedMarker` | ✅ |
 | `lib/Sync` | `SyncService`, `SyncSettings`, `SyncState`, `FailureLog` (gedrosseltes Fehler-Log), `CalendarTarget` | ✅ |
 | `lib/CalDav` | `CalendarObjects` mit `DavCalendarObjects` (einzige Klasse mit `OCA\DAV`), `DavCalendarTarget`, `CalendarService` (ADR 0005) | ✅ |
 | `lib/Garmin/Http` (auch `CurlHttpClient`) | `HttpClient`-Schnittstelle, Anfrage- und Antwortobjekte, cURL-Umsetzung | ✅ |
 | `lib/AppInfo` | `Application`: Registrierung von Diensten und Benachrichtigungen; der `SyncJob` steht in `appinfo/info.xml`, der `CalendarMaintenanceJob` wird bei Bedarf eingereiht | ✅ |
-| `lib/BackgroundJob` | `SyncJob`, `CalendarMaintenanceJob` | ✅ |
+| `lib/BackgroundJob` | `SyncJob`, `CalendarMaintenanceJob`, `MfaCleanupJob` (löscht abgelaufene Code-Anfragen) | ✅ |
 | `lib/Controller` | `ApiController`: JSON-API der Einstellungsseite | ✅ |
 | `lib/Notification` | `Notifier`, `FailureNotifications`: Benachrichtigung bei Fehlern, die nur die Person beheben kann | ✅ |
-| `lib/Service` | `SyncRunner`, `AccountService`, `CalendarSetupService`, `StatusService`, `GarminClientFactory`, `Cleanup` u. a. | ✅ |
-| `lib/Storage` | `UserStore`, `SecretStore`, `UserTokenStore`, `SetupState`: Einstellungen und verschlüsselte Zugangsdaten in `IUserConfig` | ✅ |
+| `lib/Service` | `SyncRunner`, `AccountService`, `MfaService`, `MfaRequestLimit`, `PendingMfaSaver`, `CalendarSetupService`, `StatusService`, `GarminClientFactory`, `Cleanup` u. a. | ✅ |
+| `lib/Storage` | `UserStore`, `SecretStore`, `UserTokenStore`, `SetupState`, `PendingMfa`, `MfaOrigin`: Einstellungen und verschlüsselte Zugangsdaten in `IUserConfig` | ✅ |
 | `lib/Settings` | `Personal`, `Section`: Abschnitt „Workout Calendar“ in den persönlichen Einstellungen | ✅ |
 | `src/` | Einstellungsseite (Vue 3, `@nextcloud/vue`): Assistent und Übersicht auf der JSON-API, gebaut nach `js/` und `css/` | ✅ |
 
@@ -112,10 +112,13 @@ Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`).
 
 | Route | Zweck |
 |---|---|
-| `GET /api/status` | Stand von Einrichtung und Sync |
-| `POST /api/login` | Garmin-Zugangsdaten prüfen und speichern (Rate-Limit 10 pro Stunde) |
+| `GET /api/status` | Stand von Einrichtung und Sync, dazu der Block `mfa` (`account`, `method`, `pending` mit `origin`, `method`, `expiresAt`, und `nextRequestAt`) |
+| `POST /api/login` | Garmin-Zugangsdaten prüfen und speichern (Rate-Limit 10 pro Stunde); bei `MFA_REQUIRED` Antwort „Code nötig“ mit dem Weg statt eines Fehlers |
 | `GET /api/calendars` | Kalender zur Auswahl |
 | `POST /api/calendar` | Kalender wählen oder wechseln, mit oder ohne Umzug der Termine |
+| `POST /api/mfa/request` | Code anfordern: Login mit dem gespeicherten Passwort, bei `MFA_REQUIRED` startet eine Code-Anfrage (Rate-Limit 10 pro Stunde, dazu höchstens 1 pro Minute und 5 pro Stunde je Person) |
+| `POST /api/mfa/verify` | Code bestätigen (`code`, Rate-Limit 10 pro Stunde); bei Erfolg Tokens speichern, Pause und Benachrichtigung beenden |
+| `POST /api/mfa/cancel` | Laufende Code-Anfrage löschen |
 | `POST /api/history` | Historienzeitraum wählen (30, 90, 365 Tage oder komplett), schließt die Einrichtung ab |
 | `PUT /api/settings` | Intervall, Streuung, Umgang mit gelöschten Aktivitäten, Prüfzeitraum; ein neues Intervall plant den nächsten Lauf neu |
 | `POST /api/sync` | Sync sofort ausführen (Rate-Limit 30 pro Stunde), Ergebnis in `outcome` |
@@ -138,6 +141,7 @@ kommen zur jeweiligen Ansicht hinzu.
 | `calendar` | `true` | `null` | `maintenanceFailed: "move"` oder `"remove"` | Kalenderauswahl mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet bei der Wahl eines Kalenders oder einem erfolgreichen Wartungsjob |
 | `history` | `true` | gesetzt | – | Auswahl des Historienzeitraums (Assistent) |
 | `done` | `true` | gesetzt | `maintenance: null`, `maintenanceFailed: null` | Übersicht: Sync-Stand, Einstellungen, „Jetzt synchronisieren“, Kalender wechseln, Abmelden, Zurücksetzen |
+| `done` | `true` | gesetzt | `paused: "MFA_REQUIRED"` oder `mfa.pending` gesetzt | Übersicht mit Hinweiskasten ganz oben: ohne `mfa.pending` der Knopf „Code anfordern“, mit `mfa.pending` Codefeld, „Bestätigen“ und „Neuen Code anfordern“; die übrige Übersicht bleibt sichtbar |
 | `done` | `true` | gesetzt | `maintenance: "move"` oder `"remove"` | Übersicht mit Hinweis, dass Termine verschoben bzw. entfernt werden; Kalenderwechsel und Bereinigung beim Abmelden/Zurücksetzen gesperrt |
 | `done` | `true` | gesetzt | `maintenanceFailed: "move"` oder `"remove"` | Übersicht mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet bei der Wahl eines anderen Kalenders oder einem erfolgreichen Wartungsjob |
 
@@ -151,11 +155,29 @@ verbunden, Schritt `done`, eigener Kalender vorhanden, keine Pause). Während `r
 oder `maintenance` fragt die Seite den Status regelmäßig neu ab. Eine Antwort 409 `busy` ändert nichts an der Ansicht, die Aktion
 lässt sich nach dem laufenden Sync wiederholen.
 
+### Gespeicherte Schlüssel
+
+Alle Schlüssel liegen in `IUserConfig` unter der App-ID. Die Schlüssel des `SecretStore` sind
+verschlüsselt.
+
+| Schlüssel | Speicher | Inhalt |
+|---|---|---|
+| `credentials`, `tokens` | `SecretStore` | Garmin-Zugangsdaten und Tokens |
+| `mfa_pending` | `SecretStore` | Laufende Code-Anfrage: SSO-Cookies, Query-Parameter, Weg, Login-Strategie, Herkunft (`MfaOrigin`), Zeitpunkt; bei der Einrichtung auch E-Mail und Passwort. Höchstens 30 Minuten gültig ([ADR 0008](adrs/0008-garmin-sitzung-zwischen-zwei-anfragen.md)) |
+| `sso_cookies` | `SecretStore` | Von Garmin gesetzte Cookies („Browser merken“) |
+| `mfa_requests` | `UserStore` | Zeitpunkte der letzten Code-Anforderungen für die Grenze von 1 pro Minute und 5 pro Stunde |
+| `state` | `UserStore` | `SyncState`, darin `mfaAccount` (Konto nutzt Zwei-Faktor-Anmeldung) und `mfaMethod` |
+
 ## Garmin-Zugriff
 
 1. Gespeicherte Tokens laden. Ist der Access-Token abgelaufen, per Refresh-Token erneuern.
 2. Ohne Tokens oder bei abgelehntem Refresh-Token neu anmelden: erst `MobileLogin`, dann
-   `WidgetLogin`. Bei falschem Passwort oder MFA gibt es keinen weiteren Versuch.
+   `WidgetLogin`. Bei falschem Passwort oder MFA gibt es keinen weiteren Versuch. Ein als
+   Zwei-Faktor-Konto bekanntes Konto (`mfaAccount`, auch ein 1.0.x-Zustand mit
+   `pausedFor = MFA_REQUIRED`) meldet sich nie im Hintergrund mit dem Passwort an, der Sync pausiert
+   und benachrichtigt. Den Code gibt die Person über `MfaService` ein: `MobileLogin::verifyCode`
+   schickt ihn mit der gespeicherten SSO-Sitzung an `/mobile/api/mfa/verifyCode`, bei Misserfolg an
+   `/portal/api/mfa/verifyCode`.
 3. Aktivitäten über `connectapi.garmin.com/activitylist-service` abrufen. Bei HTTP 401 einmal
    erneuern und wiederholen.
 
