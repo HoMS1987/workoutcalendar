@@ -114,8 +114,7 @@ Aus den Garmin-Seiten und Garmins Client, nicht am echten Konto geprüft:
   gelöscht. Kalender, Einstellungen und Termine bleiben.
 - Mit E-Mail und Passwort: Ablauf wie im 2FA-Entwurf. Nach Erfolg wird der Schlüssel gelöscht.
 - Beim Umstellen gilt das Konto als dasselbe Garmin-Konto. Die vorhandenen Termine bleiben ihm
-  zugeordnet. Ausnahme: Beim Weg zurück auf E-Mail und Passwort entscheidet wie bisher die E-Mail
-  über einen Kontowechsel (siehe „Kontokennung“).
+  zugeordnet. Ob ein Kontowechsel vorliegt, regelt „Kontokennung“.
 - Abbrechen lässt alles, wie es war.
 
 ### Anzeige des Kontos
@@ -138,21 +137,24 @@ Aus den Garmin-Seiten und Garmins Client, nicht am echten Konto geprüft:
 Heute kennzeichnet `accountKey` die Termine der App und erkennt einen Kontowechsel. Er ist ein Hash
 der E-Mail-Adresse. Mit Schlüssel kennt die App die E-Mail nicht.
 
-- Beim Umstellen eines bestehenden Kontos auf den Schlüssel bleibt der vorhandene `accountKey`.
-- Beim Einrichten mit Schlüssel ohne vorhandenen `accountKey` braucht die App eine stabile Kennung
-  des Garmin-Kontos. Woher sie kommt, ist dem Builder überlassen: ein Claim im JWT des Zugriffstokens
-  oder ein Feld aus `/userprofile-service/userprofile/settings`. Beides ist nicht belegt und wird im
-  RC-Test geprüft. Gibt es keine stabile Kennung, bekommt die Person eine zufällige, die beim
-  Schlüsselwechsel bleibt.
-- Ein neuer Schlüssel für dasselbe Konto (Ablauf, Umstellung) behält den `accountKey`.
-- Gibt es eine stabile Garmin-Kennung, speichert die App sie zusätzlich als `garminUserId`. Kommt ein
-  neuer Schlüssel mit einer anderen Kennung, gilt das als Kontowechsel wie heute bei einer anderen
-  E-Mail. Ohne stabile Kennung erkennt die App einen fremden Schlüssel nicht, dann landen dessen
+Entscheidung (sie ersetzt den ersten Entwurf, der beim Weg zurück zu E-Mail und Passwort
+`hash(E-Mail)` als neuen `accountKey` übernehmen wollte): `DavCalendarTarget::inRange` wertet für die
+Löschbehandlung nur Termine mit der aktuellen `accountKey` aus, und unveränderte Termine werden nie
+neu geschrieben. Deshalb ändert sich der `accountKey` bei keinem Wechsel des Anmeldewegs.
+
+- Neues Feld `SetupState::$identity` (`?string`), nur zur Erkennung eines Kontowechsels:
+  - Bei E-Mail und Passwort ist es `email:` plus `AccountService::accountKey($email)`.
+  - Beim Schlüssel ist es `garmin:` plus der Hash der Garmin-Kennung, sonst `apikey:` ohne Kennung.
+  - Fehlt `identity` (Installationen vor 1.1.0), gilt `email:` plus der vorhandene `accountKey`.
+- Ein Kontowechsel liegt nur vor, wenn alte und neue `identity` dasselbe Präfix haben und sich
+  unterscheiden. Dann gilt das heutige Verhalten: neuer Sync-Zustand und neue `accountKey`. Bei
+  unterschiedlichem Präfix gilt das Konto als dasselbe.
+- Beim ersten Einrichten mit Schlüssel und ohne vorhandene `accountKey` ist die `accountKey` der
+  Hash der Garmin-Kennung oder, wenn es keine gibt, 16 zufällige Hex-Zeichen.
+- Woher die Garmin-Kennung kommt (ein Claim im JWT des Zugriffstokens oder ein Feld aus
+  `/userprofile-service/userprofile/settings`), ist nicht belegt und wird im RC-Test geprüft.
+- Ohne stabile Kennung erkennt die App einen fremden Schlüssel nicht, dann landen dessen
   Aktivitäten im selben Kalender. Das ist hingenommen.
-- Beim Weg vom Schlüssel zurück zu E-Mail und Passwort übernimmt die App `hash(E-Mail)` als neuen
-  `accountKey`, ohne den Sync-Zustand zurückzusetzen, wenn der bisherige `accountKey` nicht aus einer
-  E-Mail stammt. Die Termine bekommen ihre Markierung beim nächsten Schreiben neu. Stammt er aus einer
-  E-Mail, entscheidet wie bisher der Vergleich.
 
 ### Verbunden ohne Passwort
 

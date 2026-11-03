@@ -8,6 +8,12 @@ All notable changes to this app are documented here. The format follows
 
 ### Added
 
+- Signing in with Garmin's personal API key, the recommended way. The setup step offers two tabs,
+  "API key (recommended)" with a short guide and a link to Garmin Connect, and "Email and password".
+  The key is exchanged for a token when you enter it and stored encrypted. When Garmin rejects the
+  key, the sync pauses, a notification appears, and a box at the top of the overview takes the new
+  key. "Sign in again" switches an existing account between the two ways, and the events stay. A key
+  is valid for one year at most.
 - Garmin accounts with two-step verification. The setup step asks for the code Garmin sends, and
   the overview shows a box at the top when Garmin wants a new code. A code is only requested when
   you ask for it, at most once per minute and five times per hour. "Sign in again" in the Garmin
