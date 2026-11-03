@@ -8,16 +8,20 @@ use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Controller\ApiController;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\MfaService;
 use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\StatusService;
 use OCA\WorkoutCalendar\Service\SyncRunner;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -438,6 +442,119 @@ final class ApiControllerTest extends TestCase
         self::assertSame([], $this->http->requests);
     }
 
+    public function testMfaVerifyReturnsStatus(): void
+    {
+        $this->done();
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(new MfaChallenge('sms', ['c1']), MfaOrigin::Relogin, self::NOW));
+        $this->http->queue(
+            FakeHttpClient::json(200, ['responseStatus' => ['type' => 'SUCCESSFUL'], 'serviceTicketId' => 'ST-7']),
+            FakeHttpClient::json(200, ['access_token' => Jwt::make(['client_id' => 'C']), 'refresh_token' => 'r']),
+        );
+
+        $response = $this->controller()->mfaVerify('123 456');
+
+        self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
+        self::assertTrue($response->getData()['mfa']['account']);
+        self::assertSame('sms', $response->getData()['mfa']['method']);
+        self::assertNull($response->getData()['mfa']['pending']);
+    }
+
+    public function testMfaRequestReturnsOutcomeAndStatus(): void
+    {
+        $this->done();
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        $response = $this->controller()->mfaRequest();
+
+        self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
+        self::assertSame('codeRequired', $response->getData()['outcome']);
+        self::assertSame('relogin', $response->getData()['status']['mfa']['pending']['origin']);
+    }
+
+    public function testRateLimitedRequestIs429WithRetryAfter(): void
+    {
+        $this->done();
+        $this->users->saveMfaRequests(self::UID, [self::NOW - 10]);
+
+        $response = $this->controller()->mfaRequest();
+
+        self::assertSame(429, $response->getStatus());
+        self::assertSame(['error' => 'MFA_RATE_LIMITED', 'retryAfter' => 50], $response->getData());
+        self::assertSame([], $this->http->requests);
+    }
+
+    public function testExpiredRequestIs422MfaExpired(): void
+    {
+        $this->done();
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(new MfaChallenge('sms', ['c1']), MfaOrigin::Relogin, self::NOW - PendingMfa::LIFETIME_SECONDS));
+
+        $response = $this->controller()->mfaVerify('123456');
+
+        self::assertSame(422, $response->getStatus());
+        self::assertSame(['error' => 'MFA_EXPIRED'], $response->getData());
+    }
+
+    public function testWrongCodeIs422MfaCodeInvalid(): void
+    {
+        $this->done();
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(new MfaChallenge('sms', ['c1']), MfaOrigin::Relogin, self::NOW));
+        $wrong = FakeHttpClient::json(200, ['responseStatus' => ['type' => 'MFA_CODE_INVALID']]);
+        $this->http->queue($wrong, $wrong);
+
+        $response = $this->controller()->mfaVerify('000000');
+
+        self::assertSame(422, $response->getStatus());
+        self::assertSame(['error' => 'MFA_CODE_INVALID'], $response->getData());
+    }
+
+    public function testMalformedCodeIs400AndNotLogged(): void
+    {
+        $this->done();
+
+        $response = $this->controller()->mfaVerify('12ab');
+
+        self::assertSame(400, $response->getStatus());
+        self::assertSame([], $this->http->requests);
+        self::assertStringNotContainsString('12ab', $this->logger->dump());
+    }
+
+    public function testUnexpectedMfaErrorIsLoggedWithoutMessage(): void
+    {
+        $this->done();
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(new MfaChallenge('sms', ['c1']), MfaOrigin::Relogin, self::NOW));
+        $this->http->queue(new \RuntimeException('Code 123456 leaked'));
+
+        $response = $this->controller()->mfaVerify('123456');
+
+        self::assertSame(500, $response->getStatus());
+        self::assertStringNotContainsString('123456', $this->logger->dump());
+    }
+
+    public function testMfaCancelReturnsStatus(): void
+    {
+        $this->done();
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(new MfaChallenge('sms', ['c1']), MfaOrigin::Relogin, self::NOW));
+
+        $response = $this->controller()->mfaCancel();
+
+        self::assertSame(200, $response->getStatus());
+        self::assertNull($response->getData()['mfa']['pending']);
+        self::assertNull($this->secrets->pendingMfa(self::UID, self::NOW));
+    }
+
+    public function testMfaRoutesAreRateLimited(): void
+    {
+        foreach (['mfaRequest', 'mfaVerify'] as $method) {
+            $attributes = (new \ReflectionMethod(ApiController::class, $method))->getAttributes(UserRateLimit::class);
+
+            self::assertCount(1, $attributes, $method);
+            self::assertSame(['limit' => 10, 'period' => 3600], $attributes[0]->getArguments());
+        }
+    }
+
     private function done(): void
     {
         $calendarId = $this->objects->addCalendar(self::UID, 'workoutcalendar', 'Training');
@@ -476,6 +593,7 @@ final class ApiControllerTest extends TestCase
         $notifications = new FailureNotifications($this->notificationManager(), $time);
         $calendars = new CalendarService($this->objects);
         $lock = new PersonLock($this->locking);
+        $accounts = new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock, new MemoryLogger(), $pendingRequests);
         $l = $this->createStub(IL10N::class);
         $l->method('t')->willReturnCallback(static fn (string $text): string => $text);
         $l10nFactory = $this->createStub(IFactory::class);
@@ -499,7 +617,7 @@ final class ApiControllerTest extends TestCase
             'workoutcalendar',
             $request,
             $session,
-            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock, new MemoryLogger(), $pendingRequests),
+            $accounts,
             new CalendarSetupService($calendars, $this->users, $jobs, $time, $l, $lock, new MemoryLogger()),
             $calendars,
             new SyncRunner(
@@ -514,11 +632,12 @@ final class ApiControllerTest extends TestCase
                 $garminLogger,
                 $pendingRequests,
             ),
-            new StatusService($this->users, $calendars),
+            new StatusService($this->users, $calendars, $this->secrets, $time),
             $this->users,
             $time,
             $this->logger,
             $lock,
+            new MfaService($accounts, $garmin, $this->secrets, $this->users, $lock, $time, $this->logger),
         );
     }
 

@@ -10,6 +10,8 @@ use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
 use OCA\WorkoutCalendar\Service\Cleanup;
+use OCA\WorkoutCalendar\Service\MfaException;
+use OCA\WorkoutCalendar\Service\MfaService;
 use OCA\WorkoutCalendar\Service\PersonBusyException;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\StatusService;
@@ -35,7 +37,8 @@ use Psr\Log\LoggerInterface;
 /**
  * JSON API of the settings page. Every route works only with the signed-in person's data.
  * Errors: no signed-in person → 401 `notLoggedIn`, Garmin → 422 with failure category, invalid
- * request → 400, running sync → 409 `busy`, anything else → 500.
+ * request → 400, running sync → 409 `busy`, too many code requests → 429 `MFA_RATE_LIMITED` with
+ * `retryAfter`, expired or missing code request → 422 `MFA_EXPIRED` / `MFA_NOT_PENDING`, anything else → 500.
  */
 final class ApiController extends Controller
 {
@@ -55,6 +58,7 @@ final class ApiController extends Controller
         private readonly ITimeFactory $time,
         private readonly LoggerInterface $logger,
         private readonly PersonLock $lock,
+        private readonly MfaService $mfa,
     ) {
         parent::__construct($appName, $request);
     }
@@ -80,6 +84,43 @@ final class ApiController extends Controller
 
             return $this->status->status($uid);
         }, logMessage: false);
+    }
+
+    /** Signs in with the stored password (or the pending setup request); Garmin then signs in or sends a code. */
+    #[NoAdminRequired]
+    // Every request reaches Garmin and counts towards an account lock.
+    #[UserRateLimit(limit: 10, period: 3600)]
+    #[FrontpageRoute(verb: 'POST', url: '/api/mfa/request')]
+    public function mfaRequest(): JSONResponse
+    {
+        return $this->handle(function (string $uid): array {
+            $outcome = $this->mfa->request($uid);
+
+            return ['outcome' => $outcome->value, 'status' => $this->status->status($uid)];
+        }, logMessage: false);
+    }
+
+    #[NoAdminRequired]
+    #[UserRateLimit(limit: 10, period: 3600)]
+    #[FrontpageRoute(verb: 'POST', url: '/api/mfa/verify')]
+    public function mfaVerify(string $code = ''): JSONResponse
+    {
+        return $this->handle(function (string $uid) use ($code): array {
+            $this->mfa->verify($uid, $code);
+
+            return $this->status->status($uid);
+        }, logMessage: false);
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/mfa/cancel')]
+    public function mfaCancel(): JSONResponse
+    {
+        return $this->handle(function (string $uid): array {
+            $this->mfa->cancel($uid);
+
+            return $this->status->status($uid);
+        });
     }
 
     #[NoAdminRequired]
@@ -280,6 +321,12 @@ final class ApiController extends Controller
             return new JSONResponse($action($user->getUID()));
         } catch (GarminException $e) {
             return new JSONResponse(['error' => $e->category->value], Http::STATUS_UNPROCESSABLE_ENTITY);
+        } catch (MfaException $e) {
+            if ($e->error === MfaException::RATE_LIMITED) {
+                return new JSONResponse(['error' => $e->error, 'retryAfter' => $e->retryAfter], Http::STATUS_TOO_MANY_REQUESTS);
+            }
+
+            return new JSONResponse(['error' => $e->error], Http::STATUS_UNPROCESSABLE_ENTITY);
         } catch (PersonBusyException) {
             return new JSONResponse(['error' => 'busy'], Http::STATUS_CONFLICT);
         } catch (\InvalidArgumentException) {

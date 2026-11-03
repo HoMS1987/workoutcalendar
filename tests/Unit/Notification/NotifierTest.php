@@ -52,9 +52,20 @@ final class NotifierTest extends TestCase
 
         self::assertSame('Workout Calendar needs your attention', $prepared->getParsedSubject());
         self::assertSame(
-            'Your Garmin account asks for a verification code. This is not supported yet, Workout Calendar is paused.',
+            'Garmin asks for a verification code. Workout Calendar is paused until you enter it in the settings.',
             $prepared->getParsedMessage(),
         );
+    }
+
+    public function testMfaRequiredLeadsToTheSettings(): void
+    {
+        $prepared = $this->notifier()->prepare($this->notification('MFA_REQUIRED'), 'de');
+
+        self::assertSame(
+            'Garmin möchte einen Bestätigungscode. Workout Calendar ist pausiert, bis du ihn in den Einstellungen eingibst.',
+            $prepared->getParsedMessage(),
+        );
+        self::assertSame('https://cloud.example/settings/user/workoutcalendar', $prepared->getLink());
     }
 
     public function testLinkPointsToSettingsSection(): void

@@ -7,7 +7,10 @@ namespace OCA\WorkoutCalendar\Tests\Unit\Service;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Service\StatusService;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -16,6 +19,7 @@ use OCA\WorkoutCalendar\Sync\SyncSettings;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
 use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
+use OCP\AppFramework\Utility\ITimeFactory;
 use PHPUnit\Framework\TestCase;
 
 final class StatusServiceTest extends TestCase
@@ -28,6 +32,7 @@ final class StatusServiceTest extends TestCase
     private const ACCESS_TOKEN = 'eyJhbGciOiJub25lIn0.eyJjbGllbnRfaWQiOiJDIn0.access';
     private const REFRESH_TOKEN = 'refresh-token-value-123';
     private const ACCOUNT = '0123456789abcdef';
+    private const NOW = 1_792_497_600;
     private const ICS = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:garmin-%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
 
     /** @var array<string, array<string, string|int>> */
@@ -174,6 +179,7 @@ final class StatusServiceTest extends TestCase
             ],
             'failure' => ['category' => 'SERVER_ERROR', 'since' => 80, 'count' => 3],
             'paused' => null,
+            'mfa' => ['account' => false, 'method' => null, 'pending' => null, 'nextRequestAt' => null],
             'settings' => [
                 'historyDays' => 365,
                 'intervalMinutes' => 60,
@@ -225,8 +231,59 @@ final class StatusServiceTest extends TestCase
         self::assertSame('MFA_REQUIRED', $this->service()->status(self::UID)['paused']);
     }
 
+    public function testStatusShowsMfaStateWithoutSecrets(): void
+    {
+        $state = $this->users->state(self::UID);
+        $state->mfaAccount = true;
+        $state->mfaMethod = 'sms';
+        $this->users->saveState(self::UID, $state);
+        $this->users->saveMfaRequests(self::UID, [self::NOW - 10]);
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(
+            new MfaChallenge('sms', ['sso-cookie-secret']),
+            MfaOrigin::Setup,
+            self::NOW - 60,
+            new Credentials(self::EMAIL, self::PASSWORD),
+        ));
+
+        $status = $this->service()->status(self::UID);
+        $json = json_encode($status, JSON_THROW_ON_ERROR);
+
+        self::assertSame([
+            'account' => true,
+            'method' => 'sms',
+            'pending' => ['origin' => 'setup', 'method' => 'sms', 'expiresAt' => self::NOW - 60 + PendingMfa::LIFETIME_SECONDS],
+            'nextRequestAt' => self::NOW + 50,
+        ], $status['mfa']);
+        self::assertStringNotContainsString('sso-cookie-secret', $json);
+        self::assertStringNotContainsString(self::EMAIL, $json);
+        self::assertStringNotContainsString(self::PASSWORD, $json);
+    }
+
+    public function testExpiredPendingRequestIsNotShown(): void
+    {
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(
+            new MfaChallenge('email', ['c']),
+            MfaOrigin::Relogin,
+            self::NOW - PendingMfa::LIFETIME_SECONDS,
+        ));
+
+        self::assertNull($this->service()->status(self::UID)['mfa']['pending']);
+    }
+
+    public function testPausedForMfaCountsAsMfaAccount(): void
+    {
+        $state = $this->users->state(self::UID);
+        $state->pausedFor = 'MFA_REQUIRED';
+        $this->users->saveState(self::UID, $state);
+
+        self::assertTrue($this->service()->status(self::UID)['mfa']['account']);
+    }
+
     private function service(): StatusService
     {
-        return new StatusService($this->users, new CalendarService($this->objects));
+        $time = $this->createStub(ITimeFactory::class);
+        $time->method('getTime')->willReturn(self::NOW);
+
+        return new StatusService($this->users, new CalendarService($this->objects), $this->secrets, $time);
     }
 }
