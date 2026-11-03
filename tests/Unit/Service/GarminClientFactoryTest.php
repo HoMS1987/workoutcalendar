@@ -123,6 +123,56 @@ final class GarminClientFactoryTest extends TestCase
         self::assertStringNotContainsString('TGT-SESSION-VALUE-4711', $logger->dump());
     }
 
+    private const API_KEY = 'personal-key-4711';
+
+    public function testApiKeyClientExchangesTheKeyAndFetchesFromThePersonalApi(): void
+    {
+        $exchanged = Jwt::make(['exp' => time() + 7200]);
+        $http = new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => $exchanged]), FakeHttpClient::json(200, []));
+        $logger = new MemoryLogger();
+        $store = [];
+        $secrets = new SecretStore($this->memoryUserConfig($store), $this->fakeCrypto(), $logger);
+        $factory = new GarminClientFactory($this->provider($http), $secrets, $logger);
+
+        self::assertSame([], $factory->apiKeyClient('anna', self::API_KEY)->activities(0, 1));
+
+        self::assertSame(['apikey.token', 'api.activities'], $http->steps());
+        self::assertSame('ApiKey ' . self::API_KEY, $http->requests[0]->headers['Authorization']);
+        self::assertStringStartsWith('https://personal.connectapi.garmin.com/activitylist-service/', $http->requests[1]->url);
+        self::assertSame($exchanged, $secrets->tokens('anna')?->accessToken);
+    }
+
+    public function testApiKeyClientMasksTheKeyInTheLog(): void
+    {
+        $http = new FakeHttpClient(new NetworkException('reset after ' . self::API_KEY));
+        $logger = new MemoryLogger();
+
+        try {
+            $this->factoryWith($http, $logger)->apiKeyClient('anna', self::API_KEY)->activities(0, 1);
+            self::fail('GarminException expected');
+        } catch (GarminException $e) {
+            self::assertStringNotContainsString(self::API_KEY, $e->getMessage());
+        }
+
+        self::assertStringContainsString('reset after ***', $logger->dump());
+        self::assertStringNotContainsString(self::API_KEY, $logger->dump());
+    }
+
+    public function testApiKeyTokensMasksTheKeyInTheLog(): void
+    {
+        $http = new FakeHttpClient(new NetworkException('reset after ' . self::API_KEY));
+        $logger = new MemoryLogger();
+
+        try {
+            $this->factoryWith($http, $logger)->apiKeyTokens(self::API_KEY)->exchange(self::API_KEY);
+            self::fail('GarminException expected');
+        } catch (GarminException) {
+        }
+
+        self::assertStringContainsString('reset after ***', $logger->dump());
+        self::assertStringNotContainsString(self::API_KEY, $logger->dump());
+    }
+
     private function factoryWith(FakeHttpClient $http, ?MemoryLogger $logger = null): GarminClientFactory
     {
         $logger ??= new MemoryLogger();

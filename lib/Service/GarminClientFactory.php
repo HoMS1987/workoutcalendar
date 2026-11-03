@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Service;
 
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenProvider;
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\MobileLogin;
+use OCA\WorkoutCalendar\Garmin\Auth\PasswordTokenProvider;
 use OCA\WorkoutCalendar\Garmin\Auth\WidgetLogin;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\LoggingHttpClient;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\ResponseClassifier;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\UserTokenStore;
@@ -59,8 +63,7 @@ final class GarminClientFactory
             $http->importCookies($cookies);
         }
 
-        return new GarminClient(
-            $http,
+        $tokens = new PasswordTokenProvider(
             $this->authenticatorFor($http, $redactor),
             new DiTokenService($http),
             new UserTokenStore($this->secrets, $uid),
@@ -68,6 +71,26 @@ final class GarminClientFactory
             $this->logger,
             passwordLogin: $passwordLogin,
         );
+
+        return new GarminClient($http, $tokens, $this->logger, GarminConstants::CONNECT_API, [$credentials->password]);
+    }
+
+    /** Client for sign-in with the personal API key; the key is exchanged for an access token when needed. */
+    public function apiKeyClient(string $uid, string $apiKey): GarminClient
+    {
+        $redactor = new Redactor([$apiKey]);
+        $http = $this->http($redactor);
+        $tokens = new ApiKeyTokenProvider(new ApiKeyTokenService($http, $redactor), new UserTokenStore($this->secrets, $uid), $apiKey);
+
+        return new GarminClient($http, $tokens, $this->logger, GarminConstants::PERSONAL_API, [$apiKey]);
+    }
+
+    /** Key exchange without stored tokens, e.g. to check a newly entered key. */
+    public function apiKeyTokens(string $apiKey): ApiKeyTokenService
+    {
+        $redactor = new Redactor([$apiKey]);
+
+        return new ApiKeyTokenService($this->http($redactor), $redactor);
     }
 
     /**

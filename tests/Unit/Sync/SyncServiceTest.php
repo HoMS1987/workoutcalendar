@@ -10,10 +10,12 @@ use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
 use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
+use OCA\WorkoutCalendar\Garmin\Auth\PasswordTokenProvider;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use OCA\WorkoutCalendar\Sync\DeletionMode;
@@ -74,15 +76,14 @@ final class SyncServiceTest extends TestCase
                 }
             };
         }
-        $client = new GarminClient(
-            $this->http,
+        $client = self::passwordClient($this->http, new PasswordTokenProvider(
             new Authenticator($strategies, $this->logger),
             new DiTokenService($this->http),
             $tokens,
             new Credentials('a@b.de', 'pw'),
             $this->logger,
             fn (): int => $this->now->getTimestamp(),
-        );
+        ), $this->logger);
 
         return (new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger))->run($settings, $this->state, $this->now);
     }
@@ -502,17 +503,21 @@ final class SyncServiceTest extends TestCase
 
     private function service(): SyncService
     {
-        $client = new GarminClient(
-            $this->http,
+        $client = self::passwordClient($this->http, new PasswordTokenProvider(
             new Authenticator([], $this->logger),
             new DiTokenService($this->http),
             new MemoryTokenStore(new GarminTokens(Jwt::make(['exp' => $this->now->getTimestamp() + 3600]), 'r', 'C')),
             new Credentials('a@b.de', 'pw'),
             $this->logger,
             fn (): int => $this->now->getTimestamp(),
-        );
+        ), $this->logger);
 
         return new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger);
+    }
+
+    private static function passwordClient(FakeHttpClient $http, PasswordTokenProvider $tokens, MemoryLogger $logger): GarminClient
+    {
+        return new GarminClient($http, $tokens, $logger, GarminConstants::CONNECT_API, ['pw']);
     }
 
     private function importedNinetyDays(): void
