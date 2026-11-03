@@ -2,7 +2,7 @@ import type { Status } from '../../src/types.ts'
 import type { View } from '../../src/viewState.ts'
 
 import { describe, expect, it } from 'vitest'
-import { deriveView, hintSeverity } from '../../src/viewState.ts'
+import { deriveView, hintSeverity, showMfaBox } from '../../src/viewState.ts'
 import { makeStatus } from './fixtures.ts'
 
 const noCalendar = null
@@ -127,5 +127,35 @@ describe('hintSeverity', () => {
 		expect(hintSeverity('backfill', status)).toBe('info')
 		expect(hintSeverity('calendarMissing', status)).toBe('warning')
 		expect(hintSeverity('maintenanceMove', status)).toBe('warning')
+	})
+})
+
+describe('showMfaBox', () => {
+	const pending = (origin: 'setup' | 'relogin' | 'sync') => ({ origin, method: 'email', expiresAt: 1_760_001_800 })
+
+	it('is shown for a paused sync without a request', () => {
+		expect(showMfaBox(makeStatus({ paused: 'MFA_REQUIRED' }))).toBe(true)
+	})
+
+	it('is shown for a sign-in again request without a pause', () => {
+		expect(showMfaBox(makeStatus({ mfa: { pending: pending('relogin') } }))).toBe(true)
+	})
+
+	it('is shown for a request left by a sync', () => {
+		expect(showMfaBox(makeStatus({ paused: 'MFA_REQUIRED', mfa: { pending: pending('sync') } }))).toBe(true)
+	})
+
+	it('is not shown for a request of the setup', () => {
+		expect(showMfaBox(makeStatus({ mfa: { pending: pending('setup') } }))).toBe(false)
+	})
+
+	it('is not shown without request and pause, and not for other pauses', () => {
+		expect(showMfaBox(makeStatus())).toBe(false)
+		expect(showMfaBox(makeStatus({ paused: 'INVALID_CREDENTIALS' }))).toBe(false)
+	})
+
+	it('replaces the paused hint', () => {
+		expect(deriveView(makeStatus({ paused: 'MFA_REQUIRED' }), false).hints).toEqual([])
+		expect(deriveView(makeStatus({ paused: 'MFA_REQUIRED', failure: { category: 'MFA_REQUIRED', since: null, count: 1 } }), false).hints).toEqual([])
 	})
 })

@@ -87,6 +87,20 @@ describe('OverviewPage', () => {
 		wrapper.unmount()
 	})
 
+	it('mfaBoxIsTheFirstElement', () => {
+		const wrapper = mountPage(makeStatus({ paused: 'MFA_REQUIRED', mfa: { account: true, method: 'email' } }))
+
+		expect(wrapper.find('.overview').element.firstElementChild?.textContent).toContain('Garmin asks for a verification code.')
+		wrapper.unmount()
+	})
+
+	it('shows no box without request and pause', () => {
+		const wrapper = mountPage()
+
+		expect(wrapper.text()).not.toContain('verification code')
+		wrapper.unmount()
+	})
+
 	it('shows the backfill progress only once', () => {
 		const wrapper = mountPage(makeStatus({ sync: { eventCount: 12, backfill: { running: true, reachedDate: '2024-05-01' } } }))
 
