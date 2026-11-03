@@ -94,9 +94,13 @@ final class AccountService
         $previous = $this->users->setup($uid);
         $accountKey = self::accountKey($email);
         // Another account starts over: the window and the history import of the old one do not apply.
-        $state = $previous->accountKey !== null && $previous->accountKey !== $accountKey
-            ? new SyncState()
-            : $this->users->state($uid);
+        $switched = $previous->accountKey !== null && $previous->accountKey !== $accountKey;
+        $state = $switched ? new SyncState() : $this->users->state($uid);
+        if ($switched) {
+            // WHY: Remembered cookies of the old account would be sent with every login of the new one,
+            // and its MFA flag could then never be cleared.
+            $this->secrets->deleteSsoCookies($uid);
+        }
         $state->pausedFor = null;
         $state->notifiedCategory = null;
         // After a successful sign-in the status no longer shows an old error.

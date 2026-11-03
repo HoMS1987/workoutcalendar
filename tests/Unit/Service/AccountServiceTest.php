@@ -200,6 +200,28 @@ final class AccountServiceTest extends TestCase
         self::assertSame(substr(hash('sha256', 'other@b.de'), 0, 16), $this->users->setup(self::UID)->accountKey);
     }
 
+    public function testOtherAccountDropsTheRememberedCookiesOfTheOldOne(): void
+    {
+        $this->connected();
+        $this->secrets->saveSsoCookies(self::UID, ['old-account-browser']);
+        $this->queueSuccessfulLogin();
+
+        $this->service()->login(self::UID, 'other@b.de', 'secret');
+
+        self::assertSame([], $this->secrets->ssoCookies(self::UID));
+    }
+
+    public function testSameAccountKeepsTheRememberedCookies(): void
+    {
+        $this->connected();
+        $this->secrets->saveSsoCookies(self::UID, ['browser']);
+        $this->queueSuccessfulLogin();
+
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
+
+        self::assertSame(['browser'], $this->secrets->ssoCookies(self::UID));
+    }
+
     public function testSameAccountKeepsState(): void
     {
         $this->connected();

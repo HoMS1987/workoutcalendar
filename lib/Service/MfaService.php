@@ -42,7 +42,8 @@ final class MfaService
      * Signs in with the stored password (during setup: with the credentials of the pending setup request).
      * Garmin then either signs in directly or sends a code, which waits as a pending request.
      *
-     * @throws MfaException MFA_RATE_LIMITED with the seconds until the next allowed request
+     * @throws MfaException MFA_RATE_LIMITED with the seconds until the next allowed request, MFA_EXPIRED
+     *         if the setup request has expired (the wizard then starts over with email and password)
      * @throws GarminException for any other answer from Garmin; INVALID_CREDENTIALS also pauses the sync
      * @throws \InvalidArgumentException if there are no credentials to sign in with
      * @throws PersonBusyException if a sync run or another change holds the person's lock
@@ -51,7 +52,15 @@ final class MfaService
     {
         return $this->lock->run($uid, function () use ($uid): LoginOutcome {
             $now = $this->time->getTime();
-            $pending = $this->secrets->pendingMfa($uid, $now);
+            $pending = $this->storedPending($uid);
+            if ($pending !== null && $pending->isExpired($now)) {
+                $this->secrets->deletePendingMfa($uid);
+                if ($pending->origin === MfaOrigin::Setup) {
+                    // WHY: The stored credentials belong to the previously connected account, not to the one typed in the wizard.
+                    throw new MfaException(MfaException::EXPIRED);
+                }
+                $pending = null;
+            }
             $setupCredentials = $pending?->origin === MfaOrigin::Setup ? $pending->credentials : null;
             $credentials = $setupCredentials ?? $this->secrets->credentials($uid);
             if ($credentials === null) {
@@ -140,9 +149,7 @@ final class MfaService
     /** @throws MfaException */
     private function pending(string $uid, int $now): PendingMfa
     {
-        // WHY read without expiry: SecretStore::pendingMfa() reports an expired request as missing,
-        // but the person should learn that it expired and a new code is needed.
-        $pending = $this->secrets->pendingMfa($uid, PHP_INT_MIN);
+        $pending = $this->storedPending($uid);
         if ($pending === null) {
             throw new MfaException(MfaException::NOT_PENDING);
         }
@@ -153,6 +160,15 @@ final class MfaService
         }
 
         return $pending;
+    }
+
+    /**
+     * The stored request, expired or not. WHY: SecretStore::pendingMfa() reports an expired request as
+     * missing, but the person should learn that it expired, and its origin decides which credentials apply.
+     */
+    private function storedPending(string $uid): ?PendingMfa
+    {
+        return $this->secrets->pendingMfa($uid, PHP_INT_MIN);
     }
 
     /** The same way as the sync: no further sign-in attempt until new credentials are entered. */

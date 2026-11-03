@@ -279,6 +279,24 @@ final class CalendarSetupServiceTest extends TestCase
         self::assertSame([], $this->jobs);
     }
 
+    public function testChangeWithoutMoveKeepsTheMfaFlag(): void
+    {
+        $this->done();
+        $state = new SyncState();
+        $state->initialized = true;
+        $state->mfaAccount = true;
+        $state->mfaMethod = 'sms';
+        $this->users->saveState(self::UID, $state);
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
+
+        $this->service()->choose(self::UID, null, $new, true, false);
+
+        $state = $this->users->state(self::UID);
+        self::assertFalse($state->initialized);
+        self::assertTrue($state->isMfaAccount());
+        self::assertSame('sms', $state->mfaMethod);
+    }
+
     public function testChangeWhileMaintenanceRunsIsRejected(): void
     {
         $old = $this->objects->addCalendar(self::UID, 'x', 'Old');

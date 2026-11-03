@@ -246,6 +246,25 @@ final class MfaServiceTest extends TestCase
         self::assertNull($this->secrets->credentials(self::UID));
     }
 
+    public function testRequestAfterAnExpiredSetupRequestNeverUsesTheStoredCredentials(): void
+    {
+        $this->connected();
+        $this->pending(MfaOrigin::Setup, new Credentials('new@b.de', 'typed'));
+        $this->now = self::NOW + PendingMfa::LIFETIME_SECONDS;
+
+        try {
+            $this->service()->request(self::UID);
+            self::fail('MfaException expected');
+        } catch (MfaException $e) {
+            self::assertSame('MFA_EXPIRED', $e->error);
+        }
+
+        self::assertSame([], $this->http->requests);
+        self::assertSame([], $this->users->mfaRequests(self::UID));
+        self::assertNull($this->secrets->pendingMfa(self::UID, self::NOW));
+        self::assertSame('secret', $this->secrets->credentials(self::UID)?->password);
+    }
+
     public function testVerifyAcceptsCodeWithSpaces(): void
     {
         $this->connected();

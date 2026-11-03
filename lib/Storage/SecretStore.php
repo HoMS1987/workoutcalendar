@@ -125,6 +125,11 @@ final class SecretStore
         $this->write($uid, self::SSO_COOKIES, ['cookies' => $cookies]);
     }
 
+    public function deleteSsoCookies(string $uid): void
+    {
+        $this->config->deleteUserConfig($uid, Application::APP_ID, self::SSO_COOKIES);
+    }
+
     public function clear(string $uid): void
     {
         foreach ([self::CREDENTIALS, self::TOKENS, self::MFA_PENDING, self::SSO_COOKIES] as $key) {
