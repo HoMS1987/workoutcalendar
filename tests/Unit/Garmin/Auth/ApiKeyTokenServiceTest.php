@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Auth;
 
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenProvider;
 use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenService;
+use OCA\WorkoutCalendar\Service\AccountService;
+use OCA\WorkoutCalendar\Service\GarminClientFactory;
+use OCA\WorkoutCalendar\Storage\ApiKeyRecord;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
@@ -135,5 +139,27 @@ final class ApiKeyTokenServiceTest extends TestCase
 
         self::assertNull(ApiKeyTokenService::garminUserId($tokens));
         self::assertNull(ApiKeyTokenService::garminUserId(new GarminTokens('not-a-jwt', null, 'personal-api')));
+    }
+
+    /** @return iterable<string, array{class-string, string, string}> */
+    public static function keyParameters(): iterable
+    {
+        yield 'connectApiKey' => [AccountService::class, 'connectApiKey', 'apiKey'];
+        yield 'apiKeyTokens' => [GarminClientFactory::class, 'apiKeyTokens', 'apiKey'];
+        yield 'apiKeyClient' => [GarminClientFactory::class, 'apiKeyClient', 'apiKey'];
+        yield 'exchange' => [ApiKeyTokenService::class, 'exchange', 'apiKey'];
+        yield 'token provider' => [ApiKeyTokenProvider::class, '__construct', 'apiKey'];
+        yield 'record' => [ApiKeyRecord::class, '__construct', 'key'];
+    }
+
+    /** @param class-string $class */
+    #[DataProvider('keyParameters')]
+    public function testKeyIsASensitiveParameter(string $class, string $method, string $parameter): void
+    {
+        $parameters = (new \ReflectionMethod($class, $method))->getParameters();
+        $found = array_values(array_filter($parameters, static fn (\ReflectionParameter $p): bool => $p->getName() === $parameter));
+
+        self::assertCount(1, $found);
+        self::assertCount(1, $found[0]->getAttributes(\SensitiveParameter::class), "{$class}::{$method}(\${$parameter})");
     }
 }

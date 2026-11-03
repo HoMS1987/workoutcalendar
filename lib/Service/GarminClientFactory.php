@@ -76,7 +76,7 @@ final class GarminClientFactory
     }
 
     /** Client for sign-in with the personal API key; the key is exchanged for an access token when needed. */
-    public function apiKeyClient(string $uid, string $apiKey): GarminClient
+    public function apiKeyClient(string $uid, #[\SensitiveParameter] string $apiKey): GarminClient
     {
         $redactor = new Redactor([$apiKey]);
         $http = $this->http($redactor);
@@ -86,7 +86,7 @@ final class GarminClientFactory
     }
 
     /** Key exchange without stored tokens, e.g. to check a newly entered key. */
-    public function apiKeyTokens(string $apiKey): ApiKeyTokenService
+    public function apiKeyTokens(#[\SensitiveParameter] string $apiKey): ApiKeyTokenService
     {
         $redactor = new Redactor([$apiKey]);
 

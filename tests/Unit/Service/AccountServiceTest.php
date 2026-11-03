@@ -21,6 +21,7 @@ use OCA\WorkoutCalendar\Service\Cleanup;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
 use OCA\WorkoutCalendar\Service\LoginOutcome;
+use OCA\WorkoutCalendar\Service\MfaService;
 use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonBusyException;
 use OCA\WorkoutCalendar\Service\PersonLock;
@@ -803,8 +804,65 @@ final class AccountServiceTest extends TestCase
         $setup = $this->service()->connectApiKey(self::UID, self::API_KEY);
 
         self::assertMatchesRegularExpression('/^[0-9a-f]{16}$/', (string)$setup->accountKey);
-        self::assertNull($setup->identity);
+        self::assertSame('apikey:' . $setup->accountKey, $setup->identity);
         self::assertSame(SetupStep::Calendar, $setup->step);
+    }
+
+    public function testKeyWithoutGarminIdOnAnExistingAccountUsesTheKeptAccountKey(): void
+    {
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $this->key(), 'a***@b.de', $this->calendarId, true, identity: 'email:' . $this->key()));
+        $this->queueKeyExchange(null);
+
+        $setup = $this->service()->connectApiKey(self::UID, self::API_KEY);
+
+        self::assertSame($this->key(), $setup->accountKey);
+        self::assertSame('apikey:' . $this->key(), $setup->identity);
+    }
+
+    public function testNewKeyWithoutGarminIdKeepsTheAccount(): void
+    {
+        $random = $this->keyAccountWithoutGarminId();
+        $this->queueKeyExchange(null);
+
+        $setup = $this->service()->connectApiKey(self::UID, 'another-key-9876543210');
+
+        self::assertSame($random, $setup->accountKey);
+        self::assertSame('apikey:' . $random, $setup->identity);
+        self::assertTrue($this->users->state(self::UID)->initialized);
+        self::assertSame(5, $this->users->state(self::UID)->lastSuccessAt);
+    }
+
+    public function testKeyAccountWithoutGarminIdSignsInWithPasswordAfterLogoutAsTheSameAccount(): void
+    {
+        $random = $this->keyAccountWithoutGarminId();
+        $this->service()->logout(self::UID, Cleanup::None);
+        $this->queueSuccessfulLogin();
+
+        $setup = $this->signIn('a@b.de', 'secret');
+
+        self::assertSame($random, $setup->accountKey);
+        self::assertSame('email:' . $this->key(), $setup->identity);
+        self::assertTrue($this->users->state(self::UID)->initialized);
+        self::assertSame(5, $this->users->state(self::UID)->lastSuccessAt);
+    }
+
+    public function testSetupCodeRequestOnAKeyAccountLeavesItsFlagAfterCancel(): void
+    {
+        $garminKey = AccountService::accountKey('garmin-123');
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $garminKey, null, $this->calendarId, true, identity: 'garmin:' . $garminKey));
+        $this->secrets->saveApiKey(self::UID, new ApiKeyRecord(self::API_KEY, self::NOW));
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        self::assertSame(LoginOutcome::CodeRequired, $this->service()->login(self::UID, 'a@b.de', 'secret'));
+        $this->mfa()->cancel(self::UID);
+
+        self::assertNull($this->secrets->pendingMfa(self::UID, self::NOW));
+        self::assertFalse($this->users->state(self::UID)->mfaAccount);
+        self::assertNull($this->users->state(self::UID)->mfaMethod);
+        self::assertNotNull($this->secrets->apiKey(self::UID));
     }
 
     public function testSwitchToApiKeyKeepsAccountKeyCalendarAndEvents(): void
@@ -975,19 +1033,30 @@ final class AccountServiceTest extends TestCase
 
     public function testKeyAccountWithoutGarminIdKeepsItsAccountKeyOnPasswordLogin(): void
     {
-        $this->queueKeyExchange(null);
-        $random = $this->service()->connectApiKey(self::UID, self::API_KEY)->accountKey;
-        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $random, null, $this->calendarId, true));
-        $state = new SyncState();
-        $state->initialized = true;
-        $state->lastSuccessAt = 5;
-        $this->users->saveState(self::UID, $state);
+        $random = $this->keyAccountWithoutGarminId();
         $this->queueSuccessfulLogin();
 
         $setup = $this->signIn('a@b.de', 'secret');
 
         self::assertSame($random, $setup->accountKey);
+        self::assertSame('email:' . $this->key(), $setup->identity);
+        self::assertNull($this->secrets->apiKey(self::UID));
         self::assertSame(5, $this->users->state(self::UID)->lastSuccessAt);
+    }
+
+    /** A finished setup made with a key whose token names no Garmin user; returns its random account key. */
+    private function keyAccountWithoutGarminId(): string
+    {
+        $this->queueKeyExchange(null);
+        $setup = $this->service()->connectApiKey(self::UID, self::API_KEY);
+        $random = (string)$setup->accountKey;
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $random, null, $this->calendarId, true, identity: $setup->identity));
+        $state = new SyncState();
+        $state->initialized = true;
+        $state->lastSuccessAt = 5;
+        $this->users->saveState(self::UID, $state);
+
+        return $random;
     }
 
     public function testRejectedKeyKeepsEverythingAsItWas(): void
@@ -1110,7 +1179,15 @@ final class AccountServiceTest extends TestCase
         );
     }
 
-    private function service(): AccountService
+    private function mfa(): MfaService
+    {
+        $time = $this->createStub(ITimeFactory::class);
+        $time->method('getTime')->willReturn(self::NOW);
+
+        return new MfaService($this->service(), $this->garmin(), $this->secrets, $this->users, new PersonLock($this->locking), $time, $this->logger);
+    }
+
+    private function garmin(): GarminClientFactory
     {
         $http = $this->http;
         $provider = new class ($http) implements HttpClientProvider {
@@ -1123,6 +1200,13 @@ final class AccountServiceTest extends TestCase
                 return $this->http;
             }
         };
+
+        return (new GarminClientFactory($provider, $this->secrets, $this->logger))->withWidgetSleep(static function (): void {
+        });
+    }
+
+    private function service(): AccountService
+    {
         $jobList = $this->createMock(IJobList::class);
         $jobList->method('add')->willReturnCallback(function (string $job, $argument = null): void {
             $this->jobs[] = [$job, $argument];
@@ -1137,8 +1221,7 @@ final class AccountServiceTest extends TestCase
         $time->method('getTime')->willReturn(self::NOW);
 
         return new AccountService(
-            (new GarminClientFactory($provider, $this->secrets, $this->logger))->withWidgetSleep(static function (): void {
-            }),
+            $this->garmin(),
             $this->secrets,
             $this->users,
             new CalendarService($this->objects),

@@ -34,7 +34,7 @@ final class ApiKeyTokenService
     /**
      * @throws GarminException ApiKeyRejected if Garmin answers 401 or 403, otherwise classified as usual
      */
-    public function exchange(string $apiKey): GarminTokens
+    public function exchange(#[\SensitiveParameter] string $apiKey): GarminTokens
     {
         try {
             $response = $this->http->send(new HttpRequest(self::STEP, 'POST', self::TOKEN_URL, [

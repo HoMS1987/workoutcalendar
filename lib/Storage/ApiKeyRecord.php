@@ -8,7 +8,7 @@ namespace OCA\WorkoutCalendar\Storage;
 final class ApiKeyRecord
 {
     public function __construct(
-        public readonly string $key,
+        #[\SensitiveParameter] public readonly string $key,
         public readonly int $enteredAt,
     ) {
     }

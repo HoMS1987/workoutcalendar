@@ -89,10 +89,6 @@ final class AccountService
      */
     public function completeLogin(string $uid, string $email, Credentials $credentials, GarminTokens $tokens): SetupState
     {
-        $previous = $this->users->setup($uid);
-        // WHY before deleting the key: it tells a key account without identity apart from a 1.0.x installation.
-        $previousIdentity = $this->storedIdentity($uid, $previous);
-
         $this->secrets->saveCredentials($uid, $credentials);
         // WHY: Overwrites the access token of the API key as well; both ways share the tokens slot.
         $this->secrets->saveTokens($uid, $tokens);
@@ -102,7 +98,7 @@ final class AccountService
 
         $accountKey = self::accountKey($email);
 
-        return $this->finishSignIn($uid, $previous, $previousIdentity, 'email:' . $accountKey, $accountKey, EmailMask::mask($email), false);
+        return $this->finishSignIn($uid, 'email:' . $accountKey, $accountKey, EmailMask::mask($email), false);
     }
 
     /**
@@ -115,7 +111,7 @@ final class AccountService
      * @throws PersonBusyException if a sync run or another change holds the person's lock; then there is
      *         no request to Garmin and everything stored stays as it was
      */
-    public function connectApiKey(string $uid, string $apiKey): SetupState
+    public function connectApiKey(string $uid, #[\SensitiveParameter] string $apiKey): SetupState
     {
         // WHY: A pasted key often carries a trailing line break or spaces.
         $apiKey = trim($apiKey);
@@ -129,9 +125,6 @@ final class AccountService
             $garminId = ApiKeyTokenService::garminUserId($tokens);
             $garminKey = $garminId !== null ? self::accountKey($garminId) : null;
 
-            $previous = $this->users->setup($uid);
-            $previousIdentity = $this->storedIdentity($uid, $previous);
-
             // WHY delete first: the tokens slot is shared, so the tokens of the password way go with its credentials.
             $this->secrets->deleteCredentials($uid);
             $this->secrets->deleteSsoCookies($uid);
@@ -141,8 +134,6 @@ final class AccountService
 
             return $this->finishSignIn(
                 $uid,
-                $previous,
-                $previousIdentity,
                 $garminKey !== null ? 'garmin:' . $garminKey : null,
                 // Without a Garmin ID there is no stable account key; a random one stays across later keys.
                 $garminKey ?? bin2hex(random_bytes(8)),
@@ -152,17 +143,10 @@ final class AccountService
         });
     }
 
-    /**
-     * The identity the stored setup stands for. A setup without identity from before 1.1.0 was signed in
-     * with an email, whose account key is the hash; a key account without Garmin ID has no identity.
-     */
-    private function storedIdentity(string $uid, SetupState $setup): ?string
+    /** The identity the stored setup stands for. A setup from before 1.1.0 was signed in with an email, whose hash is the account key. */
+    private static function storedIdentity(SetupState $setup): ?string
     {
-        if ($setup->identity !== null || $setup->accountKey === null) {
-            return $setup->identity;
-        }
-
-        return $this->secrets->apiKey($uid) === null ? 'email:' . $setup->accountKey : null;
+        return $setup->identity ?? ($setup->accountKey !== null ? 'email:' . $setup->accountKey : null);
     }
 
     /** Only two identities of the same kind that differ are another account; a missing one or another kind is the same. */
@@ -180,21 +164,24 @@ final class AccountService
      * continues the setup and withdraws the notification. The caller holds the person's lock and has saved
      * the secrets of the new way.
      *
+     * @param ?string $identity null for a key whose token names no Garmin user: never another account, the
+     *        identity becomes 'apikey:' plus the account key that stays
      * @param string $newAccountKey account key for a first setup or another account
      */
     private function finishSignIn(
         string $uid,
-        SetupState $previous,
-        ?string $previousIdentity,
         ?string $identity,
         string $newAccountKey,
         ?string $maskedEmail,
         bool $viaApiKey,
     ): SetupState {
+        $previous = $this->users->setup($uid);
         // Another account starts over: the window and the history import of the old one do not apply.
-        $switched = self::isAccountSwitch($previousIdentity, $identity);
+        $switched = self::isAccountSwitch(self::storedIdentity($previous), $identity);
         // WHY: The account key marks the app's events; switching the way of signing in must not orphan them.
         $accountKey = $switched || $previous->accountKey === null ? $newAccountKey : $previous->accountKey;
+        // WHY from the kept key, not the unused random candidate: the identity must name the account it marks.
+        $identity ??= 'apikey:' . $accountKey;
         $state = $switched ? new SyncState() : $this->users->state($uid);
         if ($switched) {
             // WHY: Remembered cookies of the old account would be sent with every login of the new one,
@@ -255,8 +242,9 @@ final class AccountService
     {
         $this->pendingRequests->save($uid, $pending);
 
+        $current = $this->users->setup($uid)->accountKey;
         $email = $pending->credentials?->email;
-        if ($email !== null && self::isAccountSwitch($this->storedIdentity($uid, $this->users->setup($uid)), 'email:' . self::accountKey($email))) {
+        if ($email !== null && $current !== null && $current !== self::accountKey($email)) {
             return;
         }
         $this->setMfaAccount($uid, true, $pending->challenge->method);

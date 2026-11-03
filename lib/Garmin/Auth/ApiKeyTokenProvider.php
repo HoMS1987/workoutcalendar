@@ -20,7 +20,7 @@ final class ApiKeyTokenProvider implements TokenProvider
     public function __construct(
         private readonly ApiKeyTokenService $service,
         private readonly TokenStore $store,
-        private readonly string $apiKey,
+        #[\SensitiveParameter] private readonly string $apiKey,
         ?callable $now = null,
     ) {
         $this->now = $now !== null ? \Closure::fromCallable($now) : static fn (): int => time();
