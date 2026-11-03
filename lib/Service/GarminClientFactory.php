@@ -24,11 +24,27 @@ use Psr\Log\LoggerInterface;
  */
 final class GarminClientFactory
 {
+    /** Wait of the widget login before submitting the form; null for the real wait. */
+    private ?\Closure $widgetSleep = null;
+
     public function __construct(
         private readonly HttpClientProvider $http,
         private readonly SecretStore $secrets,
         private readonly LoggerInterface $logger,
     ) {
+    }
+
+    /**
+     * Copy whose widget login waits with `$sleep` instead of sleep(), for tests.
+     *
+     * @param callable(int): void $sleep
+     */
+    public function withWidgetSleep(callable $sleep): self
+    {
+        $copy = clone $this;
+        $copy->widgetSleep = \Closure::fromCallable($sleep);
+
+        return $copy;
     }
 
     public function client(string $uid, Credentials $credentials, bool $passwordLogin = true): GarminClient
@@ -76,7 +92,7 @@ final class GarminClientFactory
     {
         $diTokens = new DiTokenService($http);
 
-        return new Authenticator([new MobileLogin($http, $diTokens), new WidgetLogin($http, $diTokens)], $this->logger);
+        return new Authenticator([new MobileLogin($http, $diTokens), new WidgetLogin($http, $diTokens, $this->widgetSleep)], $this->logger);
     }
 
     /** @param list<string> $knownSecrets */

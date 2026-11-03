@@ -8,8 +8,11 @@ use OCA\WorkoutCalendar\BackgroundJob\CalendarMaintenanceJob;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -32,37 +35,64 @@ final class AccountService
         private readonly ITimeFactory $time,
         private readonly PersonLock $lock,
         private readonly LoggerInterface $logger,
+        private readonly PendingMfaSaver $pendingRequests,
     ) {
     }
 
     /**
-     * Checks the credentials with Garmin and saves them only on success.
+     * Checks the credentials with Garmin and saves them only on success. If Garmin asks for a code,
+     * the credentials wait only in the pending code request until the code is confirmed.
      *
-     * @throws GarminException unchanged, in which case everything stored stays as it was
+     * @throws GarminException unchanged, in which case everything stored stays as it was (also for an
+     *         MFA_REQUIRED without a challenge, e.g. from the widget login)
      * @throws PersonBusyException if a sync run or another change holds the person's lock; then there is
      *         no request to Garmin and everything stored stays as it was
      */
-    public function login(string $uid, string $email, string $password): SetupState
+    public function login(string $uid, string $email, string $password): LoginOutcome
     {
         $email = trim($email);
         $credentials = new Credentials($email, $password);
 
         // WHY Garmin inside the lock: otherwise a second operation checks in parallel and overtakes on save.
-        return $this->lock->run($uid, function () use ($uid, $email, $credentials): SetupState {
-            $tokens = $this->garmin->authenticator()->login($credentials);
+        return $this->lock->run($uid, function () use ($uid, $email, $credentials): LoginOutcome {
+            try {
+                $tokens = $this->garmin->authenticator()->login($credentials);
+            } catch (GarminException $e) {
+                if ($e->category !== FailureCategory::MfaRequired || $e->mfaChallenge === null) {
+                    throw $e;
+                }
+                $this->requireCode($uid, new PendingMfa($e->mfaChallenge, MfaOrigin::Setup, $this->time->getTime(), $credentials));
 
-            return $this->store($uid, $email, $credentials, $tokens);
+                return LoginOutcome::CodeRequired;
+            }
+
+            $this->completeLogin($uid, $email, $credentials, $tokens);
+            // Signed in with the password alone and without remembered cookies: no two-step verification (any more).
+            $this->setMfaAccount($uid, false, null);
+
+            return LoginOutcome::SignedIn;
         });
     }
 
-    private function store(string $uid, string $email, Credentials $credentials, GarminTokens $tokens): SetupState
+    /** Stable ID of the Garmin account, derived from the email address: marks the app's events and detects a switch of account. */
+    public static function accountKey(string $email): string
+    {
+        return substr(hash('sha256', strtolower(trim($email))), 0, 16);
+    }
+
+    /**
+     * Saves credentials and tokens after a successful sign-in and continues the setup.
+     * The caller holds the person's lock. The same account keeps its sync state including the MFA flag.
+     */
+    public function completeLogin(string $uid, string $email, Credentials $credentials, GarminTokens $tokens): SetupState
     {
         $this->secrets->saveCredentials($uid, $credentials);
         $this->secrets->saveTokens($uid, $tokens);
+        // A successful sign-in ends any waiting code request.
+        $this->secrets->deletePendingMfa($uid);
 
         $previous = $this->users->setup($uid);
-        // Stable ID of the Garmin account, derived from the email address: marks the app's events and detects a switch of account.
-        $accountKey = substr(hash('sha256', strtolower($email)), 0, 16);
+        $accountKey = self::accountKey($email);
         // Another account starts over: the window and the history import of the old one do not apply.
         $state = $previous->accountKey !== null && $previous->accountKey !== $accountKey
             ? new SyncState()
@@ -101,6 +131,32 @@ final class AccountService
         $this->notifications->dismiss($uid);
 
         return $setup;
+    }
+
+    /**
+     * Stores a code request and marks the account as using two-step verification. A request from the
+     * setup for another account leaves the flag of the current one alone; it is set after the code.
+     * The caller holds the person's lock.
+     */
+    public function requireCode(string $uid, PendingMfa $pending): void
+    {
+        $this->pendingRequests->save($uid, $pending);
+
+        $current = $this->users->setup($uid)->accountKey;
+        $email = $pending->credentials?->email;
+        if ($email !== null && $current !== null && $current !== self::accountKey($email)) {
+            return;
+        }
+        $this->setMfaAccount($uid, true, $pending->challenge->method);
+    }
+
+    /** The caller holds the person's lock. */
+    public function setMfaAccount(string $uid, bool $mfaAccount, ?string $method): void
+    {
+        $state = $this->users->state($uid);
+        $state->mfaAccount = $mfaAccount;
+        $state->mfaMethod = $method;
+        $this->users->saveState($uid, $state);
     }
 
     /**

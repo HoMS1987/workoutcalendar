@@ -14,6 +14,7 @@ use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\CalendarSetupService;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\StatusService;
 use OCA\WorkoutCalendar\Service\SyncRunner;
@@ -200,6 +201,28 @@ final class ApiControllerTest extends TestCase
         self::assertSame(400, $this->controller()->history(45)->getStatus());
         self::assertSame(400, $this->controller()->history('90')->getStatus());
         self::assertSame(90, $this->users->settings(self::UID)->historyDays);
+    }
+
+    public function testHistoryChoiceInTheWizardKeepsTheMfaFlag(): void
+    {
+        $this->done();
+        $setup = $this->users->setup(self::UID);
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::History, true, self::ACCOUNT, $setup->maskedEmail, $setup->calendarId, true));
+        $state = $this->users->state(self::UID);
+        $state->mfaAccount = true;
+        $state->mfaMethod = 'sms';
+        $state->initialized = true;
+        $this->users->saveState(self::UID, $state);
+        // Expiry per the real clock, otherwise the client fetches a new token first.
+        $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
+        $this->http->queue(FakeHttpClient::json(200, []), FakeHttpClient::json(200, []));
+
+        $response = $this->controller()->history(90);
+
+        self::assertSame(200, $response->getStatus(), (string)json_encode($response->getData()));
+        $state = $this->users->state(self::UID);
+        self::assertTrue($state->mfaAccount);
+        self::assertSame('sms', $state->mfaMethod);
     }
 
     public function testHistoryInOtherStepsIsRejected(): void
@@ -449,6 +472,7 @@ final class ApiControllerTest extends TestCase
         $time = $this->createStub(ITimeFactory::class);
         $time->method('getTime')->willReturn(self::NOW);
         $jobs = $this->createStub(IJobList::class);
+        $pendingRequests = new PendingMfaSaver($this->secrets, $jobs, $garminLogger);
         $notifications = new FailureNotifications($this->notificationManager(), $time);
         $calendars = new CalendarService($this->objects);
         $lock = new PersonLock($this->locking);
@@ -475,7 +499,7 @@ final class ApiControllerTest extends TestCase
             'workoutcalendar',
             $request,
             $session,
-            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock, new MemoryLogger()),
+            new AccountService($garmin, $this->secrets, $this->users, $calendars, $jobs, $notifications, $time, $lock, new MemoryLogger(), $pendingRequests),
             new CalendarSetupService($calendars, $this->users, $jobs, $time, $l, $lock, new MemoryLogger()),
             $calendars,
             new SyncRunner(
@@ -488,6 +512,7 @@ final class ApiControllerTest extends TestCase
                 $l10nFactory,
                 $this->createStub(IUserManager::class),
                 $garminLogger,
+                $pendingRequests,
             ),
             new StatusService($this->users, $calendars),
             $this->users,

@@ -48,6 +48,7 @@ final class SyncRunner
         private readonly IFactory $l10nFactory,
         private readonly IUserManager $userManager,
         private readonly LoggerInterface $logger,
+        private readonly PendingMfaSaver $pendingRequests,
     ) {
         $this->calendars = new CalendarService($objects);
         $this->policy = new NotificationPolicy();
@@ -189,7 +190,7 @@ final class SyncRunner
         $result = $sync->run($this->users->settings($uid), $state, $now);
         $this->users->saveState($uid, $state);
         if ($result->mfaChallenge !== null) {
-            $this->secrets->savePendingMfa($uid, new PendingMfa($result->mfaChallenge, MfaOrigin::Sync, $now->getTimestamp()));
+            $this->pendingRequests->save($uid, new PendingMfa($result->mfaChallenge, MfaOrigin::Sync, $now->getTimestamp()));
         }
 
         $this->notify($uid, $state, $now);

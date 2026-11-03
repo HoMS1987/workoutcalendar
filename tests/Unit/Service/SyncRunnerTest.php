@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Tests\Unit\Service;
 
+use OCA\WorkoutCalendar\BackgroundJob\MfaCleanupJob;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\RunOutcome;
 use OCA\WorkoutCalendar\Service\SyncRunner;
@@ -26,6 +28,7 @@ use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCA\WorkoutCalendar\Tests\Support\RecordingNotification;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -59,6 +62,8 @@ final class SyncRunnerTest extends TestCase
     /** @var list<string> */
     private array $notificationCalls = [];
     private ?\Throwable $lockFailure = null;
+    /** @var list<array{string, int, mixed}> */
+    private array $scheduled = [];
 
     protected function setUp(): void
     {
@@ -129,6 +134,7 @@ final class SyncRunnerTest extends TestCase
         self::assertSame($this->now->getTimestamp(), $pending->createdAt);
         self::assertSame('email', $pending->challenge->method);
         self::assertSame(['sso-cookie'], $pending->challenge->cookies);
+        self::assertSame([[MfaCleanupJob::class, $this->now->getTimestamp() + 1800, ['uid' => self::UID]]], $this->scheduled);
     }
 
     public function testStoredSsoCookiesAreSentWithTheSync(): void
@@ -494,6 +500,10 @@ final class SyncRunnerTest extends TestCase
                 return $this->http;
             }
         };
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->method('scheduleAfter')->willReturnCallback(function (string $job, int $runAfter, mixed $argument = null): void {
+            $this->scheduled[] = [$job, $runAfter, $argument];
+        });
 
         return new SyncRunner(
             $this->users,
@@ -505,6 +515,7 @@ final class SyncRunnerTest extends TestCase
             $this->l10nFactory(),
             $this->userManager(),
             $this->logger,
+            new PendingMfaSaver($this->secrets, $jobList, $this->logger),
         );
     }
 
