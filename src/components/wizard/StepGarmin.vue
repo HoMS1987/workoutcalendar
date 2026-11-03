@@ -1,5 +1,25 @@
 <template>
-	<form class="step" @submit.prevent="submit">
+	<div v-if="pending" class="step">
+		<h3>{{ t('workoutcalendar', 'Enter the verification code') }}</h3>
+		<MfaCodeForm
+			:method="pending.method"
+			:nextRequestAt="nextRequestAt"
+			@status="emit('status', $event)" />
+		<p class="step__hint">
+			{{ t('workoutcalendar', 'Your Garmin account uses two-step verification. If the Garmin sign-in expires at some point, Workout Calendar pauses and lets you know through a notification. The app only requests a new code when you ask for it.') }}
+		</p>
+		<NcNoteCard v-if="error" type="error">
+			{{ error }}
+		</NcNoteCard>
+		<NcButton
+			type="button"
+			variant="tertiary"
+			:disabled="busy"
+			@click="back">
+			{{ t('workoutcalendar', 'Back') }}
+		</NcButton>
+	</div>
+	<form v-else class="step" @submit.prevent="submit">
 		<h3>{{ t('workoutcalendar', 'Sign in to Garmin') }}</h3>
 		<p>{{ t('workoutcalendar', 'Enter the email address and password of your Garmin account. The password is stored encrypted and only used to sign in.') }}</p>
 
@@ -36,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Status } from '../../types.ts'
+import type { PendingMfa, Status } from '../../types.ts'
 
 import { t } from '@nextcloud/l10n'
 import { ref } from 'vue'
@@ -45,7 +65,8 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcPasswordField from '@nextcloud/vue/components/NcPasswordField'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
-import { ApiError, login } from '../../api.ts'
+import MfaCodeForm from '../MfaCodeForm.vue'
+import { ApiError, cancelMfa, login } from '../../api.ts'
 import { apiErrorText, isLoginFailure, loginError } from '../../messages.ts'
 
 // Bound by the page so the address survives a step back from the calendar; the password never is.
@@ -54,6 +75,10 @@ const email = defineModel<string>('email', { default: '' })
 defineProps<{
 	/** Masked address of the account that was connected before, if any. */
 	maskedEmail?: string | null
+	/** Code request from the setup login that waits for its code. */
+	pending?: PendingMfa | null
+	/** Earliest time for the next code request, Unix seconds. */
+	nextRequestAt?: number | null
 }>()
 
 const emit = defineEmits<{ status: [status: Status] }>()
@@ -78,6 +103,23 @@ async function submit() {
 		busy.value = false
 	}
 }
+
+// Gives up the pending code request and shows the login form again.
+async function back() {
+	if (busy.value) {
+		return
+	}
+	busy.value = true
+	error.value = ''
+	try {
+		emit('status', await cancelMfa())
+	} catch (e) {
+		const apiError = e instanceof ApiError ? e : new ApiError(0, 'internal')
+		error.value = apiErrorText(apiError)
+	} finally {
+		busy.value = false
+	}
+}
 </script>
 
 <style scoped>
@@ -91,6 +133,10 @@ async function submit() {
 
 .step :deep(.input-field) {
 	width: 100%;
+}
+
+.step__hint {
+	color: var(--color-text-maxcontrast);
 }
 
 .step__waiting {

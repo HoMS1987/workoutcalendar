@@ -10,10 +10,12 @@ vi.mock('@nextcloud/l10n', async (importOriginal) => (await import('./l10nMock.t
 vi.mock('../../../src/api.ts', async (importOriginal) => ({
 	...(await importOriginal<typeof ApiModule>()),
 	login: vi.fn(),
+	cancelMfa: vi.fn(),
 }))
 
 const api = await import('../../../src/api.ts')
 const login = vi.mocked(api.login)
+const cancelMfa = vi.mocked(api.cancelMfa)
 
 async function fillAndSubmit(wrapper: ReturnType<typeof mount>) {
 	await wrapper.find('input[type="email"]').setValue('me@example.org')
@@ -94,5 +96,31 @@ describe('StepGarmin last account hint', () => {
 		const wrapper = mount(StepGarmin, { props: { maskedEmail: null } })
 
 		expect(wrapper.text()).not.toContain('Last connected')
+	})
+})
+
+describe('StepGarmin two-step verification', () => {
+	const pending = { origin: 'setup' as const, method: 'email', expiresAt: 1_760_001_800 }
+
+	it('showsTheCodeFormAndTheTwoStepHintForAPendingSetupRequest', () => {
+		const wrapper = mount(StepGarmin, { props: { pending, nextRequestAt: null } })
+
+		expect(wrapper.find('input[autocomplete="one-time-code"]').exists()).toBe(true)
+		expect(wrapper.find('input[type="password"]').exists()).toBe(false)
+		expect(wrapper.text()).toContain('Garmin has sent you a code by email.')
+		expect(wrapper.text()).toContain('Your Garmin account uses two-step verification.')
+		expect(wrapper.text()).toContain('The app only requests a new code when you ask for it.')
+	})
+
+	it('backCancelsTheRequestAndShowsTheForm', async () => {
+		const status = makeStatus({ setup: { step: 'garmin', connected: false } })
+		cancelMfa.mockResolvedValue(status)
+		const wrapper = mount(StepGarmin, { props: { pending, nextRequestAt: null } })
+
+		await wrapper.findAll('button').find((b) => b.text() === 'Back')!.trigger('click')
+		await flushPromises()
+
+		expect(cancelMfa).toHaveBeenCalledTimes(1)
+		expect(wrapper.emitted('status')).toEqual([[status]])
 	})
 })

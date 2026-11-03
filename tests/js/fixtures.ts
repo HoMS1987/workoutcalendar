@@ -5,6 +5,7 @@ interface StatusOverrides {
 	sync?: Partial<Omit<Status['sync'], 'backfill'>> & { backfill?: Partial<Status['sync']['backfill']> }
 	failure?: Status['failure']
 	paused?: Status['paused']
+	mfa?: Partial<Status['mfa']>
 }
 
 /** A connected, fully set up status; overrides are merged per section. */
@@ -31,6 +32,7 @@ export function makeStatus(overrides: StatusOverrides = {}): Status {
 		},
 		failure: overrides.failure ?? null,
 		paused: overrides.paused ?? null,
+		mfa: { account: false, method: null, pending: null, nextRequestAt: null, ...overrides.mfa },
 		settings: {
 			historyDays: 90,
 			intervalMinutes: 60,

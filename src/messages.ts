@@ -11,7 +11,7 @@ const APP = 'workoutcalendar'
 const RAW = { escape: false }
 
 // Failure categories the login route reports for Garmin itself.
-const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
+const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'MFA_CODE_INVALID', 'MFA_EXPIRED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
 
 export function isLoginFailure(code: string): boolean {
 	return LOGIN_FAILURES.includes(code)
@@ -27,7 +27,11 @@ export function loginError(code: string): string {
 		case 'INVALID_CREDENTIALS':
 			return t(APP, 'Garmin rejected your email address or password. Please check them and try again.')
 		case 'MFA_REQUIRED':
-			return t(APP, 'Your Garmin account asks for a verification code. This is not supported yet.')
+			return t(APP, 'Your Garmin account asks for a verification code.')
+		case 'MFA_CODE_INVALID':
+			return t(APP, 'The code is not correct. Please check it and try again.')
+		case 'MFA_EXPIRED':
+			return t(APP, 'The code request has expired. Please request a new code.')
 		case 'BLOCKED':
 			return t(APP, 'Garmin is blocking the sign-in right now. Please try again later.')
 		case 'PROTOCOL_CHANGED':
@@ -37,6 +41,46 @@ export function loginError(code: string): string {
 			return t(APP, 'Garmin cannot be reached right now. Please try again later.')
 		default:
 			return t(APP, 'Signing in to Garmin failed. Please try again later.')
+	}
+}
+
+export type MfaKind = 'email' | 'sms' | 'app' | 'other' | 'missing'
+
+/**
+ * Sorts the verification method Garmin reported into the kinds the texts distinguish.
+ *
+ * @param method Method name from the status, or null if Garmin did not report one
+ */
+export function mfaKind(method: string | null): MfaKind {
+	if (method === null) {
+		return 'missing'
+	}
+	if (/^email$/i.test(method)) {
+		return 'email'
+	}
+	if (/^sms$/i.test(method)) {
+		return 'sms'
+	}
+	return /totp|authenticator/i.test(method) ? 'app' : 'other'
+}
+
+/**
+ * Tells the person where the verification code comes from.
+ *
+ * @param method Method name from the status, or null if unknown
+ */
+export function mfaPromptText(method: string | null): string {
+	switch (mfaKind(method)) {
+		case 'email':
+			return t(APP, 'Garmin has sent you a code by email.')
+		case 'sms':
+			return t(APP, 'Garmin has sent you a code by SMS.')
+		case 'app':
+			return t(APP, 'Enter the code from your authenticator app.')
+		case 'other':
+			return t(APP, 'Enter the code Garmin has sent you.')
+		default:
+			return t(APP, 'Garmin has sent you a code by email or SMS.')
 	}
 }
 
@@ -108,6 +152,8 @@ export function failureReason(category: string): string {
 			return t(APP, 'Garmin no longer accepts the saved sign-in.')
 		case 'INVALID_CREDENTIALS':
 		case 'MFA_REQUIRED':
+		case 'MFA_CODE_INVALID':
+		case 'MFA_EXPIRED':
 		case 'BLOCKED':
 		case 'PROTOCOL_CHANGED':
 		case 'SERVER_ERROR':
