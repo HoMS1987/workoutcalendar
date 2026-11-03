@@ -66,6 +66,27 @@ final class ReleaseMetadataTest extends TestCase
         }
     }
 
+    /**
+     * The App Store loads screenshots from their URL at upload time and rejects files over 2 MiB,
+     * so every URL has to point at a file that is checked in on main.
+     */
+    public function testScreenshotsPointAtCheckedInFilesOnMain(): void
+    {
+        $info = simplexml_load_file(self::ROOT . '/appinfo/info.xml');
+        self::assertNotFalse($info);
+        self::assertGreaterThan(0, count($info->screenshot));
+
+        $prefix = 'https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/';
+        foreach ($info->screenshot as $screenshot) {
+            foreach ([(string) $screenshot, (string) $screenshot['small-thumbnail']] as $url) {
+                self::assertStringStartsWith($prefix . 'docs/screenshots/', $url);
+                $file = self::ROOT . '/' . substr($url, strlen($prefix));
+                self::assertFileExists($file);
+                self::assertLessThanOrEqual(2 * 1024 * 1024, filesize($file), $url);
+            }
+        }
+    }
+
     private function infoXmlVersion(): string
     {
         $info = simplexml_load_file(self::ROOT . '/appinfo/info.xml');
