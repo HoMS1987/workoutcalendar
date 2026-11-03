@@ -9,6 +9,8 @@ final class GarminConstants
 {
     public const SSO = 'https://sso.garmin.com';
     public const CONNECT_API = 'https://connectapi.garmin.com';
+    /** Host of the personal API key; it accepts the key and issues short-lived access tokens. */
+    public const PERSONAL_API = 'https://personal.connectapi.garmin.com';
 
     /** API and token requests use the Android app identity, as python-garminconnect does; MobileLogin signs in as the iOS app. */
     public const NATIVE_HEADERS = [
