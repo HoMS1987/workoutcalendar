@@ -11,7 +11,7 @@ const APP = 'workoutcalendar'
 const RAW = { escape: false }
 
 // Failure categories the login route reports for Garmin itself.
-const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'MFA_CODE_INVALID', 'MFA_EXPIRED', 'MFA_NOT_PENDING', 'MFA_CREDENTIALS_REJECTED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
+const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'MFA_CODE_INVALID', 'MFA_EXPIRED', 'MFA_NOT_PENDING', 'MFA_CREDENTIALS_REJECTED', 'API_KEY_REJECTED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
 
 export function isLoginFailure(code: string): boolean {
 	return LOGIN_FAILURES.includes(code)
@@ -36,6 +36,8 @@ export function loginError(code: string): string {
 			return t(APP, 'The code request is no longer active. Please start again.')
 		case 'MFA_CREDENTIALS_REJECTED':
 			return t(APP, 'Garmin rejected the saved password. Please sign out and sign in with your current password.')
+		case 'API_KEY_REJECTED':
+			return t(APP, 'Garmin did not accept this API key. Please check it or create a new one.')
 		case 'BLOCKED':
 			return t(APP, 'Garmin is blocking the sign-in right now. Please try again later.')
 		case 'PROTOCOL_CHANGED':

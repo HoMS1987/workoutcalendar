@@ -31,6 +31,10 @@ export interface Status {
 		step: SetupStep
 		connected: boolean
 		maskedEmail: string | null
+		/** How the account signed in; null before the first sign-in. */
+		authMethod: 'apiKey' | 'password' | null
+		/** When the current API key was entered, Unix seconds. */
+		apiKeyEnteredAt: number | null
 		calendar: { id: number, name: string | null, createdByApp: boolean } | null
 		maintenance: string | null
 		maintenanceFailed: string | null

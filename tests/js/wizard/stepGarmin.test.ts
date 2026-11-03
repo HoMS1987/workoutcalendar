@@ -2,6 +2,7 @@ import type * as ApiModule from '../../../src/api.ts'
 
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import PasswordSignIn from '../../../src/components/signin/PasswordSignIn.vue'
 import StepGarmin from '../../../src/components/wizard/StepGarmin.vue'
 import { ApiError } from '../../../src/api.ts'
 import { makeStatus } from '../fixtures.ts'
@@ -25,14 +26,14 @@ async function fillAndSubmit(wrapper: ReturnType<typeof mount>) {
 	await wrapper.find('form').trigger('submit')
 }
 
-describe('StepGarmin', () => {
+describe('PasswordSignIn', () => {
 	beforeEach(() => {
 		login.mockReset()
 	})
 
 	it('disables the login button while the request runs and sends one request', async () => {
 		login.mockReturnValue(new Promise(() => {}))
-		const wrapper = mount(StepGarmin)
+		const wrapper = mount(PasswordSignIn)
 
 		await fillAndSubmit(wrapper)
 		await wrapper.find('form').trigger('submit')
@@ -44,7 +45,7 @@ describe('StepGarmin', () => {
 
 	it('shows the waiting text during a slow login', async () => {
 		login.mockReturnValue(new Promise(() => {}))
-		const wrapper = mount(StepGarmin)
+		const wrapper = mount(PasswordSignIn)
 
 		await fillAndSubmit(wrapper)
 
@@ -53,7 +54,7 @@ describe('StepGarmin', () => {
 
 	it('shows the Garmin error text for INVALID_CREDENTIALS', async () => {
 		login.mockRejectedValue(new ApiError(401, 'INVALID_CREDENTIALS'))
-		const wrapper = mount(StepGarmin)
+		const wrapper = mount(PasswordSignIn)
 
 		await fillAndSubmit(wrapper)
 		await flushPromises()
@@ -64,7 +65,7 @@ describe('StepGarmin', () => {
 
 	it('does not retry the login after 409', async () => {
 		login.mockRejectedValue(new ApiError(409, 'busy'))
-		const wrapper = mount(StepGarmin)
+		const wrapper = mount(PasswordSignIn)
 
 		await fillAndSubmit(wrapper)
 		await flushPromises()
@@ -77,7 +78,7 @@ describe('StepGarmin', () => {
 	it('emits the returned status after a successful login', async () => {
 		const status = makeStatus({ setup: { step: 'calendar' } })
 		login.mockResolvedValue(status)
-		const wrapper = mount(StepGarmin)
+		const wrapper = mount(PasswordSignIn)
 
 		await fillAndSubmit(wrapper)
 		await flushPromises()
@@ -86,26 +87,26 @@ describe('StepGarmin', () => {
 	})
 })
 
-describe('StepGarmin last account hint', () => {
+describe('PasswordSignIn last account hint', () => {
 	it('names the last connected account without filling the input', () => {
-		const wrapper = mount(StepGarmin, { props: { maskedEmail: 'a***@example.org' } })
+		const wrapper = mount(PasswordSignIn, { props: { maskedEmail: 'a***@example.org' } })
 
 		expect(wrapper.text()).toContain('Last connected as a***@example.org.')
 		expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe('')
 	})
 
 	it('shows no hint without a known account', () => {
-		const wrapper = mount(StepGarmin, { props: { maskedEmail: null } })
+		const wrapper = mount(PasswordSignIn, { props: { maskedEmail: null } })
 
 		expect(wrapper.text()).not.toContain('Last connected')
 	})
 })
 
-describe('StepGarmin two-step verification', () => {
+describe('PasswordSignIn two-step verification', () => {
 	const pending = { origin: 'setup' as const, method: 'email', expiresAt: 1_760_001_800 }
 
 	it('showsTheCodeFormAndTheTwoStepHintForAPendingSetupRequest', () => {
-		const wrapper = mount(StepGarmin, { props: { pending, nextRequestAt: null } })
+		const wrapper = mount(PasswordSignIn, { props: { pending, nextRequestAt: null } })
 
 		expect(wrapper.find('input[autocomplete="one-time-code"]').exists()).toBe(true)
 		expect(wrapper.find('input[type="password"]').exists()).toBe(false)
@@ -117,7 +118,7 @@ describe('StepGarmin two-step verification', () => {
 	it('backCancelsTheRequestAndShowsTheForm', async () => {
 		const status = makeStatus({ setup: { step: 'garmin', connected: false } })
 		cancelMfa.mockResolvedValue(status)
-		const wrapper = mount(StepGarmin, { props: { pending, nextRequestAt: null } })
+		const wrapper = mount(PasswordSignIn, { props: { pending, nextRequestAt: null } })
 
 		await wrapper.findAll('button').find((b) => b.text() === 'Back')!.trigger('click')
 		await flushPromises()
@@ -130,7 +131,7 @@ describe('StepGarmin two-step verification', () => {
 		const status = makeStatus({ setup: { connected: false, step: 'garmin' } })
 		vi.mocked(api.verifyMfaCode).mockRejectedValue(new ApiError(422, 'MFA_EXPIRED'))
 		vi.mocked(api.getStatus).mockResolvedValue(status)
-		const wrapper = mount(StepGarmin, { props: { pending: { origin: 'setup', method: 'email', expiresAt: 1_760_001_800 } } })
+		const wrapper = mount(PasswordSignIn, { props: { pending: { origin: 'setup', method: 'email', expiresAt: 1_760_001_800 } } })
 
 		await wrapper.find('input').setValue('123456')
 		await wrapper.find('form').trigger('submit')
@@ -140,5 +141,22 @@ describe('StepGarmin two-step verification', () => {
 
 		expect(wrapper.find('input[type="password"]').exists()).toBe(true)
 		expect(wrapper.text()).toContain('The code request has expired.')
+	})
+})
+
+describe('StepGarmin', () => {
+	it('showsTheHeadingAndTheApiKeyTabFirst', () => {
+		const wrapper = mount(StepGarmin)
+
+		expect(wrapper.find('h3').text()).toBe('Sign in to Garmin')
+		expect(wrapper.find('[data-test="method-apikey"]').attributes('aria-pressed')).toBe('true')
+		expect(wrapper.find('button[type="submit"]').text()).toBe('Connect and continue')
+	})
+
+	it('opensThePasswordFormForAPendingSetupRequest', () => {
+		const pending = { origin: 'setup' as const, method: 'email', expiresAt: 1_760_001_800 }
+		const wrapper = mount(StepGarmin, { props: { pending } })
+
+		expect(wrapper.find('input[autocomplete="one-time-code"]').exists()).toBe(true)
 	})
 })

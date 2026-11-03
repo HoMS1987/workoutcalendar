@@ -30,6 +30,7 @@ describe('loginError', () => {
 		['MFA_EXPIRED', 'The code request has expired. Please request a new code.'],
 		['MFA_NOT_PENDING', 'The code request is no longer active. Please start again.'],
 		['MFA_CREDENTIALS_REJECTED', 'Garmin rejected the saved password. Please sign out and sign in with your current password.'],
+		['API_KEY_REJECTED', 'Garmin did not accept this API key. Please check it or create a new one.'],
 		['BLOCKED', 'Garmin is blocking the sign-in right now. Please try again later.'],
 		['PROTOCOL_CHANGED', 'The Garmin sign-in seems to have changed. Details are in the Nextcloud log.'],
 		['SERVER_ERROR', 'Garmin cannot be reached right now. Please try again later.'],
@@ -145,6 +146,7 @@ describe('pollProblem', () => {
 describe('isLoginFailure', () => {
 	it('knows the Garmin categories and nothing else', () => {
 		expect(isLoginFailure('INVALID_CREDENTIALS')).toBe(true)
+		expect(isLoginFailure('API_KEY_REJECTED')).toBe(true)
 		expect(isLoginFailure('busy')).toBe(false)
 	})
 })
