@@ -52,6 +52,34 @@ final class SyncStateTest extends TestCase
         self::assertSame('MFA_REQUIRED', $copy->notifiedCategory);
     }
 
+    public function testPausedForMfaCountsAsMfaAccount(): void
+    {
+        $state = new SyncState();
+        self::assertFalse($state->isMfaAccount());
+
+        $state->pausedFor = 'MFA_REQUIRED';
+        self::assertTrue($state->isMfaAccount());
+
+        $state->pausedFor = 'INVALID_CREDENTIALS';
+        self::assertFalse($state->isMfaAccount());
+
+        $state->mfaAccount = true;
+        self::assertTrue($state->isMfaAccount());
+    }
+
+    public function testMfaFieldsRoundTrip(): void
+    {
+        $state = new SyncState();
+        $state->mfaAccount = true;
+        $state->mfaMethod = 'email';
+
+        $copy = SyncState::fromArray(json_decode(json_encode($state->toArray()), true));
+
+        self::assertTrue($copy->mfaAccount);
+        self::assertSame('email', $copy->mfaMethod);
+        self::assertEquals($state, $copy);
+    }
+
     public function testIgnoresUnknownAndInvalidValues(): void
     {
         $state = SyncState::fromArray(['initialized' => 'yes', 'failureCount' => 'many', 'unknown' => 1]);

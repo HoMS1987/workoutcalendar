@@ -16,6 +16,8 @@ final class SecretStore
 {
     private const CREDENTIALS = 'credentials';
     private const TOKENS = 'tokens';
+    private const MFA_PENDING = 'mfa_pending';
+    private const SSO_COOKIES = 'sso_cookies';
 
     public function __construct(
         private readonly IUserConfig $config,
@@ -64,9 +66,68 @@ final class SecretStore
         $this->write($uid, self::TOKENS, $tokens->toArray());
     }
 
+    /** An expired request is deleted and reads as missing. */
+    public function pendingMfa(string $uid, int $now): ?PendingMfa
+    {
+        $data = $this->read($uid, self::MFA_PENDING);
+        if ($data === null) {
+            return null;
+        }
+        try {
+            $pending = PendingMfa::fromArray($data);
+        } catch (\InvalidArgumentException) {
+            $this->warn($uid, self::MFA_PENDING);
+
+            return null;
+        }
+        if ($pending->isExpired($now)) {
+            $this->deletePendingMfa($uid);
+
+            return null;
+        }
+
+        return $pending;
+    }
+
+    public function savePendingMfa(string $uid, PendingMfa $pending): void
+    {
+        $this->write($uid, self::MFA_PENDING, $pending->toArray());
+    }
+
+    public function deletePendingMfa(string $uid): void
+    {
+        $this->config->deleteUserConfig($uid, Application::APP_ID, self::MFA_PENDING);
+    }
+
+    /**
+     * Remembered SSO cookies (Netscape lines); empty if missing or invalid.
+     *
+     * @return list<string>
+     */
+    public function ssoCookies(string $uid): array
+    {
+        $data = $this->read($uid, self::SSO_COOKIES);
+        $cookies = $data['cookies'] ?? null;
+        if (!is_array($cookies) || !array_is_list($cookies) || array_filter($cookies, static fn ($c) => !is_string($c)) !== []) {
+            if ($data !== null) {
+                $this->warn($uid, self::SSO_COOKIES);
+            }
+
+            return [];
+        }
+
+        return $cookies;
+    }
+
+    /** @param list<string> $cookies */
+    public function saveSsoCookies(string $uid, array $cookies): void
+    {
+        $this->write($uid, self::SSO_COOKIES, ['cookies' => $cookies]);
+    }
+
     public function clear(string $uid): void
     {
-        foreach ([self::CREDENTIALS, self::TOKENS] as $key) {
+        foreach ([self::CREDENTIALS, self::TOKENS, self::MFA_PENDING, self::SSO_COOKIES] as $key) {
             $this->config->deleteUserConfig($uid, Application::APP_ID, $key);
         }
     }

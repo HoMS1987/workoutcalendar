@@ -36,9 +36,20 @@ final class SyncState
     /** Oldest local start date of all activities imported so far; it never moves forward. */
     public ?string $oldestActivityDate = null;
 
+    /** The Garmin account uses two-step verification (set only by a person-triggered login). */
+    public bool $mfaAccount = false;
+    /** Last MFA method Garmin reported, e.g. "email". */
+    public ?string $mfaMethod = null;
+
     private const INT_FIELDS = ['lastRunAt', 'lastSuccessAt', 'nextRunAt', 'failureSince', 'failureReportedAt'];
-    private const STRING_FIELDS = ['backfillBefore', 'backfillUntil', 'failureCategory', 'failureStep', 'failureMessage', 'pausedFor', 'notifiedCategory', 'oldestActivityDate'];
-    private const BOOL_FIELDS = ['initialized', 'backfillDone'];
+    private const STRING_FIELDS = ['backfillBefore', 'backfillUntil', 'failureCategory', 'failureStep', 'failureMessage', 'pausedFor', 'notifiedCategory', 'oldestActivityDate', 'mfaMethod'];
+    private const BOOL_FIELDS = ['initialized', 'backfillDone', 'mfaAccount'];
+
+    /** Also true for 1.0.x installations paused with MFA_REQUIRED, without migration. */
+    public function isMfaAccount(): bool
+    {
+        return $this->mfaAccount || $this->pausedFor === 'MFA_REQUIRED';
+    }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

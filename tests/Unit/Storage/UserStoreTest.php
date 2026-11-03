@@ -136,6 +136,26 @@ final class UserStoreTest extends TestCase
         self::assertSame([], $store->dueUsers(50, 10));
     }
 
+    public function testMfaRequestsRoundTripAndClear(): void
+    {
+        $store = $this->store();
+        self::assertSame([], $store->mfaRequests('anna'));
+
+        $store->saveMfaRequests('anna', [100, 200]);
+
+        self::assertSame([100, 200], $store->mfaRequests('anna'));
+
+        $store->clear('anna');
+        self::assertSame([], $store->mfaRequests('anna'));
+    }
+
+    public function testMfaRequestsKeepOnlyIntegers(): void
+    {
+        $this->data = ['anna' => ['mfa_requests' => '[1,"x",2.5,3,null]']];
+
+        self::assertSame([1, 3], $this->store()->mfaRequests('anna'));
+    }
+
     public function testClearRemovesAllKeysOfThePerson(): void
     {
         $this->data = ['anna' => ['settings' => '{}', 'state' => '{}', 'setup' => '{}', 'next_run_at' => 5, 'other' => 'x'], 'bob' => ['state' => '{}']];

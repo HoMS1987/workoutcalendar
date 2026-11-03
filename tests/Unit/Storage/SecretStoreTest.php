@@ -6,6 +6,9 @@ namespace OCA\WorkoutCalendar\Tests\Unit\Storage;
 
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\UserTokenStore;
 use OCA\WorkoutCalendar\Tests\Support\InMemoryConfigMocks;
@@ -86,6 +89,105 @@ final class SecretStoreTest extends TestCase
 
         self::assertNull($store->credentials('anna'));
         self::assertNull($store->tokens('anna'));
+    }
+
+    public function testPendingMfaRoundTripsEncrypted(): void
+    {
+        $store = $this->store();
+        $pending = new PendingMfa(
+            new MfaChallenge('email', ['cookie-line-xyz']),
+            MfaOrigin::Setup,
+            1000,
+            new Credentials('anna@example.org', 'secret-123'),
+        );
+
+        $store->savePendingMfa('anna', $pending);
+
+        $raw = json_encode($this->data, JSON_THROW_ON_ERROR);
+        foreach (['cookie-line-xyz', 'secret-123', 'anna@example.org'] as $secret) {
+            self::assertStringNotContainsString($secret, $raw);
+        }
+        self::assertEquals($pending, $store->pendingMfa('anna', 1001));
+    }
+
+    public function testPendingMfaWithoutCredentialsRoundTrips(): void
+    {
+        $store = $this->store();
+        $pending = new PendingMfa(new MfaChallenge(null, []), MfaOrigin::Sync, 5);
+
+        $store->savePendingMfa('anna', $pending);
+
+        self::assertEquals($pending, $store->pendingMfa('anna', 6));
+    }
+
+    public function testExpiredPendingMfaIsDeletedOnRead(): void
+    {
+        $store = $this->store();
+        $store->savePendingMfa('anna', new PendingMfa(new MfaChallenge('email', ['c']), MfaOrigin::Relogin, 0));
+
+        self::assertNull($store->pendingMfa('anna', PendingMfa::LIFETIME_SECONDS));
+        self::assertArrayNotHasKey('mfa_pending', $this->data['anna']);
+    }
+
+    public function testPendingMfaExpiryBoundary(): void
+    {
+        $pending = new PendingMfa(new MfaChallenge(null, []), MfaOrigin::Setup, 100);
+
+        self::assertSame(1900, $pending->expiresAt());
+        self::assertFalse($pending->isExpired(1899));
+        self::assertTrue($pending->isExpired(1900));
+    }
+
+    public function testInvalidPendingMfaReadsAsMissing(): void
+    {
+        $store = $this->store();
+        $this->data['anna'] = ['mfa_pending' => 'enc:' . strrev(base64_encode('{"origin":"nope"}'))];
+
+        self::assertNull($store->pendingMfa('anna', 1));
+        self::assertCount(1, $this->logger->byLevel('warning'));
+    }
+
+    public function testDeletePendingMfa(): void
+    {
+        $store = $this->store();
+        $store->savePendingMfa('anna', new PendingMfa(new MfaChallenge(null, []), MfaOrigin::Setup, 1));
+
+        $store->deletePendingMfa('anna');
+
+        self::assertNull($store->pendingMfa('anna', 2));
+    }
+
+    public function testSsoCookiesRoundTripEncrypted(): void
+    {
+        $store = $this->store();
+        self::assertSame([], $store->ssoCookies('anna'));
+
+        $store->saveSsoCookies('anna', ['remember-me-cookie']);
+
+        self::assertStringNotContainsString('remember-me-cookie', json_encode($this->data, JSON_THROW_ON_ERROR));
+        self::assertSame(['remember-me-cookie'], $store->ssoCookies('anna'));
+    }
+
+    public function testInvalidSsoCookiesReadAsEmpty(): void
+    {
+        $store = $this->store();
+        $this->data['anna'] = ['sso_cookies' => 'enc:' . strrev(base64_encode('{"cookies":"x"}'))];
+
+        self::assertSame([], $store->ssoCookies('anna'));
+    }
+
+    public function testClearRemovesPendingMfaAndSsoCookies(): void
+    {
+        $store = $this->store();
+        $store->savePendingMfa('anna', new PendingMfa(new MfaChallenge(null, []), MfaOrigin::Setup, 1));
+        $store->saveSsoCookies('anna', ['c']);
+
+        $store->clear('anna');
+
+        self::assertNull($store->pendingMfa('anna', 2));
+        self::assertSame([], $store->ssoCookies('anna'));
+        self::assertArrayNotHasKey('mfa_pending', $this->data['anna'] ?? []);
+        self::assertArrayNotHasKey('sso_cookies', $this->data['anna'] ?? []);
     }
 
     public function testUserTokenStoreDelegatesToSecretStore(): void
