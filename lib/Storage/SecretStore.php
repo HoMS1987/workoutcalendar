@@ -18,6 +18,7 @@ final class SecretStore
     private const TOKENS = 'tokens';
     private const MFA_PENDING = 'mfa_pending';
     private const SSO_COOKIES = 'sso_cookies';
+    private const API_KEY = 'api_key';
 
     public function __construct(
         private readonly IUserConfig $config,
@@ -64,6 +65,39 @@ final class SecretStore
     public function saveTokens(string $uid, GarminTokens $tokens): void
     {
         $this->write($uid, self::TOKENS, $tokens->toArray());
+    }
+
+    /** Deletes credentials and tokens only; SSO cookies, pending MFA and the API key have their own delete methods. */
+    public function deleteCredentials(string $uid): void
+    {
+        foreach ([self::CREDENTIALS, self::TOKENS] as $key) {
+            $this->config->deleteUserConfig($uid, Application::APP_ID, $key);
+        }
+    }
+
+    public function apiKey(string $uid): ?ApiKeyRecord
+    {
+        $data = $this->read($uid, self::API_KEY);
+        if ($data === null) {
+            return null;
+        }
+        try {
+            return ApiKeyRecord::fromArray($data);
+        } catch (\InvalidArgumentException) {
+            $this->warn($uid, self::API_KEY);
+
+            return null;
+        }
+    }
+
+    public function saveApiKey(string $uid, ApiKeyRecord $record): void
+    {
+        $this->write($uid, self::API_KEY, $record->toArray());
+    }
+
+    public function deleteApiKey(string $uid): void
+    {
+        $this->config->deleteUserConfig($uid, Application::APP_ID, self::API_KEY);
     }
 
     /** An expired request is deleted and reads as missing. */
@@ -132,7 +166,7 @@ final class SecretStore
 
     public function clear(string $uid): void
     {
-        foreach ([self::CREDENTIALS, self::TOKENS, self::MFA_PENDING, self::SSO_COOKIES] as $key) {
+        foreach ([self::CREDENTIALS, self::TOKENS, self::MFA_PENDING, self::SSO_COOKIES, self::API_KEY] as $key) {
             $this->config->deleteUserConfig($uid, Application::APP_ID, $key);
         }
     }

@@ -165,6 +165,7 @@ final class SyncRunner
                 $setup->maintenance,
                 $setup->maintenanceFailed,
                 true,
+                $setup->identity,
             ));
 
             return RunOutcome::CalendarMissing;

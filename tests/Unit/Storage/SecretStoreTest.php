@@ -7,6 +7,7 @@ namespace OCA\WorkoutCalendar\Tests\Unit\Storage;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
+use OCA\WorkoutCalendar\Storage\ApiKeyRecord;
 use OCA\WorkoutCalendar\Storage\MfaOrigin;
 use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -188,6 +189,53 @@ final class SecretStoreTest extends TestCase
         self::assertSame([], $store->ssoCookies('anna'));
         self::assertArrayNotHasKey('mfa_pending', $this->data['anna'] ?? []);
         self::assertArrayNotHasKey('sso_cookies', $this->data['anna'] ?? []);
+    }
+
+    public function testApiKeyRoundTripsEncrypted(): void
+    {
+        $store = $this->store();
+        self::assertNull($store->apiKey('anna'));
+
+        $store->saveApiKey('anna', new ApiKeyRecord('garmin-key-xyz', 1234));
+
+        self::assertStringNotContainsString('garmin-key-xyz', json_encode($this->data, JSON_THROW_ON_ERROR));
+        self::assertEquals(new ApiKeyRecord('garmin-key-xyz', 1234), $store->apiKey('anna'));
+    }
+
+    public function testClearRemovesTheApiKey(): void
+    {
+        $store = $this->store();
+        $store->saveApiKey('anna', new ApiKeyRecord('k', 1));
+
+        $store->clear('anna');
+
+        self::assertNull($store->apiKey('anna'));
+        self::assertArrayNotHasKey('api_key', $this->data['anna'] ?? []);
+    }
+
+    public function testDeleteCredentialsKeepsTheApiKey(): void
+    {
+        $store = $this->store();
+        $store->saveCredentials('anna', new Credentials('anna@example.org', 'pw'));
+        $store->saveTokens('anna', new GarminTokens('a', 'r', 'c'));
+        $store->saveApiKey('anna', new ApiKeyRecord('k', 1));
+        $store->saveSsoCookies('anna', ['c']);
+
+        $store->deleteCredentials('anna');
+
+        self::assertNull($store->credentials('anna'));
+        self::assertNull($store->tokens('anna'));
+        self::assertEquals(new ApiKeyRecord('k', 1), $store->apiKey('anna'));
+        self::assertSame(['c'], $store->ssoCookies('anna'));
+    }
+
+    public function testUnreadableApiKeyIsNull(): void
+    {
+        $store = $this->store();
+        $this->data['anna'] = ['api_key' => 'enc:' . strrev(base64_encode('{"key":5}'))];
+
+        self::assertNull($store->apiKey('anna'));
+        self::assertCount(1, $this->logger->byLevel('warning'));
     }
 
     public function testUserTokenStoreDelegatesToSecretStore(): void

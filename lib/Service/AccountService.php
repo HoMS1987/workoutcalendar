@@ -131,6 +131,7 @@ final class AccountService
             $previous->maintenance,
             $previous->maintenanceFailed,
             $previous->calendarMissing,
+            $previous->identity,
         );
         $this->users->saveSetup($uid, $setup);
         $this->users->saveState($uid, $state);
@@ -211,6 +212,7 @@ final class AccountService
                         $maintenance,
                         $setup->maintenanceFailed,
                         $setup->calendarMissing,
+                        $setup->identity,
                     ));
                     try {
                         $this->jobs->add(CalendarMaintenanceJob::class, [
@@ -261,6 +263,7 @@ final class AccountService
             $maintenance,
             $setup->maintenanceFailed,
             $setup->calendarMissing,
+            $setup->identity,
         ));
         $this->users->saveState($uid, $state);
     }
