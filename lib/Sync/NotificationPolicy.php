@@ -12,7 +12,7 @@ use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
  */
 final class NotificationPolicy
 {
-    /** Wait since the error began before categories other than rejected password / verification code are reported. */
+    /** Wait since the error began before categories other than rejected password, verification code or rejected API key are reported. */
     public const DELAY_SECONDS = 86_400;
 
     public function decide(SyncState $state, int $now): NotificationAction
@@ -35,6 +35,7 @@ final class NotificationPolicy
     private function isImmediate(string $category): bool
     {
         return $category === FailureCategory::InvalidCredentials->value
-            || $category === FailureCategory::MfaRequired->value;
+            || $category === FailureCategory::MfaRequired->value
+            || $category === FailureCategory::ApiKeyRejected->value;
     }
 }

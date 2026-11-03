@@ -220,8 +220,8 @@ final class SyncService
     private function fail(SyncState $state, SyncResult $result, GarminException $e, \DateTimeImmutable $now): void
     {
         $result->failure = $e->category;
-        if ($e->category === FailureCategory::InvalidCredentials || $e->category === FailureCategory::MfaRequired) {
-            // No further login attempt until new credentials are available (SyncRunner checks this).
+        if (in_array($e->category, [FailureCategory::InvalidCredentials, FailureCategory::MfaRequired, FailureCategory::ApiKeyRejected], true)) {
+            // No further login attempt until new credentials or a new key are available (SyncRunner checks this).
             $state->pausedFor = $e->category->value;
         }
         if ($e->category === FailureCategory::MfaRequired) {

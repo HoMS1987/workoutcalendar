@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Tests\Unit\Sync;
 
 use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenProvider;
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenService;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
 use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
@@ -452,6 +455,25 @@ final class SyncServiceTest extends TestCase
         self::assertArrayNotHasKey('mfaChallenge', $result->toArray());
         self::assertStringNotContainsString('secret-cookie-value', json_encode($result->toArray(), JSON_THROW_ON_ERROR));
         self::assertStringNotContainsString('secret-cookie-value', json_encode($this->logger->records ?? [], JSON_THROW_ON_ERROR));
+    }
+
+    public function testRejectedApiKeyPausesTheSync(): void
+    {
+        $this->initialized();
+        $this->http->queue(new HttpResponse(403, [], 'Forbidden'));
+        $client = new GarminClient($this->http, new ApiKeyTokenProvider(
+            new ApiKeyTokenService($this->http, new Redactor(['the-key'])),
+            new MemoryTokenStore(),
+            'the-key',
+            fn (): int => $this->now->getTimestamp(),
+        ), $this->logger, GarminConstants::PERSONAL_API, ['the-key']);
+
+        $result = (new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger))->run(new SyncSettings(), $this->state, $this->now);
+
+        self::assertSame(FailureCategory::ApiKeyRejected, $result->failure);
+        self::assertSame('API_KEY_REJECTED', $this->state->pausedFor);
+        self::assertSame('API_KEY_REJECTED', $this->state->failureCategory);
+        self::assertFalse($this->state->mfaAccount);
     }
 
     public function testNetworkErrorDoesNotPause(): void

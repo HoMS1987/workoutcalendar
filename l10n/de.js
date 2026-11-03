@@ -3,6 +3,7 @@ OC.L10N.register("workoutcalendar", {
     "Workout Calendar needs your attention": "Workout Calendar braucht deine Aufmerksamkeit",
     "Garmin rejected your email address or password. Workout Calendar is paused until you sign in again.": "Garmin hat deine E-Mail-Adresse oder dein Passwort abgelehnt. Workout Calendar pausiert, bis du dich neu anmeldest.",
     "Garmin asks for a verification code. Workout Calendar is paused until you enter it in the settings.": "Garmin möchte einen Bestätigungscode. Workout Calendar ist pausiert, bis du ihn in den Einstellungen eingibst.",
+    "Your Garmin API key has expired or was deleted. Workout Calendar is paused until you enter a new one in the settings.": "Dein API-Schlüssel für Garmin ist abgelaufen oder wurde gelöscht. Workout Calendar ist pausiert, bis du in den Einstellungen einen neuen eingibst.",
     "Workout Calendar could not sync for a day because Garmin changed its sign-in. An app update may be needed.": "Workout Calendar konnte einen Tag lang nicht synchronisieren, weil Garmin die Anmeldung geändert hat. Möglicherweise ist ein App-Update nötig.",
     "Workout Calendar could not reach Garmin for a day. It keeps trying.": "Workout Calendar konnte Garmin einen Tag lang nicht erreichen. Es wird weiter versucht.",
     "Garmin activities": "Garmin-Aktivitäten",

@@ -13,7 +13,9 @@ use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
 use OCA\WorkoutCalendar\Calendar\DeletedMarker;
 use OCA\WorkoutCalendar\Calendar\IcsReader;
 use OCA\WorkoutCalendar\Calendar\IcsSerializer;
+use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
+use OCA\WorkoutCalendar\Storage\ApiKeyRecord;
 use OCA\WorkoutCalendar\Storage\MfaOrigin;
 use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -127,8 +129,8 @@ final class SyncRunner
 
     private function runLocked(string $uid, \DateTimeImmutable $now): RunOutcome
     {
-        $credentials = $this->secrets->credentials($uid);
-        if ($credentials === null) {
+        $signIn = $this->signIn($uid);
+        if ($signIn === null) {
             return RunOutcome::NotConnected;
         }
         $state = $this->users->state($uid);
@@ -183,7 +185,9 @@ final class SyncRunner
             $this->logger,
         );
         $sync = new SyncService(
-            $this->garmin->client($uid, $credentials, !$state->isMfaAccount()),
+            $signIn instanceof ApiKeyRecord
+                ? $this->garmin->apiKeyClient($uid, $signIn->key)
+                : $this->garmin->client($uid, $signIn, !$state->isMfaAccount()),
             new ActivityEventMapper($texts),
             $target,
             $this->logger,
@@ -197,6 +201,25 @@ final class SyncRunner
         $this->notify($uid, $state, $now);
 
         return RunOutcome::Done;
+    }
+
+    /**
+     * The stored way of signing in; null if the person is not connected.
+     * A stored key wins: a key account must never fall back to the password login.
+     */
+    private function signIn(string $uid): ApiKeyRecord|Credentials|null
+    {
+        $apiKey = $this->secrets->apiKey($uid);
+        $credentials = $this->secrets->credentials($uid);
+        if ($apiKey === null) {
+            return $credentials;
+        }
+        if ($credentials !== null) {
+            // Switching ways deletes the other one, so both together are left over from an interrupted switch.
+            $this->logger->warning('API key and credentials are both stored, syncing with the API key', ['uid' => $uid]);
+        }
+
+        return $apiKey;
     }
 
     private function calendarExists(string $uid, int $calendarId): bool

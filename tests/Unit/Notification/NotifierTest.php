@@ -68,6 +68,23 @@ final class NotifierTest extends TestCase
         self::assertSame('https://cloud.example/settings/user/workoutcalendar', $prepared->getLink());
     }
 
+    public function testApiKeyRejectedLeadsToTheSettings(): void
+    {
+        $prepared = $this->notifier()->prepare($this->notification('API_KEY_REJECTED'), 'de');
+
+        self::assertSame(
+            'Dein API-Schlüssel für Garmin ist abgelaufen oder wurde gelöscht. Workout Calendar ist pausiert, bis du in den Einstellungen einen neuen eingibst.',
+            $prepared->getParsedMessage(),
+        );
+        self::assertSame('https://cloud.example/settings/user/workoutcalendar', $prepared->getLink());
+
+        $english = $this->notifier(translate: false)->prepare($this->notification('API_KEY_REJECTED'), 'fr');
+        self::assertSame(
+            'Your Garmin API key has expired or was deleted. Workout Calendar is paused until you enter a new one in the settings.',
+            $english->getParsedMessage(),
+        );
+    }
+
     public function testLinkPointsToSettingsSection(): void
     {
         $prepared = $this->notifier()->prepare($this->notification('INVALID_CREDENTIALS'), 'de');
