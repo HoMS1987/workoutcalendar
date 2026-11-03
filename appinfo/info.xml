@@ -66,7 +66,7 @@ Nutzung auf eigene Gefahr. Diese App steht in keiner Verbindung zu Garmin und wi
     <bugs>https://github.com/HoMS1987/workoutcalendar/issues</bugs>
     <repository type="git">https://github.com/HoMS1987/workoutcalendar.git</repository>
     <screenshot small-thumbnail="https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/01-month-view-small.jpg">https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/01-month-view.png</screenshot>
-    <screenshot small-thumbnail="https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/02-settings-small.jpg">https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/02-settings.png</screenshot>
+    <screenshot small-thumbnail="https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/02-settings-v2-small.jpg">https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/02-settings-v2.png</screenshot>
     <screenshot small-thumbnail="https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/03-history-import-small.jpg">https://raw.githubusercontent.com/HoMS1987/workoutcalendar/main/docs/screenshots/03-history-import.png</screenshot>
     <donation type="other" title="GitHub Sponsors">https://github.com/sponsors/HoMS1987</donation>
     <dependencies>

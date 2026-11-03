@@ -6,6 +6,10 @@ All notable changes to this app are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The App Store entry shows the settings page with the corrected margin from 1.0.1.
+
 ## 1.0.1 – 2026-11-03
 
 ### Changed
