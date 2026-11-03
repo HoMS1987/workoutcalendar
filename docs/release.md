@@ -75,6 +75,13 @@ installiert: das signierte Archiv vom GitHub-Release nach `custom_apps/` entpack
 `.git`-Ordner. Die fertige Version kommt dort danach regulär aus dem App Store, weil Nextcloud
 `1.1.0` als neuer als `1.1.0-rc.1` erkennt.
 
+Ein Pre-Release ändert den Eintrag im App Store nicht. Beschreibung, Screenshots und übrige Angaben
+aus `info.xml` übernimmt der Store nur von einer stabilen Version, die mindestens so neu ist wie alle
+vorhandenen (`_should_update_everything` in `nextcloudappstore/api/v1/release/importer.py`). Beim
+Upload von `1.1.0-rc.1` am 2026-11-03 blieb der Eintrag beim Stand von 1.0.1. Texte für eine neue
+Funktion dürfen deshalb schon im Release Candidate stehen, sichtbar werden sie erst mit der fertigen
+Version.
+
 ## Archiv von Hand prüfen
 
 ```bash
