@@ -13,6 +13,7 @@ vi.mock('../../../src/api.ts', async (importOriginal) => ({
 	reset: vi.fn(),
 	requestMfaCode: vi.fn(),
 	connectApiKey: vi.fn(),
+	cancelMfa: vi.fn(),
 }))
 
 const api = await import('../../../src/api.ts')
@@ -39,6 +40,7 @@ describe('AccountSection', () => {
 		vi.mocked(api.reset).mockReset().mockResolvedValue(loggedOut)
 		vi.mocked(api.requestMfaCode).mockReset()
 		vi.mocked(api.connectApiKey).mockReset()
+		vi.mocked(api.cancelMfa).mockReset()
 	})
 
 	async function signInAgain(wrapper: ReturnType<typeof mountSection>) {
@@ -139,6 +141,7 @@ describe('AccountSection', () => {
 		expect(wrapper.emitted('status')).toBeUndefined()
 		expect(api.requestMfaCode).not.toHaveBeenCalled()
 		expect(api.connectApiKey).not.toHaveBeenCalled()
+		expect(api.cancelMfa).not.toHaveBeenCalled()
 		wrapper.unmount()
 	})
 
@@ -172,6 +175,54 @@ describe('AccountSection', () => {
 		expect(wrapper.find('button[data-test="method-apikey"]').exists()).toBe(true)
 		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
 		expect(wrapper.emitted('status')).toEqual([[next]])
+		wrapper.unmount()
+	})
+
+	const pendingSetup = makeStatus({ mfa: { account: true, method: 'email', pending: { origin: 'setup', method: 'email', expiresAt: 1_760_001_800 } } })
+
+	it('backFromAPendingCodeKeepsTheViewOpenWithoutTheSuccessNote', async () => {
+		const cleared = makeStatus()
+		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
+		const wrapper = mountSection(pendingSetup)
+		await openMethods(wrapper)
+
+		await wrapper.findAll('button').find((b) => b.text() === 'Back')!.trigger('click')
+		await flushPromises()
+
+		expect(api.cancelMfa).toHaveBeenCalledTimes(1)
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[cleared]])
+		wrapper.unmount()
+	})
+
+	it('cancelWithAPendingCodeRequestGivesItUp', async () => {
+		const cleared = makeStatus()
+		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
+		const wrapper = mountSection(pendingSetup)
+		await openMethods(wrapper)
+
+		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
+		await flushPromises()
+
+		expect(api.cancelMfa).toHaveBeenCalledTimes(1)
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[cleared]])
+		wrapper.unmount()
+	})
+
+	it('cancelKeepsTheViewOpenAndShowsTheErrorWhenGivingUpFails', async () => {
+		vi.mocked(api.cancelMfa).mockRejectedValue(new api.ApiError(409, 'busy'))
+		const wrapper = mountSection(pendingSetup)
+		await openMethods(wrapper)
+
+		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
+		await flushPromises()
+
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
+		expect(wrapper.text()).toContain('A sync is running right now')
+		expect(wrapper.emitted('status')).toBeUndefined()
 		wrapper.unmount()
 	})
 

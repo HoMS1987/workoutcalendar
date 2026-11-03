@@ -29,7 +29,8 @@
 			:maskedEmail="maskedEmail"
 			:pending="pending"
 			:nextRequestAt="nextRequestAt"
-			@status="emit('status', $event)" />
+			@status="emit('status', $event)"
+			@back="emit('back', $event)" />
 	</div>
 </template>
 
@@ -55,7 +56,8 @@ const props = withDefaults(defineProps<{
 	nextRequestAt?: number | null
 }>(), { initial: 'apiKey', maskedEmail: null, pending: null, nextRequestAt: null })
 
-const emit = defineEmits<{ status: [status: Status] }>()
+// "back" is a given-up code request, not a sign-in.
+const emit = defineEmits<{ status: [status: Status], back: [status: Status] }>()
 
 // WHY: A waiting setup code belongs to the email and password sign-in, so its form must be visible.
 const method = ref<'apiKey' | 'password'>(props.pending?.origin === 'setup' ? 'password' : props.initial)

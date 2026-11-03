@@ -124,6 +124,19 @@ describe('PasswordSignIn two-step verification', () => {
 		await flushPromises()
 
 		expect(cancelMfa).toHaveBeenCalledTimes(1)
+		// Giving up the request is not a sign-in, so it has its own event.
+		expect(wrapper.emitted('back')).toEqual([[status]])
+		expect(wrapper.emitted('status')).toBeUndefined()
+	})
+
+	it('backInTheWizardStillPassesTheStatusOn', async () => {
+		const status = makeStatus({ setup: { step: 'garmin', connected: false } })
+		cancelMfa.mockResolvedValue(status)
+		const wrapper = mount(StepGarmin, { props: { pending, nextRequestAt: null } })
+
+		await wrapper.findAll('button').find((b) => b.text() === 'Back')!.trigger('click')
+		await flushPromises()
+
 		expect(wrapper.emitted('status')).toEqual([[status]])
 	})
 

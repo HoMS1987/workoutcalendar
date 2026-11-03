@@ -39,8 +39,13 @@
 				:maskedEmail="status.setup.maskedEmail"
 				:pending="setupPending"
 				:nextRequestAt="status.mfa.nextRequestAt"
-				@status="methodsDone" />
-			<NcButton data-test="relogin-cancel" variant="tertiary" @click="methodsOpen = false">
+				@status="methodsDone"
+				@back="emit('status', $event)" />
+			<NcButton
+				data-test="relogin-cancel"
+				variant="tertiary"
+				:disabled="busy"
+				@click="cancelMethods">
 				{{ t('workoutcalendar', 'Cancel') }}
 			</NcButton>
 		</div>
@@ -75,7 +80,7 @@ import LogoutDialog from '../dialogs/LogoutDialog.vue'
 import ResetDialog from '../dialogs/ResetDialog.vue'
 import SignInMethods from '../signin/SignInMethods.vue'
 import CollapsibleSection from './CollapsibleSection.vue'
-import { ApiError, logout, requestMfaCode, reset } from '../../api.ts'
+import { ApiError, cancelMfa, logout, requestMfaCode, reset } from '../../api.ts'
 import { apiErrorText, formatDate, isLoginFailure, loginError } from '../../messages.ts'
 
 const props = defineProps<{
@@ -105,13 +110,35 @@ function openMethods() {
 	methodsOpen.value = true
 }
 
-// Any new status ends the view, except a code request that still waits for its code.
+// A status after a sign-in (key saved, password accepted or code confirmed) ends the view, except
+// a code request that still waits for its code. Giving up a request arrives as "back" instead.
 function methodsDone(next: Status) {
 	if (next.mfa.pending?.origin !== 'setup') {
 		methodsOpen.value = false
 		signedInAgain.value = true
 	}
 	emit('status', next)
+}
+
+// Leaves everything as it was; a code request of this view is given up so no code stays alive.
+async function cancelMethods() {
+	if (busy.value) {
+		return
+	}
+	if (setupPending.value === null) {
+		methodsOpen.value = false
+		return
+	}
+	busy.value = true
+	reloginError.value = ''
+	try {
+		emit('status', await cancelMfa())
+		methodsOpen.value = false
+	} catch (e) {
+		reloginError.value = apiErrorText(e instanceof ApiError ? e : new ApiError(0, 'internal'))
+	} finally {
+		busy.value = false
+	}
 }
 
 // Signs in with the saved password. Garmin may answer with a code request; the box at the top of

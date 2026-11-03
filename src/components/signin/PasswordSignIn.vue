@@ -81,7 +81,8 @@ defineProps<{
 	nextRequestAt?: number | null
 }>()
 
-const emit = defineEmits<{ status: [status: Status] }>()
+// "back" carries the status after the code request was given up; it is not a sign-in.
+const emit = defineEmits<{ status: [status: Status], back: [status: Status] }>()
 
 const password = ref('')
 const busy = ref(false)
@@ -112,7 +113,7 @@ async function back() {
 	busy.value = true
 	error.value = ''
 	try {
-		emit('status', await cancelMfa())
+		emit('back', await cancelMfa())
 	} catch (e) {
 		const apiError = e instanceof ApiError ? e : new ApiError(0, 'internal')
 		error.value = apiErrorText(apiError)

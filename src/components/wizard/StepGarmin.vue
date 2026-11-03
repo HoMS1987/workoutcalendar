@@ -7,7 +7,8 @@
 			:maskedEmail="maskedEmail"
 			:pending="pending"
 			:nextRequestAt="nextRequestAt"
-			@status="emit('status', $event)" />
+			@status="emit('status', $event)"
+			@back="emit('status', $event)" />
 	</div>
 </template>
 
