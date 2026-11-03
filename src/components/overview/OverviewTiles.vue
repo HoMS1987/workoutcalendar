@@ -10,7 +10,11 @@
 					<span class="tiles__marker" aria-hidden="true" />
 					{{ connectionText }}
 				</strong>
-				<span v-if="status.setup.maskedEmail" class="tiles__detail">{{ status.setup.maskedEmail }}</span>
+				<template v-if="status.setup.authMethod === 'apiKey'">
+					<span class="tiles__detail">{{ t('workoutcalendar', 'Connected with API key') }}</span>
+					<span v-if="status.setup.apiKeyEnteredAt !== null" class="tiles__detail">{{ t('workoutcalendar', 'entered on {date}', { date: formatDate(status.setup.apiKeyEnteredAt) }, { escape: false }) }}</span>
+				</template>
+				<span v-else-if="status.setup.maskedEmail" class="tiles__detail">{{ status.setup.maskedEmail }}</span>
 			</div>
 			<div class="tiles__tile" data-test="tile-events">
 				<span class="tiles__label">{{ t('workoutcalendar', 'In the calendar') }}</span>
@@ -54,7 +58,7 @@ import { n, t } from '@nextcloud/l10n'
 import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { ApiError, syncNow } from '../../api.ts'
-import { apiErrorText } from '../../messages.ts'
+import { apiErrorText, formatDate } from '../../messages.ts'
 import { useNow } from '../../useNow.ts'
 import { hintSeverity } from '../../viewState.ts'
 import { formatMonthYear, formatRelative } from './relativeTime.ts'

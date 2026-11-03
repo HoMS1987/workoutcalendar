@@ -33,6 +33,17 @@ describe('StepDone', () => {
 		expect(wrapper.text()).not.toContain('still running')
 	})
 
+	it('showsConnectedWithApiKeyAndTheDate', () => {
+		const status = statusWith(90)
+		status.setup.authMethod = 'apiKey'
+		status.setup.maskedEmail = null
+		status.setup.apiKeyEnteredAt = 1_760_000_000
+		const wrapper = mount(StepDone, { props: { status } })
+
+		expect(wrapper.text()).toContain('Garmin account: Connected with API key')
+		expect(wrapper.text()).toContain('entered on Oct 9, 2025')
+	})
+
 	it('says the calendar no longer exists when it is linked but deleted', () => {
 		const status = statusWith(90)
 		status.setup.calendar = { id: 7, name: null, createdByApp: true }

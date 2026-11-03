@@ -178,6 +178,7 @@ export function failureReason(category: string): string {
 		case 'MFA_REQUIRED':
 		case 'MFA_CODE_INVALID':
 		case 'MFA_EXPIRED':
+		case 'API_KEY_REJECTED':
 		case 'BLOCKED':
 		case 'PROTOCOL_CHANGED':
 		case 'SERVER_ERROR':
@@ -188,7 +189,12 @@ export function failureReason(category: string): string {
 	}
 }
 
-function formatDate(unixSeconds: number): string {
+/**
+ * Medium date in the language of the person.
+ *
+ * @param unixSeconds Point in time, Unix seconds
+ */
+export function formatDate(unixSeconds: number): string {
 	return new Intl.DateTimeFormat(getCanonicalLocale(), { dateStyle: 'medium' }).format(new Date(unixSeconds * 1000))
 }
 

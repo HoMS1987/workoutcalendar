@@ -1,5 +1,6 @@
 <template>
 	<div class="overview">
+		<ApiKeyBox v-if="showApiKeyBox(status)" @status="emit('status', $event)" />
 		<MfaBox v-if="showMfaBox(status)" :status="status" @status="emit('status', $event)" />
 		<OverviewTiles :status="status" @status="emit('status', $event)" />
 		<StatusHints :status="status" :hints="hints" />
@@ -35,6 +36,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AccountSection from './AccountSection.vue'
 import AdvancedSettings from './AdvancedSettings.vue'
+import ApiKeyBox from './ApiKeyBox.vue'
 import CalendarSection from './CalendarSection.vue'
 import MfaBox from './MfaBox.vue'
 import OverviewTiles from './OverviewTiles.vue'
@@ -42,7 +44,7 @@ import StatusHints from './StatusHints.vue'
 import SyncSettings from './SyncSettings.vue'
 import { ApiError, chooseHistory, updateSettings } from '../../api.ts'
 import { apiErrorText } from '../../messages.ts'
-import { showMfaBox } from '../../viewState.ts'
+import { showApiKeyBox, showMfaBox } from '../../viewState.ts'
 import { draftFromSettings, historyChanged, payloadChanged, payloadFromDraft } from './settingsDraft.ts'
 
 const props = defineProps<{
