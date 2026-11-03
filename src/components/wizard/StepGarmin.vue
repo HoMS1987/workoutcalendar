@@ -4,6 +4,7 @@
 		<MfaCodeForm
 			:method="pending.method"
 			:nextRequestAt="nextRequestAt"
+			@ended="error = $event"
 			@status="emit('status', $event)" />
 		<p class="step__hint">
 			{{ t('workoutcalendar', 'Your Garmin account uses two-step verification. If the Garmin sign-in expires at some point, Workout Calendar pauses and lets you know through a notification. The app only requests a new code when you ask for it.') }}

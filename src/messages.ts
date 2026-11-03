@@ -11,7 +11,7 @@ const APP = 'workoutcalendar'
 const RAW = { escape: false }
 
 // Failure categories the login route reports for Garmin itself.
-const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'MFA_CODE_INVALID', 'MFA_EXPIRED', 'MFA_CREDENTIALS_REJECTED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
+const LOGIN_FAILURES = ['INVALID_CREDENTIALS', 'MFA_REQUIRED', 'MFA_CODE_INVALID', 'MFA_EXPIRED', 'MFA_NOT_PENDING', 'MFA_CREDENTIALS_REJECTED', 'BLOCKED', 'PROTOCOL_CHANGED', 'SERVER_ERROR', 'NETWORK']
 
 export function isLoginFailure(code: string): boolean {
 	return LOGIN_FAILURES.includes(code)
@@ -32,6 +32,8 @@ export function loginError(code: string): string {
 			return t(APP, 'The code is not correct. Please check it and try again.')
 		case 'MFA_EXPIRED':
 			return t(APP, 'The code request has expired. Please request a new code.')
+		case 'MFA_NOT_PENDING':
+			return t(APP, 'The code request is no longer active. Please start again.')
 		case 'MFA_CREDENTIALS_REJECTED':
 			return t(APP, 'Garmin rejected the saved password. Please sign out and sign in with your current password.')
 		case 'BLOCKED':
@@ -44,6 +46,23 @@ export function loginError(code: string): string {
 		default:
 			return t(APP, 'Signing in to Garmin failed. Please try again later.')
 	}
+}
+
+/** Codes for a code request the server no longer has; the page then reloads the status. */
+export const MFA_REQUEST_GONE = ['MFA_EXPIRED', 'MFA_NOT_PENDING']
+
+/**
+ * Text for a code request the server no longer has.
+ *
+ * @param code MFA_EXPIRED or MFA_NOT_PENDING
+ * @param method Verification method of the request, or null if unknown
+ */
+export function mfaRequestGoneText(code: string, method: string | null): string {
+	// WHY: An authenticator app has no "Request a new code"; the sign-in itself starts over.
+	if (code === 'MFA_EXPIRED' && mfaKind(method) === 'app') {
+		return t(APP, 'The code request has expired. Please start the sign-in again.')
+	}
+	return loginError(code)
 }
 
 export type MfaKind = 'email' | 'sms' | 'app' | 'other' | 'missing'

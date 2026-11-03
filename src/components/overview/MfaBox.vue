@@ -5,6 +5,7 @@
 			<MfaCodeForm
 				:method="pending.method ?? status.mfa.method"
 				:nextRequestAt="status.mfa.nextRequestAt"
+				@ended="error = $event"
 				@status="emit('status', $event)" />
 			<NcButton
 				v-if="status.paused === null"

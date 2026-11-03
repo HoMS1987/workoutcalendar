@@ -159,6 +159,8 @@ OC.L10N.register("workoutcalendar", {
     "Your Garmin account asks for a verification code.": "Dein Garmin-Konto verlangt einen Bestätigungscode.",
     "The code is not correct. Please check it and try again.": "Der Code ist nicht korrekt. Bitte prüfe ihn und versuche es erneut.",
     "The code request has expired. Please request a new code.": "Die Codeanfrage ist abgelaufen. Bitte fordere einen neuen Code an.",
+    "The code request has expired. Please start the sign-in again.": "Die Codeanfrage ist abgelaufen. Bitte starte die Anmeldung noch einmal.",
+    "The code request is no longer active. Please start again.": "Die Codeanfrage ist nicht mehr aktiv. Bitte fang noch einmal von vorn an.",
     "Garmin rejected the saved password. Please sign out and sign in with your current password.": "Garmin hat das gespeicherte Passwort abgelehnt. Bitte melde dich ab und mit deinem aktuellen Passwort wieder an.",
     "Garmin has sent you a code by email.": "Garmin hat dir einen Code per E-Mail geschickt.",
     "Garmin has sent you a code by SMS.": "Garmin hat dir einen Code per SMS geschickt.",

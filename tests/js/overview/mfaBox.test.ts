@@ -11,6 +11,7 @@ vi.mock('../../../src/api.ts', async (importOriginal) => ({
 	requestMfaCode: vi.fn(),
 	cancelMfa: vi.fn(),
 	verifyMfaCode: vi.fn(),
+	getStatus: vi.fn(),
 }))
 
 const api = await import('../../../src/api.ts')
@@ -112,5 +113,21 @@ describe('MfaBox', () => {
 		await wrapper.setProps({ status: makeStatus({ paused: 'MFA_REQUIRED', mfa: { account: true, method: 'email', nextRequestAt } }) })
 		expect(button(wrapper, 'Request code')!.attributes('disabled')).toBeDefined()
 		expect(wrapper.text()).toMatch(/You can request a new code in \d+ s\./)
+	})
+
+	it('reloadsTheStatusWhenTheRequestIsGone', async () => {
+		const next = paused()
+		vi.mocked(api.verifyMfaCode).mockRejectedValue(new api.ApiError(422, 'MFA_NOT_PENDING'))
+		vi.mocked(api.getStatus).mockResolvedValue(next)
+		const wrapper = mount(MfaBox, { props: { status: pending('sync', 'MFA_REQUIRED') } })
+
+		await wrapper.find('input').setValue('123456')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		expect(wrapper.emitted('status')).toEqual([[next]])
+		await wrapper.setProps({ status: next })
+
+		expect(button(wrapper, 'Request code')).toBeDefined()
+		expect(wrapper.text()).toContain('The code request is no longer active. Please start again.')
 	})
 })

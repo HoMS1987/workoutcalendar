@@ -11,6 +11,8 @@ vi.mock('../../../src/api.ts', async (importOriginal) => ({
 	...(await importOriginal<typeof ApiModule>()),
 	login: vi.fn(),
 	cancelMfa: vi.fn(),
+	verifyMfaCode: vi.fn(),
+	getStatus: vi.fn(),
 }))
 
 const api = await import('../../../src/api.ts')
@@ -122,5 +124,21 @@ describe('StepGarmin two-step verification', () => {
 
 		expect(cancelMfa).toHaveBeenCalledTimes(1)
 		expect(wrapper.emitted('status')).toEqual([[status]])
+	})
+
+	it('showsWhyTheCodeFieldWasReplacedByTheLoginForm', async () => {
+		const status = makeStatus({ setup: { connected: false, step: 'garmin' } })
+		vi.mocked(api.verifyMfaCode).mockRejectedValue(new ApiError(422, 'MFA_EXPIRED'))
+		vi.mocked(api.getStatus).mockResolvedValue(status)
+		const wrapper = mount(StepGarmin, { props: { pending: { origin: 'setup', method: 'email', expiresAt: 1_760_001_800 } } })
+
+		await wrapper.find('input').setValue('123456')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+		expect(wrapper.emitted('status')).toEqual([[status]])
+		await wrapper.setProps({ pending: null })
+
+		expect(wrapper.find('input[type="password"]').exists()).toBe(true)
+		expect(wrapper.text()).toContain('The code request has expired.')
 	})
 })

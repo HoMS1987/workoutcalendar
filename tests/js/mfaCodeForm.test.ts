@@ -10,11 +10,13 @@ vi.mock('../../src/api.ts', async (importOriginal) => ({
 	...(await importOriginal<typeof ApiModule>()),
 	verifyMfaCode: vi.fn(),
 	requestMfaCode: vi.fn(),
+	getStatus: vi.fn(),
 }))
 
 const api = await import('../../src/api.ts')
 const verifyMfaCode = vi.mocked(api.verifyMfaCode)
 const requestMfaCode = vi.mocked(api.requestMfaCode)
+const getStatus = vi.mocked(api.getStatus)
 
 async function submit(wrapper: ReturnType<typeof mount>, code: string) {
 	await wrapper.find('input').setValue(code)
@@ -25,6 +27,7 @@ describe('MfaCodeForm', () => {
 	beforeEach(() => {
 		verifyMfaCode.mockReset()
 		requestMfaCode.mockReset()
+		getStatus.mockReset()
 	})
 
 	afterEach(() => {
@@ -92,6 +95,50 @@ describe('MfaCodeForm', () => {
 		await flushPromises()
 
 		expect(wrapper.text()).toContain('The code is not correct.')
+	})
+
+	it.each([
+		['MFA_EXPIRED', 'email', 'The code request has expired. Please request a new code.'],
+		['MFA_EXPIRED', 'totp', 'The code request has expired. Please start the sign-in again.'],
+		['MFA_NOT_PENDING', 'email', 'The code request is no longer active. Please start again.'],
+	])('reloadsTheStatusAfter %s (%s)', async (code, method, text) => {
+		const status = makeStatus()
+		verifyMfaCode.mockRejectedValue(new api.ApiError(422, code))
+		getStatus.mockResolvedValue(status)
+		const wrapper = mount(MfaCodeForm, { props: { method, nextRequestAt: null } })
+
+		await submit(wrapper, '123456')
+		await flushPromises()
+
+		expect(getStatus).toHaveBeenCalledTimes(1)
+		expect(wrapper.emitted('ended')).toEqual([[text]])
+		expect(wrapper.emitted('status')).toEqual([[status]])
+	})
+
+	it('reloadsTheStatusWhenANewCodeFindsNoRequest', async () => {
+		const status = makeStatus()
+		requestMfaCode.mockRejectedValue(new api.ApiError(422, 'MFA_EXPIRED'))
+		getStatus.mockResolvedValue(status)
+		const wrapper = mount(MfaCodeForm, { props: { method: 'email', nextRequestAt: null } })
+
+		await wrapper.findAll('button').find((b) => b.text().includes('Request a new code'))!.trigger('click')
+		await flushPromises()
+
+		expect(wrapper.emitted('status')).toEqual([[status]])
+		expect(wrapper.emitted('ended')).toHaveLength(1)
+	})
+
+	it('leavesTheTextToTheParentWhenTheStatusCannotBeReloaded', async () => {
+		verifyMfaCode.mockRejectedValue(new api.ApiError(422, 'MFA_NOT_PENDING'))
+		getStatus.mockRejectedValue(new api.ApiError(0, 'network'))
+		const wrapper = mount(MfaCodeForm, { props: { method: 'email', nextRequestAt: null } })
+
+		await submit(wrapper, '123456')
+		await flushPromises()
+
+		expect(wrapper.emitted('status')).toBeUndefined()
+		expect(wrapper.emitted('ended')).toEqual([['The code request is no longer active. Please start again.']])
+		expect(wrapper.text()).not.toContain('The code request is no longer active.')
 	})
 
 	it('requests a new code and emits the status', async () => {

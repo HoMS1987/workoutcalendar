@@ -28,6 +28,7 @@ describe('loginError', () => {
 		['MFA_REQUIRED', 'Your Garmin account asks for a verification code.'],
 		['MFA_CODE_INVALID', 'The code is not correct. Please check it and try again.'],
 		['MFA_EXPIRED', 'The code request has expired. Please request a new code.'],
+		['MFA_NOT_PENDING', 'The code request is no longer active. Please start again.'],
 		['MFA_CREDENTIALS_REJECTED', 'Garmin rejected the saved password. Please sign out and sign in with your current password.'],
 		['BLOCKED', 'Garmin is blocking the sign-in right now. Please try again later.'],
 		['PROTOCOL_CHANGED', 'The Garmin sign-in seems to have changed. Details are in the Nextcloud log.'],

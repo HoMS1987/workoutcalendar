@@ -40,8 +40,8 @@ import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
-import { ApiError, requestMfaCode, verifyMfaCode } from '../api.ts'
-import { apiErrorText, isLoginFailure, loginError, mfaKind, mfaPromptText } from '../messages.ts'
+import { ApiError, getStatus, requestMfaCode, verifyMfaCode } from '../api.ts'
+import { apiErrorText, isLoginFailure, loginError, MFA_REQUEST_GONE, mfaKind, mfaPromptText, mfaRequestGoneText } from '../messages.ts'
 import { useCountdown } from '../useCountdown.ts'
 
 const props = defineProps<{
@@ -51,7 +51,11 @@ const props = defineProps<{
 	nextRequestAt?: number | null
 }>()
 
-const emit = defineEmits<{ status: [status: Status] }>()
+const emit = defineEmits<{
+	status: [status: Status]
+	/** The server no longer has the code request; the parent shows the text. Comes before the reloaded status. */
+	ended: [message: string]
+}>()
 
 const code = ref('')
 const busy = ref(false)
@@ -62,9 +66,20 @@ const canRequestNew = computed(() => mfaKind(props.method) !== 'app')
 
 const { waitSeconds } = useCountdown(() => props.nextRequestAt)
 
-function errorText(e: unknown): string {
+async function fail(e: unknown) {
 	const apiError = e instanceof ApiError ? e : new ApiError(0, 'internal')
-	return isLoginFailure(apiError.code) ? loginError(apiError.code) : apiErrorText(apiError)
+	if (!MFA_REQUEST_GONE.includes(apiError.code)) {
+		error.value = isLoginFailure(apiError.code) ? loginError(apiError.code) : apiErrorText(apiError)
+		return
+	}
+	// The server deleted the request, so this form is out of date: the reloaded status replaces it.
+	// WHY the parent shows the text: it outlives this form.
+	emit('ended', mfaRequestGoneText(apiError.code, props.method))
+	try {
+		emit('status', await getStatus())
+	} catch {
+		// The next status refresh of the page catches up.
+	}
 }
 
 async function submit() {
@@ -82,7 +97,7 @@ async function submit() {
 	try {
 		emit('status', await verifyMfaCode(digits))
 	} catch (e) {
-		error.value = errorText(e)
+		await fail(e)
 	} finally {
 		busy.value = false
 	}
@@ -99,7 +114,7 @@ async function requestNew() {
 		code.value = ''
 		emit('status', result.status)
 	} catch (e) {
-		error.value = errorText(e)
+		await fail(e)
 	} finally {
 		busy.value = false
 	}
