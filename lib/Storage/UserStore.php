@@ -20,7 +20,8 @@ final class UserStore
     private const STATE = 'state';
     private const SETUP = 'setup';
     private const NEXT_RUN_AT = 'next_run_at';
-    private const KEYS = [self::SETTINGS, self::STATE, self::SETUP, self::NEXT_RUN_AT];
+    private const MFA_REQUESTS = 'mfa_requests';
+    private const KEYS = [self::SETTINGS, self::STATE, self::SETUP, self::NEXT_RUN_AT, self::MFA_REQUESTS];
 
     public function __construct(private readonly IUserConfig $config)
     {
@@ -79,6 +80,24 @@ final class UserStore
         asort($due);
 
         return array_slice(array_map('strval', array_keys($due)), 0, max(0, $limit));
+    }
+
+    /**
+     * Unix times of the person's recent MFA code requests (for rate limiting).
+     *
+     * @return list<int>
+     */
+    public function mfaRequests(string $uid): array
+    {
+        $data = $this->readJson($uid, self::MFA_REQUESTS);
+
+        return array_values(array_filter($data, 'is_int'));
+    }
+
+    /** @param list<int> $times */
+    public function saveMfaRequests(string $uid, array $times): void
+    {
+        $this->writeJson($uid, self::MFA_REQUESTS, array_values($times));
     }
 
     /** Removes all keys of this store for the person. */

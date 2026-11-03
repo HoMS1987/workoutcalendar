@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Tests\Unit\Service;
 
+use OCA\WorkoutCalendar\BackgroundJob\MfaCleanupJob;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\RunOutcome;
 use OCA\WorkoutCalendar\Service\SyncRunner;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -25,6 +28,7 @@ use OCA\WorkoutCalendar\Tests\Support\MemoryCalendarObjects;
 use OCA\WorkoutCalendar\Tests\Support\MemoryLogger;
 use OCA\WorkoutCalendar\Tests\Support\RecordingNotification;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\IJobList;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -58,6 +62,8 @@ final class SyncRunnerTest extends TestCase
     /** @var list<string> */
     private array $notificationCalls = [];
     private ?\Throwable $lockFailure = null;
+    /** @var list<array{string, int, mixed}> */
+    private array $scheduled = [];
 
     protected function setUp(): void
     {
@@ -89,6 +95,70 @@ final class SyncRunnerTest extends TestCase
         self::assertNotNull($state->nextRunAt);
         self::assertSame(['acquire:' . self::LOCK, 'release:' . self::LOCK], $this->lockCalls);
         self::assertSame([], $this->notificationCalls);
+    }
+
+    public function testMarkedAccountSyncsWithoutPasswordLogin(): void
+    {
+        $this->connect(withTokens: false);
+        $state = $this->users->state(self::UID);
+        $state->mfaAccount = true;
+        $this->users->saveState(self::UID, $state);
+
+        self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now));
+
+        self::assertSame([], $this->http->requests);
+        $state = $this->users->state(self::UID);
+        self::assertSame('MFA_REQUIRED', $state->pausedFor);
+        self::assertSame('login.skipped', $state->failureStep);
+        self::assertNull($this->secrets->pendingMfa(self::UID, $this->now->getTimestamp()));
+    }
+
+    public function testChallengeFromTheSyncIsStoredAsPendingMfa(): void
+    {
+        $this->connect(withTokens: false);
+        $this->http->cookies = ['sso-cookie'];
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now));
+
+        $state = $this->users->state(self::UID);
+        self::assertTrue($state->mfaAccount);
+        self::assertSame('email', $state->mfaMethod);
+        self::assertSame('MFA_REQUIRED', $state->pausedFor);
+        $pending = $this->secrets->pendingMfa(self::UID, $this->now->getTimestamp());
+        self::assertNotNull($pending);
+        self::assertSame(MfaOrigin::Sync, $pending->origin);
+        self::assertSame($this->now->getTimestamp(), $pending->createdAt);
+        self::assertSame('email', $pending->challenge->method);
+        self::assertSame(['sso-cookie'], $pending->challenge->cookies);
+        self::assertSame([[MfaCleanupJob::class, $this->now->getTimestamp() + 1800, ['uid' => self::UID]]], $this->scheduled);
+    }
+
+    public function testCodeSentByTheSyncCountsForTheRequestLimit(): void
+    {
+        $this->connect(withTokens: false);
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        $this->runner()->run(self::UID, $this->now);
+
+        self::assertSame([$this->now->getTimestamp()], $this->users->mfaRequests(self::UID));
+    }
+
+    public function testStoredSsoCookiesAreSentWithTheSync(): void
+    {
+        $this->connect();
+        $this->secrets->saveSsoCookies(self::UID, ['remembered']);
+        $this->http->queue(FakeHttpClient::json(200, []), FakeHttpClient::json(200, []));
+
+        $this->runner()->run(self::UID, $this->now);
+
+        self::assertSame(['remembered'], $this->http->cookies);
     }
 
     public function testRunWaitsWhileRemovalIsRunning(): void
@@ -443,6 +513,10 @@ final class SyncRunnerTest extends TestCase
                 return $this->http;
             }
         };
+        $jobList = $this->createMock(IJobList::class);
+        $jobList->method('scheduleAfter')->willReturnCallback(function (string $job, int $runAfter, mixed $argument = null): void {
+            $this->scheduled[] = [$job, $runAfter, $argument];
+        });
 
         return new SyncRunner(
             $this->users,
@@ -454,6 +528,7 @@ final class SyncRunnerTest extends TestCase
             $this->l10nFactory(),
             $this->userManager(),
             $this->logger,
+            new PendingMfaSaver($this->secrets, $jobList, $this->logger, $this->users),
         );
     }
 

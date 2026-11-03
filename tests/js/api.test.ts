@@ -1,6 +1,6 @@
 import axios from '@nextcloud/axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, chooseCalendar, chooseHistory, getCalendars, getStatus, login, logout, reset, syncNow, updateSettings } from '../../src/api.ts'
+import { ApiError, cancelMfa, chooseCalendar, chooseHistory, getCalendars, getStatus, login, logout, requestMfaCode, reset, syncNow, updateSettings, verifyMfaCode } from '../../src/api.ts'
 
 vi.mock('@nextcloud/axios', () => ({
 	default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
@@ -174,5 +174,39 @@ describe('api client', () => {
 
 		await expect(updateSettings({ intervalMinutes: 1, jitterPercent: 0, deletionMode: 'keep', deletionCheckDays: 30 }))
 			.rejects.toMatchObject({ status: 422, code: 'invalid' })
+	})
+})
+
+describe('api client two-step verification', () => {
+	it('requests a code with an empty POST and returns outcome and status', async () => {
+		const data = { outcome: 'codeRequired', status: {} }
+		mocked.post.mockResolvedValue({ data })
+
+		const result = await requestMfaCode()
+
+		expect(mocked.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/mfa\/request$/), {})
+		expect(result).toEqual(data)
+	})
+
+	it('posts the code to verify', async () => {
+		mocked.post.mockResolvedValue({ data: {} })
+
+		await verifyMfaCode('123456')
+
+		expect(mocked.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/mfa\/verify$/), { code: '123456' })
+	})
+
+	it('cancels the pending request', async () => {
+		mocked.post.mockResolvedValue({ data: {} })
+
+		await cancelMfa()
+
+		expect(mocked.post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/mfa\/cancel$/), {})
+	})
+
+	it('maps a wrong code to ApiError with the category', async () => {
+		mocked.post.mockRejectedValue({ response: { status: 422, data: { error: 'MFA_CODE_INVALID' } } })
+
+		await expect(verifyMfaCode('123456')).rejects.toMatchObject({ status: 422, code: 'MFA_CODE_INVALID' })
 	})
 })

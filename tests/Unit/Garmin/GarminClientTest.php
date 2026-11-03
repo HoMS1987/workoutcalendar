@@ -37,7 +37,7 @@ final class GarminClientTest extends TestCase
         $this->logins = 0;
     }
 
-    private function client(): GarminClient
+    private function client(bool $passwordLogin = true): GarminClient
     {
         $strategy = new class ($this->logins) implements LoginStrategy {
             public function __construct(private int &$logins)
@@ -65,6 +65,7 @@ final class GarminClientTest extends TestCase
             new Credentials('a@b.de', 'pw'),
             $this->logger,
             static fn (): int => self::NOW,
+            $passwordLogin,
         );
     }
 
@@ -215,10 +216,37 @@ final class GarminClientTest extends TestCase
         self::assertSame(['refresh'], $this->http->steps());
     }
 
-    private function failure(): GarminException
+    public function testWithoutPasswordLoginARejectedRefreshTokenIsMfaRequired(): void
+    {
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW - 10]), 'r-old', 'C');
+        $this->http->queue(FakeHttpClient::json(400, ['error' => 'invalid_grant']));
+
+        $e = $this->failure(false);
+
+        self::assertSame(FailureCategory::MfaRequired, $e->category);
+        self::assertSame('login.skipped', $e->step);
+        self::assertSame('Account uses two-step verification, no background sign-in', $e->getMessage());
+        self::assertNull($e->status);
+        self::assertSame('', $e->excerpt);
+        self::assertNull($e->mfaChallenge);
+        self::assertSame(0, $this->logins);
+        self::assertSame(['refresh'], $this->http->steps());
+    }
+
+    public function testWithoutPasswordLoginMissingTokensAreMfaRequired(): void
+    {
+        $e = $this->failure(false);
+
+        self::assertSame(FailureCategory::MfaRequired, $e->category);
+        self::assertSame('login.skipped', $e->step);
+        self::assertSame(0, $this->logins);
+        self::assertSame([], $this->http->requests);
+    }
+
+    private function failure(bool $passwordLogin = true): GarminException
     {
         try {
-            $this->client()->activities(0, 10);
+            $this->client($passwordLogin)->activities(0, 10);
         } catch (GarminException $e) {
             return $e;
         }

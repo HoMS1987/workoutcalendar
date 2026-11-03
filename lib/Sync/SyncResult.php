@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Sync;
 
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
 /** Counters of one sync run, logged at its end. */
@@ -18,6 +19,8 @@ final class SyncResult
     public int $skipped = 0;
     public int $backfillPages = 0;
     public ?FailureCategory $failure = null;
+    /** Code request of an automatic login attempt; secret, so not part of `toArray()` */
+    public ?MfaChallenge $mfaChallenge = null;
 
     /** A history import stage counts as a change, so it is logged at info level even if no event changed. */
     public function hasChanges(): bool

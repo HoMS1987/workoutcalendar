@@ -9,6 +9,7 @@ use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\SyncRunner;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -155,6 +156,7 @@ final class SyncJobTest extends TestCase
             $this->createStub(IFactory::class),
             $this->createStub(IUserManager::class),
             $this->logger,
+            new PendingMfaSaver($secrets, $this->createStub(IJobList::class), $this->logger, $this->users),
         );
     }
 

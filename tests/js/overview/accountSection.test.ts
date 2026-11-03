@@ -10,6 +10,7 @@ vi.mock('../../../src/api.ts', async (importOriginal) => ({
 	...(await importOriginal<typeof ApiModule>()),
 	logout: vi.fn(),
 	reset: vi.fn(),
+	requestMfaCode: vi.fn(),
 }))
 
 const api = await import('../../../src/api.ts')
@@ -34,6 +35,62 @@ describe('AccountSection', () => {
 		document.body.innerHTML = ''
 		vi.mocked(api.logout).mockReset().mockResolvedValue(loggedOut)
 		vi.mocked(api.reset).mockReset().mockResolvedValue(loggedOut)
+		vi.mocked(api.requestMfaCode).mockReset()
+	})
+
+	async function signInAgain(wrapper: ReturnType<typeof mountSection>) {
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+		await wrapper.find('button[data-test="relogin"]').trigger('click')
+		await flushPromises()
+	}
+
+	it('signInAgainShowsConfirmationOnDirectSuccess', async () => {
+		const status = makeStatus()
+		vi.mocked(api.requestMfaCode).mockResolvedValue({ outcome: 'signedIn', status })
+		const wrapper = mountSection()
+		await signInAgain(wrapper)
+
+		expect(wrapper.text()).toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[status]])
+		wrapper.unmount()
+	})
+
+	it('signInAgainWithCodeEmitsStatus', async () => {
+		const status = makeStatus({ mfa: { account: true, pending: { origin: 'relogin', method: 'email', expiresAt: 1_760_001_800 } } })
+		vi.mocked(api.requestMfaCode).mockResolvedValue({ outcome: 'codeRequired', status })
+		const wrapper = mountSection()
+		await signInAgain(wrapper)
+
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[status]])
+		wrapper.unmount()
+	})
+
+	it('signInAgainShowsTheLoginError', async () => {
+		vi.mocked(api.requestMfaCode).mockRejectedValue(new api.ApiError(422, 'INVALID_CREDENTIALS'))
+		const wrapper = mountSection()
+		await signInAgain(wrapper)
+
+		expect(wrapper.text()).toContain('Garmin rejected your email address or password.')
+		expect(wrapper.emitted('status')).toBeUndefined()
+		wrapper.unmount()
+	})
+
+	it('hidesSignInAgainWhilePausedForRejectedPassword', async () => {
+		const wrapper = mountSection(makeStatus({ paused: 'INVALID_CREDENTIALS' }))
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+
+		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(false)
+		expect(wrapper.find('button[data-test="logout"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('offersSignInAgainWhilePausedForACode', async () => {
+		const wrapper = mountSection(makeStatus({ paused: 'MFA_REQUIRED' }))
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+
+		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(true)
+		wrapper.unmount()
 	})
 
 	it('is collapsed by default', async () => {

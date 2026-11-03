@@ -7,7 +7,10 @@ namespace OCA\WorkoutCalendar\Service;
 use OCA\WorkoutCalendar\CalDav\CalendarInfo;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Storage\SetupStep;
+use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\UserStore;
+use OCA\WorkoutCalendar\Sync\SyncState;
+use OCP\AppFramework\Utility\ITimeFactory;
 
 /**
  * A person's state for the settings page. Times are Unix seconds. Contains only the masked
@@ -18,6 +21,8 @@ final class StatusService
     public function __construct(
         private readonly UserStore $users,
         private readonly CalendarService $calendars,
+        private readonly SecretStore $secrets,
+        private readonly ITimeFactory $time,
     ) {
     }
 
@@ -67,7 +72,36 @@ final class StatusService
                 'count' => $state->failureCount,
             ],
             'paused' => $state->pausedFor,
+            'mfa' => $this->mfa($uid, $state),
             'settings' => $this->users->settings($uid)->toArray(),
+        ];
+    }
+
+    /**
+     * Two-step verification state. Only origin, method and expiry of a pending request, never the
+     * challenge, its cookies or the credentials of a setup request.
+     *
+     * @return array{account: bool, method: ?string, pending: ?array{origin: string, method: string, expiresAt: int}, nextRequestAt: ?int}
+     */
+    private function mfa(string $uid, SyncState $state): array
+    {
+        $now = $this->time->getTime();
+        // WHY not pendingMfa($uid, $now): that deletes an expired request, and the status runs without the
+        // person's lock. Removing it is left to the locked paths and the cleanup job.
+        $pending = $this->secrets->pendingMfa($uid, PHP_INT_MIN);
+        if ($pending?->isExpired($now)) {
+            $pending = null;
+        }
+
+        return [
+            'account' => $state->isMfaAccount(),
+            'method' => $state->mfaMethod,
+            'pending' => $pending === null ? null : [
+                'origin' => $pending->origin->value,
+                'method' => $pending->challenge->method,
+                'expiresAt' => $pending->expiresAt(),
+            ],
+            'nextRequestAt' => MfaRequestLimit::nextAllowedAt($this->users->mfaRequests($uid), $now),
         ];
     }
 

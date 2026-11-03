@@ -30,7 +30,7 @@ final class TranslationFilesTest extends TestCase
             'Workout Calendar',
             'Workout Calendar needs your attention',
             'Garmin rejected your email address or password. Workout Calendar is paused until you sign in again.',
-            'Your Garmin account asks for a verification code. This is not supported yet, Workout Calendar is paused.',
+            'Garmin asks for a verification code. Workout Calendar is paused until you enter it in the settings.',
             'Workout Calendar could not sync for a day because Garmin changed its sign-in. An app update may be needed.',
             'Workout Calendar could not reach Garmin for a day. It keeps trying.',
         ] as $source) {

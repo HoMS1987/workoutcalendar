@@ -10,6 +10,7 @@ enum FailureCategory: string
     case Blocked = 'BLOCKED';
     case InvalidCredentials = 'INVALID_CREDENTIALS';
     case MfaRequired = 'MFA_REQUIRED';
+    case MfaCodeInvalid = 'MFA_CODE_INVALID';
     case ProtocolChanged = 'PROTOCOL_CHANGED';
     case TokenRejected = 'TOKEN_REJECTED';
     case ServerError = 'SERVER_ERROR';

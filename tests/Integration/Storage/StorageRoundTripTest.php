@@ -7,6 +7,9 @@ namespace OCA\WorkoutCalendar\Tests\Integration\Storage;
 use OCA\WorkoutCalendar\AppInfo\Application;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\UserStore;
 use OCA\WorkoutCalendar\Sync\DeletionMode;
@@ -58,6 +61,34 @@ final class StorageRoundTripTest extends TestCase
         $secrets->clear($this->uid);
         self::assertNull($secrets->credentials($this->uid));
         self::assertNull($secrets->tokens($this->uid));
+    }
+
+    public function testPendingMfaAndSsoCookiesSurviveRealConfigAndCrypto(): void
+    {
+        $secrets = new SecretStore($this->config, Server::get(ICrypto::class), new NullLogger());
+        $pending = new PendingMfa(
+            new MfaChallenge('email', ['cookie-line-xyz']),
+            MfaOrigin::Setup,
+            time(),
+            new Credentials('anna@example.org', 'secret-123'),
+        );
+
+        $secrets->savePendingMfa($this->uid, $pending);
+        $secrets->saveSsoCookies($this->uid, ['remember-me-xyz']);
+
+        self::assertEquals($pending, $secrets->pendingMfa($this->uid, time()));
+        self::assertSame(['remember-me-xyz'], $secrets->ssoCookies($this->uid));
+        foreach (['mfa_pending', 'sso_cookies'] as $key) {
+            $raw = $this->config->getValueString($this->uid, Application::APP_ID, $key, '', true);
+            self::assertNotSame('', $raw);
+            foreach (['cookie-line-xyz', 'remember-me-xyz', 'secret-123'] as $secret) {
+                self::assertStringNotContainsString($secret, $raw);
+            }
+        }
+
+        $secrets->clear($this->uid);
+        self::assertNull($secrets->pendingMfa($this->uid, time()));
+        self::assertSame([], $secrets->ssoCookies($this->uid));
     }
 
     public function testSettingsAndStateSurviveRealConfig(): void

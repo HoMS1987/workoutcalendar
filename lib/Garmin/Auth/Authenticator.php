@@ -20,7 +20,12 @@ final class Authenticator
      * For these errors another login path does not help, and further attempts could lock the account.
      * Blocked is not final: like python-garminconnect, the next strategy is tried, which Garmin limits separately.
      */
-    private const FINAL_CATEGORIES = [FailureCategory::InvalidCredentials, FailureCategory::MfaRequired, FailureCategory::Network];
+    private const FINAL_CATEGORIES = [
+        FailureCategory::InvalidCredentials,
+        FailureCategory::MfaRequired,
+        FailureCategory::MfaCodeInvalid,
+        FailureCategory::Network,
+    ];
 
     /** @param list<LoginStrategy> $strategies */
     public function __construct(

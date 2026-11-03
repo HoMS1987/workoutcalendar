@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Garmin;
 
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 
 /** Garmin access failed. Category and step show where and why (ADR 0004). */
@@ -13,6 +14,7 @@ final class GarminException extends \RuntimeException
      * @param string $step Flow step, e.g. "widget.signin-post"
      * @param string $excerpt Already sanitized excerpt of the response
      * @param array<string, string> $attempts Login attempts per strategy, e.g. ["mobile" => "BLOCKED @ mobile.login"]
+     * @param MfaChallenge|null $mfaChallenge Set with MFA_REQUIRED when the login can continue with a code
      */
     public function __construct(
         public readonly FailureCategory $category,
@@ -22,6 +24,7 @@ final class GarminException extends \RuntimeException
         public readonly string $excerpt = '',
         ?\Throwable $previous = null,
         public readonly array $attempts = [],
+        public readonly ?MfaChallenge $mfaChallenge = null,
     ) {
         parent::__construct($message, 0, $previous);
     }
@@ -29,7 +32,7 @@ final class GarminException extends \RuntimeException
     /** @param array<string, string> $attempts */
     public function withAttempts(array $attempts): self
     {
-        return new self($this->category, $this->step, $this->getMessage(), $this->status, $this->excerpt, $this, $attempts);
+        return new self($this->category, $this->step, $this->getMessage(), $this->status, $this->excerpt, $this, $attempts, $this->mfaChallenge);
     }
 
     /** @return array<string, mixed> Context for the log, contains no secrets */

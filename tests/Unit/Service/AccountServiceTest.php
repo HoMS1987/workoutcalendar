@@ -5,19 +5,24 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Tests\Unit\Service;
 
 use OCA\WorkoutCalendar\BackgroundJob\CalendarMaintenanceJob;
+use OCA\WorkoutCalendar\BackgroundJob\MfaCleanupJob;
 use OCA\WorkoutCalendar\CalDav\CalendarService;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\AccountService;
 use OCA\WorkoutCalendar\Service\Cleanup;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\LoginOutcome;
+use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonBusyException;
 use OCA\WorkoutCalendar\Service\PersonLock;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -55,6 +60,8 @@ final class AccountServiceTest extends TestCase
     private int $calendarId;
     /** @var list<array{string, mixed}> */
     private array $jobs = [];
+    /** @var list<array{string, int, mixed}> */
+    private array $scheduled = [];
     /** @var list<string> */
     private array $notificationCalls = [];
     /** @var ?\Closure(): void */
@@ -76,7 +83,7 @@ final class AccountServiceTest extends TestCase
     {
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'Anna@Example.de', 'secret');
+        $setup = $this->signIn('Anna@Example.de', 'secret');
 
         self::assertSame(SetupStep::Calendar, $setup->step);
         self::assertTrue($setup->connected);
@@ -93,7 +100,7 @@ final class AccountServiceTest extends TestCase
     {
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, '  Anna@Example.de ', 'secret');
+        $setup = $this->signIn('  Anna@Example.de ', 'secret');
 
         self::assertSame('Anna@Example.de', $this->secrets->credentials(self::UID)?->email);
         self::assertSame('A***@Example.de', $setup->maskedEmail);
@@ -193,6 +200,28 @@ final class AccountServiceTest extends TestCase
         self::assertSame(substr(hash('sha256', 'other@b.de'), 0, 16), $this->users->setup(self::UID)->accountKey);
     }
 
+    public function testOtherAccountDropsTheRememberedCookiesOfTheOldOne(): void
+    {
+        $this->connected();
+        $this->secrets->saveSsoCookies(self::UID, ['old-account-browser']);
+        $this->queueSuccessfulLogin();
+
+        $this->service()->login(self::UID, 'other@b.de', 'secret');
+
+        self::assertSame([], $this->secrets->ssoCookies(self::UID));
+    }
+
+    public function testSameAccountKeepsTheRememberedCookies(): void
+    {
+        $this->connected();
+        $this->secrets->saveSsoCookies(self::UID, ['browser']);
+        $this->queueSuccessfulLogin();
+
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
+
+        self::assertSame(['browser'], $this->secrets->ssoCookies(self::UID));
+    }
+
     public function testSameAccountKeepsState(): void
     {
         $this->connected();
@@ -214,7 +243,7 @@ final class AccountServiceTest extends TestCase
         $this->connected();
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'a@b.de', 'secret');
+        $setup = $this->signIn('a@b.de', 'secret');
 
         self::assertSame(SetupStep::Done, $setup->step);
         self::assertSame($this->calendarId, $setup->calendarId);
@@ -236,7 +265,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::History, false, $this->key(), null, $this->calendarId));
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'a@b.de', 'secret');
+        $setup = $this->signIn('a@b.de', 'secret');
 
         self::assertSame(SetupStep::History, $setup->step);
         self::assertNull($this->users->state(self::UID)->nextRunAt);
@@ -362,7 +391,7 @@ final class AccountServiceTest extends TestCase
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Calendar, false, $this->key(), 'a***@b.de', null, false, null, 'remove', true));
         $this->queueSuccessfulLogin();
 
-        $setup = $this->service()->login(self::UID, 'a@b.de', 'secret');
+        $setup = $this->signIn('a@b.de', 'secret');
 
         self::assertSame('remove', $setup->maintenanceFailed);
         self::assertTrue($setup->calendarMissing);
@@ -609,6 +638,147 @@ final class AccountServiceTest extends TestCase
         self::assertSame([], $this->locking->held());
     }
 
+    public function testLoginWithMfaKeepsCredentialsOnlyInThePendingRequest(): void
+    {
+        $this->http->cookies = ['sso-session'];
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+        $before = $this->users->setup(self::UID);
+
+        $outcome = $this->service()->login(self::UID, ' Anna@Example.de ', 'secret');
+
+        self::assertSame(LoginOutcome::CodeRequired, $outcome);
+        self::assertNull($this->secrets->credentials(self::UID));
+        self::assertNull($this->secrets->tokens(self::UID));
+        self::assertEquals($before, $this->users->setup(self::UID));
+        $pending = $this->secrets->pendingMfa(self::UID, self::NOW);
+        self::assertNotNull($pending);
+        self::assertSame(MfaOrigin::Setup, $pending->origin);
+        self::assertSame('Anna@Example.de', $pending->credentials?->email);
+        self::assertSame('secret', $pending->credentials->password);
+        self::assertSame(['sso-session'], $pending->challenge->cookies);
+        self::assertSame('email', $pending->challenge->method);
+        self::assertSame([[MfaCleanupJob::class, self::NOW + 1800, ['uid' => self::UID]]], $this->scheduled);
+        self::assertTrue($this->users->state(self::UID)->mfaAccount);
+        self::assertSame([], $this->notificationCalls);
+    }
+
+    public function testCodeSentByTheSetupLoginCountsForTheRequestLimit(): void
+    {
+        $this->users->saveMfaRequests(self::UID, [self::NOW - 600]);
+        $this->http->queue(FakeHttpClient::json(200, [
+            'responseStatus' => ['type' => 'MFA_REQUIRED'],
+            'customerMfaInfo' => ['mfaLastMethodUsed' => 'email'],
+        ]));
+
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
+
+        self::assertSame([self::NOW - 600, self::NOW], $this->users->mfaRequests(self::UID));
+    }
+
+    public function testSetupLoginWithoutCodeDoesNotCountForTheRequestLimit(): void
+    {
+        $this->http->queue(
+            FakeHttpClient::json(200, ['responseStatus' => ['type' => 'SUCCESSFUL'], 'serviceTicketId' => 'ST-1']),
+            FakeHttpClient::json(200, ['access_token' => Jwt::make(['client_id' => 'C']), 'refresh_token' => 'r']),
+        );
+
+        $this->service()->login(self::UID, 'a@b.de', 'secret');
+
+        self::assertSame([], $this->users->mfaRequests(self::UID));
+    }
+
+    public function testLoginWithMfaForAnotherAccountLeavesTheFlagOfTheCurrentOne(): void
+    {
+        $this->connected();
+        $this->http->queue(FakeHttpClient::json(200, ['responseStatus' => ['type' => 'MFA_REQUIRED']]));
+
+        self::assertSame(LoginOutcome::CodeRequired, $this->service()->login(self::UID, 'other@b.de', 'secret'));
+
+        self::assertFalse($this->users->state(self::UID)->mfaAccount);
+        self::assertNotNull($this->secrets->pendingMfa(self::UID, self::NOW));
+    }
+
+    public function testLoginWithoutCodeClearsTheMfaFlag(): void
+    {
+        $this->connected();
+        $state = new SyncState();
+        $state->mfaAccount = true;
+        $state->mfaMethod = 'email';
+        $this->users->saveState(self::UID, $state);
+        $this->queueSuccessfulLogin();
+
+        self::assertSame(LoginOutcome::SignedIn, $this->service()->login(self::UID, 'a@b.de', 'secret'));
+
+        $state = $this->users->state(self::UID);
+        self::assertFalse($state->mfaAccount);
+        self::assertNull($state->mfaMethod);
+    }
+
+    public function testCompleteLoginKeepsTheMfaFlagOfTheSameAccount(): void
+    {
+        $this->connected();
+        $state = new SyncState();
+        $state->mfaAccount = true;
+        $state->mfaMethod = 'sms';
+        $this->users->saveState(self::UID, $state);
+
+        $this->service()->completeLogin(self::UID, 'a@b.de', new Credentials('a@b.de', 'secret'), new GarminTokens(Jwt::make([]), 'r', 'C'));
+
+        $state = $this->users->state(self::UID);
+        self::assertTrue($state->mfaAccount);
+        self::assertSame('sms', $state->mfaMethod);
+    }
+
+    public function testCompleteLoginKeepsTheDerivedFlagOfA10Install(): void
+    {
+        $this->connected();
+        $state = new SyncState();
+        $state->pausedFor = 'MFA_REQUIRED';
+        $state->mfaAccount = false;
+        $this->users->saveState(self::UID, $state);
+
+        $this->service()->completeLogin(self::UID, 'a@b.de', new Credentials('a@b.de', 'secret'), new GarminTokens(Jwt::make([]), 'r', 'C'));
+
+        $state = $this->users->state(self::UID);
+        self::assertNull($state->pausedFor);
+        self::assertTrue($state->mfaAccount);
+    }
+
+    public function testWidgetMfaWithoutChallengeStillFails(): void
+    {
+        $before = $this->store;
+        $page = static fn (string $html): HttpResponse => new HttpResponse(200, ['content-type' => 'text/html'], $html);
+        $this->http->queue(
+            // Mobile login is blocked (not final), so the widget login runs and shows the MFA page.
+            new HttpResponse(429, [], 'Too many requests'),
+            $page('<html>embed</html>'),
+            $page('<html><form><input type="hidden" name="_csrf" value="csrf-123"/></form></html>'),
+            $page('<html><title>Enter MFA code for login</title></html>'),
+        );
+
+        try {
+            $this->service()->login(self::UID, 'a@b.de', 'secret');
+            self::fail('GarminException expected');
+        } catch (GarminException $e) {
+            self::assertSame(FailureCategory::MfaRequired, $e->category);
+            self::assertNull($e->mfaChallenge);
+        }
+
+        self::assertSame(['mobile.login', 'widget.embed', 'widget.signin-page', 'widget.signin-post'], $this->http->steps());
+        self::assertSame($before, $this->store);
+        self::assertSame([], $this->scheduled);
+    }
+
+    private function signIn(string $email, string $password): SetupState
+    {
+        self::assertSame(LoginOutcome::SignedIn, $this->service()->login(self::UID, $email, $password));
+
+        return $this->users->setup(self::UID);
+    }
+
     private function key(): string
     {
         return substr(hash('sha256', 'a@b.de'), 0, 16);
@@ -647,11 +817,15 @@ final class AccountServiceTest extends TestCase
                 ($this->onJobAdded)();
             }
         });
+        $jobList->method('scheduleAfter')->willReturnCallback(function (string $job, int $runAfter, mixed $argument = null): void {
+            $this->scheduled[] = [$job, $runAfter, $argument];
+        });
         $time = $this->createStub(ITimeFactory::class);
         $time->method('getTime')->willReturn(self::NOW);
 
         return new AccountService(
-            new GarminClientFactory($provider, $this->secrets, $this->logger),
+            (new GarminClientFactory($provider, $this->secrets, $this->logger))->withWidgetSleep(static function (): void {
+            }),
             $this->secrets,
             $this->users,
             new CalendarService($this->objects),
@@ -660,6 +834,7 @@ final class AccountServiceTest extends TestCase
             $time,
             new PersonLock($this->locking),
             $this->logger,
+            new PendingMfaSaver($this->secrets, $jobList, $this->logger, $this->users),
         );
     }
 

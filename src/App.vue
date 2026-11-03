@@ -19,6 +19,8 @@
 					v-if="view === 'login'"
 					v-model:email="typedEmail"
 					:maskedEmail="status.setup.connected ? null : status.setup.maskedEmail"
+					:pending="status.mfa.pending?.origin === 'setup' ? status.mfa.pending : null"
+					:nextRequestAt="status.mfa.nextRequestAt"
 					@status="onLogin" />
 				<StepCalendar
 					v-else-if="view === 'calendar'"

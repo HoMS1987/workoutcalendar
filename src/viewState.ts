@@ -47,6 +47,18 @@ export interface ViewState {
 	polling: boolean
 }
 
+/**
+ * Whether the overview asks for a verification code at the top: a sync left the account paused for
+ * a code, or a request from "sign in again" or a sync waits for its code. Requests of the setup
+ * belong to the wizard.
+ *
+ * @param status Current status
+ */
+export function showMfaBox(status: Status): boolean {
+	const origin = status.mfa.pending?.origin
+	return origin === 'relogin' || origin === 'sync' || status.paused === 'MFA_REQUIRED'
+}
+
 function viewOf(status: Status, wizardFinished: boolean): View {
 	if (!status.setup.connected) {
 		return 'login'
@@ -73,7 +85,9 @@ function hintsOf(status: Status): Hint[] {
 	const { setup } = status
 	const hints: Hint[] = []
 
-	if (status.paused !== null) {
+	if (status.paused === 'MFA_REQUIRED') {
+		// The box at the top explains the pause and asks for the code.
+	} else if (status.paused !== null) {
 		hints.push('paused')
 	} else if (status.failure !== null) {
 		// While paused, the paused hint already explains the failure.

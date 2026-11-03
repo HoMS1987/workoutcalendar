@@ -24,6 +24,12 @@ use Psr\Log\LoggerInterface;
  */
 final class GarminClientFactory
 {
+    /** Shorter cookie values (e.g. the flag "1") are not session secrets; masking them would garble every number in the log. */
+    private const MIN_MASKED_COOKIE_LENGTH = 8;
+
+    /** Wait of the widget login before submitting the form; null for the real wait. */
+    private ?\Closure $widgetSleep = null;
+
     public function __construct(
         private readonly HttpClientProvider $http,
         private readonly SecretStore $secrets,
@@ -31,36 +37,90 @@ final class GarminClientFactory
     ) {
     }
 
-    public function client(string $uid, Credentials $credentials): GarminClient
+    /**
+     * Copy whose widget login waits with `$sleep` instead of sleep(), for tests.
+     *
+     * @param callable(int): void $sleep
+     */
+    public function withWidgetSleep(callable $sleep): self
     {
-        $http = $this->http([$credentials->password, $credentials->email]);
+        $copy = clone $this;
+        $copy->widgetSleep = \Closure::fromCallable($sleep);
+
+        return $copy;
+    }
+
+    public function client(string $uid, Credentials $credentials, bool $passwordLogin = true): GarminClient
+    {
+        $cookies = $this->secrets->ssoCookies($uid);
+        $redactor = new Redactor([$credentials->password, $credentials->email, ...self::cookieValues($cookies)]);
+        $http = $this->http($redactor);
+        if ($cookies !== []) {
+            $http->importCookies($cookies);
+        }
 
         return new GarminClient(
             $http,
-            $this->authenticatorFor($http),
+            $this->authenticatorFor($http, $redactor),
             new DiTokenService($http),
             new UserTokenStore($this->secrets, $uid),
             $credentials,
             $this->logger,
+            passwordLogin: $passwordLogin,
         );
+    }
+
+    /**
+     * Login with its own HTTP connection, e.g. to confirm a code in the SSO session of a challenge.
+     *
+     * @param list<string> $cookies Netscape cookie lines to continue a session; their values are masked as well
+     * @param list<string> $knownSecrets Values the log and response excerpts must never contain
+     */
+    public function mobileLogin(array $cookies = [], array $knownSecrets = []): MobileLogin
+    {
+        $redactor = new Redactor([...$knownSecrets, ...self::cookieValues($cookies)]);
+        $http = $this->http($redactor);
+        if ($cookies !== []) {
+            $http->importCookies($cookies);
+        }
+
+        return new MobileLogin($http, new DiTokenService($http), $redactor);
+    }
+
+    /**
+     * The value column of Netscape cookie lines, as secrets for a Redactor. A whole line never appears in a text.
+     *
+     * @param list<string> $lines
+     * @return list<string>
+     */
+    public static function cookieValues(array $lines): array
+    {
+        $values = [];
+        foreach ($lines as $line) {
+            $value = explode("\t", $line)[6] ?? '';
+            if (strlen($value) >= self::MIN_MASKED_COOKIE_LENGTH) {
+                $values[] = $value;
+            }
+        }
+
+        return $values;
     }
 
     /** Login without stored tokens, e.g. to check new credentials. */
     public function authenticator(): Authenticator
     {
-        return $this->authenticatorFor($this->http());
+        return $this->authenticatorFor($this->http(new Redactor()));
     }
 
-    private function authenticatorFor(HttpClient $http): Authenticator
+    private function authenticatorFor(HttpClient $http, ?Redactor $redactor = null): Authenticator
     {
         $diTokens = new DiTokenService($http);
 
-        return new Authenticator([new MobileLogin($http, $diTokens), new WidgetLogin($http, $diTokens)], $this->logger);
+        return new Authenticator([new MobileLogin($http, $diTokens, $redactor), new WidgetLogin($http, $diTokens, $this->widgetSleep)], $this->logger);
     }
 
-    /** @param list<string> $knownSecrets */
-    private function http(array $knownSecrets = []): HttpClient
+    private function http(Redactor $redactor): HttpClient
     {
-        return new LoggingHttpClient($this->http->create(), $this->logger, new ResponseClassifier(), new Redactor($knownSecrets));
+        return new LoggingHttpClient($this->http->create(), $this->logger, new ResponseClassifier(), $redactor);
     }
 }

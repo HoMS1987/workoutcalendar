@@ -14,6 +14,7 @@ use OCA\WorkoutCalendar\Service\CalendarSetupService;
 use OCA\WorkoutCalendar\Service\CurlHttpClientProvider;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
+use OCA\WorkoutCalendar\Service\MfaService;
 use OCA\WorkoutCalendar\Service\StatusService;
 use OCA\WorkoutCalendar\Service\SyncRunner;
 use OCA\WorkoutCalendar\Tests\Support\FakeHttpClient;
@@ -37,6 +38,7 @@ final class ApiControllerTest extends TestCase
         SyncRunner::class,
         CalendarSetupService::class,
         StatusService::class,
+        MfaService::class,
         ApiController::class,
     ];
 
@@ -222,6 +224,24 @@ final class ApiControllerTest extends TestCase
         self::assertSame(200, $reset->getStatus());
         self::assertSame('garmin', $reset->getData()['setup']['step']);
         self::assertNull($reset->getData()['setup']['maskedEmail']);
+    }
+
+    public function testMfaCancelWithoutRequestReturnsStatus(): void
+    {
+        $response = $this->controller()->mfaCancel();
+
+        self::assertSame(200, $response->getStatus(), json_encode($response->getData()) ?: '');
+        self::assertNull($response->getData()['mfa']['pending']);
+        self::assertFalse($response->getData()['mfa']['account']);
+    }
+
+    public function testMfaRequestWithoutAccountIs400(): void
+    {
+        $response = $this->controller()->mfaRequest();
+
+        self::assertSame(400, $response->getStatus());
+        self::assertSame(['error' => 'invalidRequest'], $response->getData());
+        self::assertSame([], $this->http->requests);
     }
 
     private function controller(): ApiController

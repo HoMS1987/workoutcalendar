@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../src/api.ts'
-import { apiErrorText, hintText, isLoginFailure, loginError, pollProblem } from '../../src/messages.ts'
+import { apiErrorText, hintText, isLoginFailure, loginError, mfaKind, mfaPromptText, pollProblem } from '../../src/messages.ts'
 import { makeStatus } from './fixtures.ts'
 
 type Vars = Record<string, string | number>
@@ -25,7 +25,11 @@ vi.mock('@nextcloud/l10n', () => ({
 describe('loginError', () => {
 	it.each([
 		['INVALID_CREDENTIALS', 'Garmin rejected your email address or password. Please check them and try again.'],
-		['MFA_REQUIRED', 'Your Garmin account asks for a verification code. This is not supported yet.'],
+		['MFA_REQUIRED', 'Your Garmin account asks for a verification code.'],
+		['MFA_CODE_INVALID', 'The code is not correct. Please check it and try again.'],
+		['MFA_EXPIRED', 'The code request has expired. Please request a new code.'],
+		['MFA_NOT_PENDING', 'The code request is no longer active. Please start again.'],
+		['MFA_CREDENTIALS_REJECTED', 'Garmin rejected the saved password. Please sign out and sign in with your current password.'],
 		['BLOCKED', 'Garmin is blocking the sign-in right now. Please try again later.'],
 		['PROTOCOL_CHANGED', 'The Garmin sign-in seems to have changed. Details are in the Nextcloud log.'],
 		['SERVER_ERROR', 'Garmin cannot be reached right now. Please try again later.'],
@@ -142,5 +146,40 @@ describe('isLoginFailure', () => {
 	it('knows the Garmin categories and nothing else', () => {
 		expect(isLoginFailure('INVALID_CREDENTIALS')).toBe(true)
 		expect(isLoginFailure('busy')).toBe(false)
+	})
+})
+
+describe('mfaKind', () => {
+	it.each([
+		['email', 'email'],
+		['EMAIL', 'email'],
+		['sms', 'sms'],
+		['SMS', 'sms'],
+		['totp', 'app'],
+		['authenticator', 'app'],
+		['push', 'other'],
+		[null, 'missing'],
+	] as const)('classifies %s as %s', (method, kind) => {
+		expect(mfaKind(method)).toBe(kind)
+	})
+})
+
+describe('mfaPromptText', () => {
+	it.each([
+		['email', 'Garmin has sent you a code by email.'],
+		['sms', 'Garmin has sent you a code by SMS.'],
+		['totp', 'Enter the code from your authenticator app.'],
+		['push', 'Enter the code Garmin has sent you.'],
+		[null, 'Garmin has sent you a code by email or SMS.'],
+	])('describes %s', (method, text) => {
+		expect(mfaPromptText(method)).toBe(text)
+	})
+})
+
+describe('MFA login failures', () => {
+	it('knows the code failures as login failures', () => {
+		expect(isLoginFailure('MFA_CODE_INVALID')).toBe(true)
+		expect(isLoginFailure('MFA_EXPIRED')).toBe(true)
+		expect(isLoginFailure('MFA_CREDENTIALS_REJECTED')).toBe(true)
 	})
 })

@@ -14,6 +14,8 @@ use OCA\WorkoutCalendar\Calendar\DeletedMarker;
 use OCA\WorkoutCalendar\Calendar\IcsReader;
 use OCA\WorkoutCalendar\Calendar\IcsSerializer;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
+use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
 use OCA\WorkoutCalendar\Storage\SetupStep;
@@ -46,6 +48,7 @@ final class SyncRunner
         private readonly IFactory $l10nFactory,
         private readonly IUserManager $userManager,
         private readonly LoggerInterface $logger,
+        private readonly PendingMfaSaver $pendingRequests,
     ) {
         $this->calendars = new CalendarService($objects);
         $this->policy = new NotificationPolicy();
@@ -179,13 +182,16 @@ final class SyncRunner
             $this->logger,
         );
         $sync = new SyncService(
-            $this->garmin->client($uid, $credentials),
+            $this->garmin->client($uid, $credentials, !$state->isMfaAccount()),
             new ActivityEventMapper($texts),
             $target,
             $this->logger,
         );
-        $sync->run($this->users->settings($uid), $state, $now);
+        $result = $sync->run($this->users->settings($uid), $state, $now);
         $this->users->saveState($uid, $state);
+        if ($result->mfaChallenge !== null) {
+            $this->pendingRequests->save($uid, new PendingMfa($result->mfaChallenge, MfaOrigin::Sync, $now->getTimestamp()));
+        }
 
         $this->notify($uid, $state, $now);
 

@@ -78,3 +78,15 @@ export function logout(cleanup: Cleanup): Promise<Status> {
 export function reset(cleanup: Cleanup): Promise<Status> {
 	return request('post', 'reset', { cleanup })
 }
+
+export function requestMfaCode(): Promise<{ outcome: 'signedIn' | 'codeRequired', status: Status }> {
+	return request('post', 'mfa/request')
+}
+
+export function verifyMfaCode(code: string): Promise<Status> {
+	return request('post', 'mfa/verify', { code })
+}
+
+export function cancelMfa(): Promise<Status> {
+	return request('post', 'mfa/cancel')
+}

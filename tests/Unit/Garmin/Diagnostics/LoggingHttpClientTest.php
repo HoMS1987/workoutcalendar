@@ -72,4 +72,16 @@ final class LoggingHttpClientTest extends TestCase
         self::assertSame('api.activities', $debug[0]['context']['step']);
         self::assertStringContainsString('Could not resolve host', $debug[0]['context']['error']);
     }
+
+    public function testCookiesPassThroughWithoutLogging(): void
+    {
+        $inner = new FakeHttpClient();
+        $client = $this->client($inner);
+
+        $client->importCookies(['x']);
+
+        self::assertSame(['x'], $inner->cookies);
+        self::assertSame(['x'], $client->exportCookies());
+        self::assertSame([], $this->logger->records);
+    }
 }

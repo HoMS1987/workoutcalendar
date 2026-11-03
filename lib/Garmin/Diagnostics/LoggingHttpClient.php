@@ -54,6 +54,16 @@ final class LoggingHttpClient implements HttpClient
         return $response;
     }
 
+    public function exportCookies(): array
+    {
+        return $this->inner->exportCookies();
+    }
+
+    public function importCookies(array $lines): void
+    {
+        $this->inner->importCookies($lines);
+    }
+
     private static function endpoint(string $url): string
     {
         $parts = parse_url($url);
