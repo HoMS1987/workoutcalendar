@@ -36,12 +36,13 @@
 import type { Status } from '../types.ts'
 
 import { t } from '@nextcloud/l10n'
-import { computed, onScopeDispose, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { ApiError, requestMfaCode, verifyMfaCode } from '../api.ts'
 import { apiErrorText, isLoginFailure, loginError, mfaKind, mfaPromptText } from '../messages.ts'
+import { useCountdown } from '../useCountdown.ts'
 
 const props = defineProps<{
 	/** Verification method Garmin reported, or null if unknown. */
@@ -59,30 +60,7 @@ const error = ref('')
 // An authenticator app generates codes itself, so there is nothing to request.
 const canRequestNew = computed(() => mfaKind(props.method) !== 'app')
 
-// WHY: the shared useNow() clock ticks every 30 seconds, too coarse for a countdown in seconds.
-const nowSeconds = ref(Math.floor(Date.now() / 1000))
-const waitSeconds = computed(() => typeof props.nextRequestAt !== 'number' ? 0 : Math.max(0, props.nextRequestAt - nowSeconds.value))
-
-let timer: ReturnType<typeof setInterval> | undefined
-function stopTimer() {
-	if (timer !== undefined) {
-		clearInterval(timer)
-		timer = undefined
-	}
-}
-watch(() => props.nextRequestAt, () => {
-	stopTimer()
-	nowSeconds.value = Math.floor(Date.now() / 1000)
-	if (waitSeconds.value > 0) {
-		timer = setInterval(() => {
-			nowSeconds.value = Math.floor(Date.now() / 1000)
-			if (waitSeconds.value === 0) {
-				stopTimer()
-			}
-		}, 1000)
-	}
-}, { immediate: true })
-onScopeDispose(stopTimer)
+const { waitSeconds } = useCountdown(() => props.nextRequestAt)
 
 function errorText(e: unknown): string {
 	const apiError = e instanceof ApiError ? e : new ApiError(0, 'internal')
