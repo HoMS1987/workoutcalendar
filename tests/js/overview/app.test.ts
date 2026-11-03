@@ -44,6 +44,19 @@ describe('App overview', () => {
 		wrapper.unmount()
 	})
 
+	// Nextcloud leaves the spacing of a settings page to the app; NcSettingsSection gives it the
+	// margin and width the other settings pages have.
+	it('lays out the page as a Nextcloud settings section', async () => {
+		vi.mocked(api.getStatus).mockResolvedValue(makeStatus())
+		const wrapper = mount(App, { attachTo: document.body })
+		await flushPromises()
+
+		const root = wrapper.find('.workoutcalendar-settings')
+		expect(root.classes()).toContain('settings-section')
+		expect(root.find('.settings-section__name').text()).toBe('Workout Calendar')
+		wrapper.unmount()
+	})
+
 	it('shows busy without changing the view', async () => {
 		vi.mocked(api.getStatus).mockResolvedValue(makeStatus())
 		vi.mocked(api.syncNow).mockRejectedValue(new api.ApiError(409, 'busy'))

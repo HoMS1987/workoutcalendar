@@ -12,6 +12,11 @@ All notable changes to this app are documented here. The format follows
   and to the issue tracker for questions, and names the licence as an SPDX identifier.
 - The App Store entry shows screenshots of the calendar, the settings and the history import.
 
+### Fixed
+
+- The settings page keeps the same distance to the navigation and the same width as the other
+  settings pages instead of starting right at the dividing line.
+
 ## 1.0.0 – 2026-11-02
 
 First release.

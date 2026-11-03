@@ -1,7 +1,5 @@
 <template>
-	<div class="workoutcalendar-settings">
-		<h2>{{ t('workoutcalendar', 'Workout Calendar') }}</h2>
-
+	<NcSettingsSection class="workoutcalendar-settings" :name="t('workoutcalendar', 'Workout Calendar')">
 		<NcLoadingIcon v-if="!status && !loadError" :name="t('workoutcalendar', 'Loading …')" />
 		<NcNoteCard v-if="loadError" type="error">
 			{{ loadError }}
@@ -52,7 +50,7 @@
 			{{ t('workoutcalendar', 'Find the app useful? You can support its development:') }}
 			<a :href="SPONSOR_URL" target="_blank" rel="noopener noreferrer">GitHub Sponsors</a>
 		</p>
-	</div>
+	</NcSettingsSection>
 </template>
 
 <script setup lang="ts">
@@ -63,6 +61,7 @@ import { t } from '@nextcloud/l10n'
 import { computed, onMounted, ref } from 'vue'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import OverviewPage from './components/overview/OverviewPage.vue'
 import StatusHints from './components/overview/StatusHints.vue'
 import StepCalendar from './components/wizard/StepCalendar.vue'
