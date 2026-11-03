@@ -35,6 +35,14 @@ final class RedactorTest extends TestCase
         self::assertStringContainsString('***', $result);
     }
 
+    public function testMasksMfaVerificationCode(): void
+    {
+        $result = (new Redactor())->redact('{"mfaVerificationCode":"123456"}');
+
+        self::assertStringNotContainsString('123456', $result);
+        self::assertSame('{"mfaVerificationCode":"***"}', $result);
+    }
+
     public function testKeepsHarmlessTextIncludingUmlauts(): void
     {
         $text = '{"responseStatus":{"type":"INVALID_USERNAME_PASSWORD"},"message":"Ungültige Anmeldung"}';

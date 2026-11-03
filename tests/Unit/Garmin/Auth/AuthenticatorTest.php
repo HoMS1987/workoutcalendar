@@ -8,6 +8,7 @@ use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
+use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
@@ -132,6 +133,26 @@ final class AuthenticatorTest extends TestCase
         } catch (GarminException $e) {
             self::assertSame(FailureCategory::Network, $e->category);
         }
+    }
+
+    public function testMfaChallengeSurvivesTheAttemptSummary(): void
+    {
+        $widgetCalls = 0;
+        $challenge = new MfaChallenge('sms', ['c1']);
+        $authenticator = new Authenticator([
+            self::strategy('mobile', new GarminException(FailureCategory::MfaRequired, 'mobile.login', 'mfa', mfaChallenge: $challenge)),
+            self::strategy('widget', new GarminTokens('a', 'r', 'C'), $widgetCalls),
+        ], $this->logger);
+
+        try {
+            $authenticator->login(new Credentials('a@b.de', 'pw'));
+            self::fail('GarminException expected');
+        } catch (GarminException $e) {
+            self::assertSame(FailureCategory::MfaRequired, $e->category);
+            self::assertSame($challenge, $e->mfaChallenge);
+            self::assertSame(['mobile' => 'MFA_REQUIRED @ mobile.login'], $e->attempts);
+        }
+        self::assertSame(0, $widgetCalls, 'No widget request after MFA_REQUIRED');
     }
 
     public function testCredentialsHidePasswordInDumps(): void

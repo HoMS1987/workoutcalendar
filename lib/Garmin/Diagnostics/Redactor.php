@@ -14,7 +14,7 @@ final class Redactor
     private const MASK = '***';
 
     private const SECRET_KEYS = 'password|username|email|access_token|refresh_token|id_token|di_token|'
-        . 'di_refresh_token|serviceTicketId|service_ticket|ticket|_csrf|captchaToken';
+        . 'di_refresh_token|serviceTicketId|service_ticket|ticket|_csrf|captchaToken|mfaVerificationCode';
 
     /** @var list<string> */
     private array $knownSecrets;
