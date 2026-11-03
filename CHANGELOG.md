@@ -6,11 +6,14 @@ All notable changes to this app are documented here. The format follows
 
 ## [Unreleased]
 
+## 1.0.1 – 2026-11-03
+
 ### Changed
 
 - The App Store entry has a fuller description in English and German, links to the documentation
   and to the issue tracker for questions, and names the licence as an SPDX identifier.
 - The App Store entry shows screenshots of the calendar, the settings and the history import.
+- The settings page is built with @nextcloud/vue 9.14.1.
 
 ### Fixed
 

@@ -51,7 +51,7 @@ Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]><
 Garmin bietet für Privatpersonen keine offizielle Schnittstelle. Die App nutzt dieselben inoffiziellen Endpunkte wie die Garmin-Connect-App, Garmin kann sie also jederzeit ändern oder sperren. Dein Garmin-Passwort wird verschlüsselt gespeichert und nur für die Anmeldung verwendet.
 
 Nutzung auf eigene Gefahr. Diese App steht in keiner Verbindung zu Garmin und wird nicht von Garmin unterstützt.]]></description>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>HoMS1987</author>
     <namespace>WorkoutCalendar</namespace>
