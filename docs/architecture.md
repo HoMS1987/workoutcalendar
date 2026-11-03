@@ -125,6 +125,16 @@ Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`).
 | `POST /api/logout` | Von Garmin abmelden; Bereinigung `events` oder `calendar` nur ohne laufende Wartung |
 | `POST /api/reset` | Einstellungen zurücksetzen; Bereinigung wie beim Abmelden |
 
+Fehlerantworten der Code-Routen:
+
+| Status | Antwort | Wann |
+|---|---|---|
+| 429 | `{"error": "MFA_RATE_LIMITED", "retryAfter": <Sekunden>}` | `POST /api/mfa/request` öfter als einmal pro Minute oder fünfmal pro Stunde |
+| 422 | `{"error": "MFA_CODE_INVALID"}` | `POST /api/mfa/verify`: Garmin lehnt den Code ab |
+| 422 | `{"error": "MFA_EXPIRED"}` | Die Code-Anfrage ist älter als 30 Minuten; auch bei `POST /api/mfa/request`, wenn die Anfrage aus der Einrichtung stammt und die Zugangsdaten nicht mehr gelten |
+| 422 | `{"error": "MFA_NOT_PENDING"}` | Es gibt keine Code-Anfrage zum Bestätigen |
+| 400 | `{"error": "invalidRequest"}` | Der Code hat nicht sechs Ziffern (Leerzeichen werden entfernt); Garmin wird nicht gefragt |
+
 ### Zustände für die Oberfläche
 
 Die Einstellungsseite leitet ihre Ansicht nur aus `GET /api/status` ab. Grundregel:
@@ -164,7 +174,7 @@ verschlüsselt.
 |---|---|---|
 | `credentials`, `tokens` | `SecretStore` | Garmin-Zugangsdaten und Tokens |
 | `mfa_pending` | `SecretStore` | Laufende Code-Anfrage: SSO-Cookies, Query-Parameter, Weg, Login-Strategie, Herkunft (`MfaOrigin`), Zeitpunkt; bei der Einrichtung auch E-Mail und Passwort. Höchstens 30 Minuten gültig ([ADR 0008](adrs/0008-garmin-sitzung-zwischen-zwei-anfragen.md)) |
-| `sso_cookies` | `SecretStore` | Von Garmin gesetzte Cookies („Browser merken“) |
+| `sso_cookies` | `SecretStore` | Von Garmin gesetzte Cookies („Browser merken“); gelöscht beim Abmelden, Zurücksetzen und beim Wechsel auf ein anderes Garmin-Konto |
 | `mfa_requests` | `UserStore` | Zeitpunkte der letzten Code-Anforderungen für die Grenze von 1 pro Minute und 5 pro Stunde |
 | `state` | `UserStore` | `SyncState`, darin `mfaAccount` (Konto nutzt Zwei-Faktor-Anmeldung) und `mfaMethod` |
 

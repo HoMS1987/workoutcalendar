@@ -48,7 +48,7 @@ ausweisen kann. Zugangsdaten und Tokens liegen bereits verschlüsselt im `Secret
 - Verschlüsselte Sitzungsdaten liegen kurz in der Datenbank, höchstens 30 Minuten und nur, solange
   die Person einen Code erwartet. Wer den Schlüssel der Instanz hat, kann sie lesen, das gilt schon
   für die Zugangsdaten.
-- Gemerkte Cookies bleiben länger gespeichert, bis die Person sich abmeldet oder zurücksetzt. Sie
+- Gemerkte Cookies bleiben länger gespeichert, bis die Person sich abmeldet, zurücksetzt oder ein anderes Garmin-Konto anmeldet. Sie
   ersparen unter Umständen einen Code, ob Garmin so ein Cookie setzt, ist noch offen.
 - Bei markiertem Konto meldet sich die App nie selbst mit dem Passwort an. Läuft das Refresh-Token
   ab, pausiert der Sync, bis die Person einen Code eingibt. Dafür verschickt die App keine Codes

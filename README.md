@@ -124,7 +124,9 @@ python -m venv .venv
   works on the author's own instance (Talos cluster); Garmin may decide differently for other
   servers.
 - With two-step verification (from 1.1.0), Workout Calendar only requests a code when you ask
-  for it. If Garmin rejects the saved sign-in, the sync pauses, a notification appears, and you
+  for it. After the code the sync continues with the refresh token (according to
+  python-garminconnect, not yet verified on a real account; how long the refresh token stays valid
+  is unknown). If Garmin rejects the saved sign-in, the sync pauses, a notification appears, and you
   enter a new code in the settings. Authenticator apps are provided for but untested, since
   Garmin currently offers email and SMS.
 - New activities appear with a delay of up to the configured interval plus the cron period.
