@@ -114,7 +114,7 @@ The scripts in `php-test/` and `test_garmin.py` check Garmin access outside of N
 read the credentials from `.env`:
 
 ```powershell
-Copy-Item .env.example .env   # then fill in GARMIN_EMAIL and GARMIN_PASSWORD
+Copy-Item .env.example .env   # then fill in GARMIN_EMAIL and GARMIN_PASSWORD, or GARMIN_API_KEY
 ```
 
 `.env` and the token store `.garminconnect/` are listed in `.gitignore`.
@@ -124,6 +124,7 @@ php-test\run.ps1 -Mode login-mobile    # login like the iOS app, tokens go to .g
 php-test\run.ps1 -Mode login-widget    # login via the SSO widget
 php-test\run.ps1 -Mode refresh         # refresh the token
 php-test\run.ps1 -Mode api -PhpToken   # fetch activities with the PHP token
+php-test\run.ps1 -Mode apikey          # exchange GARMIN_API_KEY and fetch activities with the app's own classes
 ```
 
 The Python variant uses `python-garminconnect`:
