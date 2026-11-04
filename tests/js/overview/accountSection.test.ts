@@ -184,7 +184,8 @@ describe('AccountSection', () => {
 		const cleared = makeStatus()
 		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
 		const wrapper = mountSection(pendingSetup)
-		await openMethods(wrapper)
+		// A running setup code request opens the section and the sign-in view on mount.
+		await flushPromises()
 
 		await wrapper.findAll('button').find((b) => b.text() === 'Back')!.trigger('click')
 		await flushPromises()
@@ -198,8 +199,9 @@ describe('AccountSection', () => {
 
 	it('opensTheViewAfterAReloadWhileASetupCodeRequestRuns', async () => {
 		const wrapper = mountSection(pendingSetup)
-		await wrapper.find('button[data-test="toggle"]').trigger('click')
+		await flushPromises()
 
+		expect(wrapper.find('button[data-test="toggle"]').attributes('aria-expanded')).toBe('true')
 		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
 		expect(wrapper.find('input[autocomplete="one-time-code"]').exists()).toBe(true)
 		wrapper.unmount()
@@ -219,7 +221,8 @@ describe('AccountSection', () => {
 		const cleared = makeStatus()
 		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
 		const wrapper = mountSection(pendingSetup)
-		await openMethods(wrapper)
+		// A running setup code request opens the section and the sign-in view on mount.
+		await flushPromises()
 
 		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
 		await flushPromises()
@@ -234,7 +237,8 @@ describe('AccountSection', () => {
 	it('cancelKeepsTheViewOpenAndShowsTheErrorWhenGivingUpFails', async () => {
 		vi.mocked(api.cancelMfa).mockRejectedValue(new api.ApiError(409, 'busy'))
 		const wrapper = mountSection(pendingSetup)
-		await openMethods(wrapper)
+		// A running setup code request opens the section and the sign-in view on mount.
+		await flushPromises()
 
 		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
 		await flushPromises()

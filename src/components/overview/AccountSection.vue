@@ -1,5 +1,5 @@
 <template>
-	<CollapsibleSection data-test="account" :title="t('workoutcalendar', 'Garmin account')">
+	<CollapsibleSection data-test="account" :title="t('workoutcalendar', 'Garmin account')" :initiallyOpen="setupPending !== null">
 		<NcNoteCard v-if="signedInAgain" type="success">
 			{{ t('workoutcalendar', 'Signed in to Garmin again.') }}
 		</NcNoteCard>

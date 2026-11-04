@@ -25,9 +25,10 @@
 import { ref, useId } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 
-defineProps<{ title: string }>()
+// initiallyOpen is read once on mount: a later change does not fold or unfold the section.
+const props = defineProps<{ title: string, initiallyOpen?: boolean }>()
 
-const open = ref(false)
+const open = ref(props.initiallyOpen === true)
 const panelId = useId()
 </script>
 
