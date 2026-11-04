@@ -51,6 +51,22 @@ final class SyncState
         return $this->mfaAccount || $this->pausedFor === 'MFA_REQUIRED';
     }
 
+    /**
+     * A fresh state for a new import into another calendar. Keeps what belongs to the Garmin account:
+     * the pause (no new sign-in attempt without new credentials), the sent notification and the MFA flag
+     * (otherwise the sync would sign in with the password again).
+     */
+    public function restartImport(): self
+    {
+        $state = new self();
+        $state->pausedFor = $this->pausedFor;
+        $state->notifiedCategory = $this->notifiedCategory;
+        $state->mfaAccount = $this->isMfaAccount();
+        $state->mfaMethod = $this->mfaMethod;
+
+        return $state;
+    }
+
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {

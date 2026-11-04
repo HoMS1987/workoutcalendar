@@ -87,4 +87,31 @@ final class SyncStateTest extends TestCase
         self::assertFalse($state->initialized);
         self::assertSame(0, $state->failureCount);
     }
+
+    public function testRestartImportKeepsOnlyTheAccountState(): void
+    {
+        $state = new SyncState();
+        $state->initialized = true;
+        $state->lastSuccessAt = 100;
+        $state->nextRunAt = 200;
+        $state->backfillBefore = '2020-01-01';
+        $state->backfillDone = true;
+        $state->oldestActivityDate = '2012-04-29';
+        $state->failureCategory = 'MFA_REQUIRED';
+        $state->failureCount = 3;
+        $state->pausedFor = 'MFA_REQUIRED';
+        $state->notifiedCategory = 'MFA_REQUIRED';
+        $state->mfaMethod = 'sms';
+
+        $fresh = $state->restartImport();
+
+        $expected = new SyncState();
+        $expected->pausedFor = 'MFA_REQUIRED';
+        $expected->notifiedCategory = 'MFA_REQUIRED';
+        // Derived from the pause of a 1.0.x install, so the flag survives once the pause ends.
+        $expected->mfaAccount = true;
+        $expected->mfaMethod = 'sms';
+        self::assertEquals($expected, $fresh);
+        self::assertTrue($state->initialized, 'the original state stays unchanged');
+    }
 }

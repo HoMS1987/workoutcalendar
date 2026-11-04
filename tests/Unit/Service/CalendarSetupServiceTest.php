@@ -297,6 +297,25 @@ final class CalendarSetupServiceTest extends TestCase
         self::assertSame('sms', $state->mfaMethod);
     }
 
+    public function testChangeWithoutMoveKeepsThePauseAndTheSentNotification(): void
+    {
+        $this->done();
+        $state = new SyncState();
+        $state->initialized = true;
+        $state->pausedFor = 'INVALID_CREDENTIALS';
+        $state->notifiedCategory = 'INVALID_CREDENTIALS';
+        $this->users->saveState(self::UID, $state);
+        $new = $this->objects->addCalendar(self::UID, 'y', 'New');
+
+        $this->service()->choose(self::UID, null, $new, true, false);
+
+        // A new calendar changes nothing about the rejected password: no new sign-in attempt, no second notification.
+        $state = $this->users->state(self::UID);
+        self::assertFalse($state->initialized);
+        self::assertSame('INVALID_CREDENTIALS', $state->pausedFor);
+        self::assertSame('INVALID_CREDENTIALS', $state->notifiedCategory);
+    }
+
     public function testChangeWithoutMoveKeepsTheDerivedFlagOfA10Install(): void
     {
         $this->done();
@@ -310,7 +329,8 @@ final class CalendarSetupServiceTest extends TestCase
         $this->service()->choose(self::UID, null, $new, true, false);
 
         $state = $this->users->state(self::UID);
-        self::assertNull($state->pausedFor);
+        // The pause stays as well, so the flag is stored explicitly before a later code ends the pause.
+        self::assertSame('MFA_REQUIRED', $state->pausedFor);
         self::assertTrue($state->mfaAccount);
         self::assertTrue($state->isMfaAccount());
     }
