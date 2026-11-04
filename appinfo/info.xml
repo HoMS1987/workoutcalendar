@@ -55,7 +55,7 @@ Use at your own risk. This app is not affiliated with or endorsed by Garmin.]]><
 Mit dem API-Schlüssel nutzt die App die offizielle Personal API von Garmin. Ein Schlüssel gilt höchstens ein Jahr, danach pausiert die App und fragt nach einem neuen. Mit E-Mail und Passwort nutzt die App dieselben inoffiziellen Endpunkte wie die Garmin-Connect-App, Garmin kann sie also jederzeit ändern oder sperren. Der API-Schlüssel oder das Passwort wird verschlüsselt gespeichert und nur für die Anmeldung verwendet.
 
 Nutzung auf eigene Gefahr. Diese App steht in keiner Verbindung zu Garmin und wird nicht von Garmin unterstützt.]]></description>
-    <version>1.1.0-rc.3</version>
+    <version>1.1.0-rc.4</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>HoMS1987</author>
     <namespace>WorkoutCalendar</namespace>
