@@ -50,7 +50,7 @@ final class AccountService
      * @throws PersonBusyException if a sync run or another change holds the person's lock; then there is
      *         no request to Garmin and everything stored stays as it was
      */
-    public function login(string $uid, string $email, string $password): LoginOutcome
+    public function login(string $uid, string $email, #[\SensitiveParameter] string $password): LoginOutcome
     {
         $email = trim($email);
         $credentials = new Credentials($email, $password);
@@ -130,7 +130,7 @@ final class AccountService
             // of the password way in the shared slot, so only the credentials remain to be deleted.
             $this->secrets->saveApiKey($uid, new ApiKeyRecord($apiKey, $this->time->getTime()));
             $this->secrets->saveTokens($uid, $tokens);
-            $this->secrets->deleteCredentialsOnly($uid);
+            $this->secrets->deleteCredentials($uid);
             $this->secrets->deleteSsoCookies($uid);
             $this->secrets->deletePendingMfa($uid);
 

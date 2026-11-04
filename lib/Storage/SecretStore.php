@@ -67,16 +67,11 @@ final class SecretStore
         $this->write($uid, self::TOKENS, $tokens->toArray());
     }
 
-    /** Deletes credentials and tokens only; SSO cookies, pending MFA and the API key have their own delete methods. */
+    /**
+     * Deletes the credentials alone; the tokens slot may already hold the tokens of another way of signing in.
+     * SSO cookies, pending MFA, tokens and the API key have their own delete methods.
+     */
     public function deleteCredentials(string $uid): void
-    {
-        foreach ([self::CREDENTIALS, self::TOKENS] as $key) {
-            $this->config->deleteUserConfig($uid, Application::APP_ID, $key);
-        }
-    }
-
-    /** Deletes the credentials alone; the tokens slot may already hold the tokens of another way of signing in. */
-    public function deleteCredentialsOnly(string $uid): void
     {
         $this->config->deleteUserConfig($uid, Application::APP_ID, self::CREDENTIALS);
     }

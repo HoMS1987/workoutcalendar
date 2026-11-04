@@ -204,6 +204,7 @@ final class ApiKeyTokenServiceTest extends TestCase
         yield 'controller apiKey' => [ApiController::class, 'apiKey', 'apiKey'];
         // The password is just as secret as the key.
         yield 'controller login' => [ApiController::class, 'login', 'password'];
+        yield 'account service login' => [AccountService::class, 'login', 'password'];
     }
 
     /** @param class-string $class */

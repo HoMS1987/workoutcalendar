@@ -213,30 +213,17 @@ final class SecretStoreTest extends TestCase
         self::assertArrayNotHasKey('api_key', $this->data['anna'] ?? []);
     }
 
-    public function testDeleteCredentialsKeepsTheApiKey(): void
-    {
-        $store = $this->store();
-        $store->saveCredentials('anna', new Credentials('anna@example.org', 'pw'));
-        $store->saveTokens('anna', new GarminTokens('a', 'r', 'c'));
-        $store->saveApiKey('anna', new ApiKeyRecord('k', 1));
-        $store->saveSsoCookies('anna', ['c']);
-
-        $store->deleteCredentials('anna');
-
-        self::assertNull($store->credentials('anna'));
-        self::assertNull($store->tokens('anna'));
-        self::assertEquals(new ApiKeyRecord('k', 1), $store->apiKey('anna'));
-        self::assertSame(['c'], $store->ssoCookies('anna'));
-    }
-
-    public function testDeleteCredentialsOnlyKeepsTokensAndApiKey(): void
+    public function testDeleteCredentialsKeepsTokensApiKeyAndCookies(): void
     {
         $store = $this->store();
         $store->saveCredentials('anna', new Credentials('anna@example.org', 'pw'));
         $store->saveTokens('anna', new GarminTokens('a', null, 'personal-api'));
         $store->saveApiKey('anna', new ApiKeyRecord('k', 1));
+        $store->saveSsoCookies('anna', ['c']);
 
-        $store->deleteCredentialsOnly('anna');
+        $store->deleteCredentials('anna');
+
+        self::assertSame(['c'], $store->ssoCookies('anna'));
 
         self::assertNull($store->credentials('anna'));
         self::assertArrayNotHasKey('credentials', $this->data['anna']);
