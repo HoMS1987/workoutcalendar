@@ -78,9 +78,9 @@ Am 2026-11-04 mit `php-test/apikey_test.php` an einem echten Konto geprüft:
 - Ein gelöschter Schlüssel bekommt beim Tausch 404 mit
   `{"message":"Personal API Key with ID … does not exist.","error":"NotFoundException"}`. Die ID ist
   nicht der Schlüssel. `1.1.0-rc.3` wertete das als `PROTOCOL_CHANGED`.
-- Ein schon geholtes Zugriffstoken gilt nach dem Löschen weiter, anders als die FAQ sagt: Ein Sync
-  direkt danach war erfolgreich. Die App bemerkt einen gelöschten Schlüssel deshalb erst beim
-  nächsten Tausch, also bis zu 23 Stunden später.
+- Ein schon geholtes Zugriffstoken wird nach dem Löschen gesperrt, wie die FAQ sagt, aber mit
+  Verzögerung: Ein Sync direkt danach war noch erfolgreich, keine zwei Minuten später antwortete die
+  Aktivitätsliste mit 401. Der erneute Tausch bekam dann 404 `NotFoundException`.
 
 Offen sind:
 
