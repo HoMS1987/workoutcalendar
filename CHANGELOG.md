@@ -6,6 +6,12 @@ All notable changes to this app are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Choosing another calendar without moving the events keeps a running pause, for example after Garmin
+  rejected the password. Before, the change ended the pause, so the sync tried the rejected password
+  again and sent the notification a second time.
+
 ## 1.1.0 – 2026-11-04
 
 ### Added

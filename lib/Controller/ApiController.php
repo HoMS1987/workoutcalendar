@@ -226,15 +226,8 @@ final class ApiController extends Controller
                 $setup->identity,
             ));
             // WHY: After a missing calendar the old state would otherwise remain (history done,
-            // last success), and the new calendar would get no import. The pause stays: without new
-            // credentials there is no further sign-in attempt. The MFA flag stays too, otherwise the sync would
-            // sign in with the password again.
-            $previous = $this->users->state($uid);
-            $state = new SyncState();
-            $state->pausedFor = $previous->pausedFor;
-            $state->notifiedCategory = $previous->notifiedCategory;
-            $state->mfaAccount = $previous->isMfaAccount();
-            $state->mfaMethod = $previous->mfaMethod;
+            // last success), and the new calendar would get no import.
+            $state = $this->users->state($uid)->restartImport();
             $state->nextRunAt = $now->getTimestamp();
             $this->users->saveState($uid, $state);
 

@@ -120,12 +120,8 @@ final class CalendarSetupService
             if ($move) {
                 $maintenance = 'move';
             } else {
-                // The new calendar holds none of the old events: start over with a fresh import. The MFA flag
-                // belongs to the Garmin account, not the calendar; without it the sync would sign in with the password again.
-                $previousState = $state;
-                $state = new SyncState();
-                $state->mfaAccount = $previousState->isMfaAccount();
-                $state->mfaMethod = $previousState->mfaMethod;
+                // The new calendar holds none of the old events: start over with a fresh import.
+                $state = $state->restartImport();
             }
             $state->nextRunAt = $this->time->getTime();
         }
