@@ -6,6 +6,8 @@ All notable changes to this app are documented here. The format follows
 
 ## [Unreleased]
 
+## 1.1.0 – 2026-11-04
+
 ### Added
 
 - Signing in with Garmin's personal API key, the recommended way. The setup step offers two tabs,
