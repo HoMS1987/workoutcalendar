@@ -11,6 +11,7 @@ use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
 use OCA\WorkoutCalendar\Garmin\Http\HttpRequest;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 
 /** Exchanges a personal API key for a short-lived access token. */
@@ -39,8 +40,8 @@ final class ApiKeyTokenService
     }
 
     /**
-     * @throws GarminException ApiKeyRejected if Garmin answers 401 or a 403 without Cloudflare markers,
-     *         otherwise classified as usual (a Cloudflare 403 is Blocked)
+     * @throws GarminException ApiKeyRejected if Garmin answers 401 or a 403 that is not a Cloudflare challenge,
+     *         otherwise classified as usual (a Cloudflare challenge 403 is Blocked)
      */
     public function exchange(#[\SensitiveParameter] string $apiKey): GarminTokens
     {
@@ -54,8 +55,9 @@ final class ApiKeyTokenService
             throw new GarminException(FailureCategory::Network, self::STEP, $this->redactor->redact($e->getMessage()));
         }
 
-        // WHY the markers: a Cloudflare block says nothing about the key and must not pause the sync.
-        if ($response->status === 401 || ($response->status === 403 && $this->classifier->cloudflareMarkers($response) === [])) {
+        // WHY only a challenge: a Cloudflare block says nothing about the key and must not pause the sync,
+        // but cf-ray and server: cloudflare are on every response of the host, Garmin's own rejection included.
+        if ($response->status === 401 || ($response->status === 403 && !$this->isCloudflareChallenge($response))) {
             throw $this->failures->create(FailureCategory::ApiKeyRejected, self::STEP, "HTTP {$response->status}", $response);
         }
         $this->failures->assertOk($response, self::STEP);
@@ -84,5 +86,12 @@ final class ApiKeyTokenService
         }
 
         return null;
+    }
+
+    private function isCloudflareChallenge(HttpResponse $response): bool
+    {
+        $markers = $this->classifier->cloudflareMarkers($response);
+
+        return isset($markers['cf-mitigated']) || isset($markers['challenge-page']);
     }
 }

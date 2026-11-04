@@ -83,6 +83,21 @@ final class ApiKeyTokenServiceTest extends TestCase
         self::assertSame(403, $e->status);
     }
 
+    public function testChallengePageWithoutCfMitigatedIsBlocked(): void
+    {
+        $response = new HttpResponse(403, ['cf-ray' => '8f1e2d3c4b5a6978-FRA'], '<html><title>Attention Required! | Cloudflare</title></html>');
+
+        self::assertSame(FailureCategory::Blocked, $this->exchangeFailure(new FakeHttpClient($response))->category);
+    }
+
+    public function testRejection403PassingThroughCloudflareIsApiKeyRejected(): void
+    {
+        // Every response of a host behind Cloudflare carries cf-ray and server: cloudflare; only a challenge is a block.
+        $response = new HttpResponse(403, ['cf-ray' => '8f1e2d3c4b5a6978-FRA', 'server' => 'cloudflare'], '{"message":"Invalid API key"}');
+
+        self::assertSame(FailureCategory::ApiKeyRejected, $this->exchangeFailure(new FakeHttpClient($response))->category);
+    }
+
     public function testRejectedResponseExcerptIsRedacted(): void
     {
         $key = 'secret-key-9f8e7d';
