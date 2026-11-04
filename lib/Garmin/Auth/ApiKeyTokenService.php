@@ -43,7 +43,8 @@ final class ApiKeyTokenService
     }
 
     /**
-     * @throws GarminException ApiKeyRejected if Garmin answers 401 or a 403 that is not a Cloudflare challenge,
+     * @throws GarminException ApiKeyRejected if Garmin answers 401, a 403 that is not a Cloudflare challenge, or
+     *         404 NotFoundException for a deleted key,
      *         otherwise classified as usual (a Cloudflare challenge 403 is Blocked)
      */
     public function exchange(#[\SensitiveParameter] string $apiKey): GarminTokens
@@ -60,7 +61,11 @@ final class ApiKeyTokenService
 
         // WHY only a challenge: a Cloudflare block says nothing about the key and must not pause the sync,
         // but cf-ray and server: cloudflare are on every response of the host, Garmin's own rejection included.
-        if ($response->status === 401 || ($response->status === 403 && !$this->isCloudflareChallenge($response))) {
+        if (
+            $response->status === 401
+            || ($response->status === 403 && !$this->isCloudflareChallenge($response))
+            || $this->isUnknownKey($response)
+        ) {
             throw $this->failures->create(FailureCategory::ApiKeyRejected, self::STEP, "HTTP {$response->status}", $response);
         }
         $this->failures->assertOk($response, self::STEP);
@@ -90,6 +95,20 @@ final class ApiKeyTokenService
         }
 
         return null;
+    }
+
+    /**
+     * Garmin answers a deleted key with 404 and error NotFoundException (recorded 2026-11-04); a 404 without it
+     * points to a changed path and stays ProtocolChanged.
+     */
+    private function isUnknownKey(HttpResponse $response): bool
+    {
+        if ($response->status !== 404) {
+            return false;
+        }
+        $error = json_decode($response->body, true)['error'] ?? null;
+
+        return $error === 'NotFoundException';
     }
 
     private function isCloudflareChallenge(HttpResponse $response): bool

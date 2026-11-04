@@ -33,7 +33,8 @@ Grundlage sind die Seiten und die FAQ von Garmin sowie Garmins Client
   mit `Authorization: ApiKey <Schlüssel>`. Ein Refresh-Token gibt es nicht. Ein `TokenProvider` je Weg
   (`ApiKeyTokenProvider`, `PasswordTokenProvider`) liefert dem `GarminClient` das Token. Der
   Schlüsselweg holt ein neues, sobald das alte in weniger als 3600 Sekunden abläuft.
-- Nur 401 und 403 beim Tausch gelten als abgelehnter Schlüssel (`API_KEY_REJECTED`). Das pausiert den
+- Als abgelehnter Schlüssel (`API_KEY_REJECTED`) gelten beim Tausch 401, 403 ohne Cloudflare-Challenge
+  und 404 mit `"error":"NotFoundException"` (gelöschter Schlüssel). Das pausiert den
   Sync und benachrichtigt sofort. Alles andere wird wie bisher klassifiziert und pausiert nicht.
 - `POST /api/apikey` richtet ein, stellt um und nimmt einen neuen Schlüssel nach Ablauf an. Der
   Schlüssel wird beim Eintragen sofort getauscht und erst danach gespeichert.
@@ -74,10 +75,16 @@ Am 2026-11-04 mit `php-test/apikey_test.php` an einem echten Konto geprüft:
   etwa `startTimeLocal` und `activityType.typeKey`.
 - Ein ungültiger Schlüssel bekommt 401 mit `cf-ray` und `server: cloudflare`, aber ohne
   `cf-mitigated`. Deshalb zählt nur eine Cloudflare-Challenge als Sperre.
+- Ein gelöschter Schlüssel bekommt beim Tausch 404 mit
+  `{"message":"Personal API Key with ID … does not exist.","error":"NotFoundException"}`. Die ID ist
+  nicht der Schlüssel. `1.1.0-rc.3` wertete das als `PROTOCOL_CHANGED`.
+- Ein schon geholtes Zugriffstoken gilt nach dem Löschen weiter, anders als die FAQ sagt: Ein Sync
+  direkt danach war erfolgreich. Die App bemerkt einen gelöschten Schlüssel deshalb erst beim
+  nächsten Tausch, also bis zu 23 Stunden später.
 
 Offen sind:
 
-- Welchen Status Garmin bei einem gelöschten oder abgelaufenen Schlüssel liefert. Angenommen sind 401
-  und 403, wie beim ungültigen Schlüssel.
+- Welchen Status Garmin bei einem abgelaufenen Schlüssel liefert. Angenommen sind 401, 403 oder 404
+  wie beim ungültigen und beim gelöschten Schlüssel.
 - Ob Garmin Rate-Limits setzt. In den Quellen steht dazu nichts.
 - Die Nutzungsbedingungen von Garmin über die FAQ hinaus.

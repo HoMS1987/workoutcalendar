@@ -72,6 +72,18 @@ final class ApiKeyTokenServiceTest extends TestCase
         self::assertSame($status, $e->status);
     }
 
+    public function testDeletedKeyAnsweredWith404NotFoundIsApiKeyRejected(): void
+    {
+        // Recorded on 2026-11-04 after deleting a key in Garmin Connect.
+        $body = '{"message":"Personal API Key with ID 09efac17-40c6-407f-889f-c0c55677d3c5 does not exist.","error":"NotFoundException"}';
+        $response = new HttpResponse(404, ['content-type' => 'application/json', 'cf-ray' => '8f1e2d3c4b5a6978-FRA', 'server' => 'cloudflare'], $body);
+
+        $e = $this->exchangeFailure(new FakeHttpClient($response));
+
+        self::assertSame(FailureCategory::ApiKeyRejected, $e->category);
+        self::assertSame(404, $e->status);
+    }
+
     public function testCloudflare403IsBlockedNotARejectedKey(): void
     {
         $response = new HttpResponse(403, ['cf-mitigated' => 'challenge', 'server' => 'cloudflare'], '<title>Just a moment...</title>');

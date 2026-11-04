@@ -167,7 +167,8 @@ neu geschrieben. Deshalb ändert sich der `accountKey` bei keinem Wechsel des An
 
 ### Andere Fehler beim Tausch
 
-- Nur 401 und 403 beim Tausch gelten als abgelehnter Schlüssel. 429, 5xx, Netzwerkfehler und andere
+- Nur 401, 403 und 404 mit `NotFoundException` (gelöschter Schlüssel, am 2026-11-04 am echten Konto
+  gesehen) beim Tausch gelten als abgelehnter Schlüssel. 429, 5xx, Netzwerkfehler und andere
   Antworten behandelt der Sync wie heute als vorübergehend (`BLOCKED`, `SERVER_ERROR`, `NETWORK`,
   sonst `PROTOCOL_CHANGED`), ohne Pause. Im Assistenten erscheint die passende Meldung, und nichts
   wird gespeichert.
