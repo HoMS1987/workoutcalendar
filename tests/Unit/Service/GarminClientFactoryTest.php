@@ -128,7 +128,7 @@ final class GarminClientFactoryTest extends TestCase
     public function testApiKeyClientExchangesTheKeyAndFetchesFromThePersonalApi(): void
     {
         $exchanged = Jwt::make(['exp' => time() + 7200]);
-        $http = new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => $exchanged]), FakeHttpClient::json(200, []));
+        $http = new FakeHttpClient(FakeHttpClient::personalApiToken($exchanged), FakeHttpClient::json(200, []));
         $logger = new MemoryLogger();
         $store = [];
         $secrets = new SecretStore($this->memoryUserConfig($store), $this->fakeCrypto(), $logger);

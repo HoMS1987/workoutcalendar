@@ -41,7 +41,7 @@ final class ApiKeyTokenServiceTest extends TestCase
     public function testExchangeSendsTheKeyAsApiKeyHeader(): void
     {
         $jwt = Jwt::make(['exp' => 2000000000]);
-        $http = new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => $jwt]));
+        $http = new FakeHttpClient(FakeHttpClient::personalApiToken($jwt));
 
         $tokens = $this->service($http)->exchange('k-1');
 
@@ -153,9 +153,32 @@ final class ApiKeyTokenServiceTest extends TestCase
         self::assertNull($network->getPrevious());
     }
 
-    public function testEmptyAccessTokenIsProtocolChanged(): void
+    public function testTokenSentAsPlainTextWithSurroundingWhitespaceIsRead(): void
     {
-        $e = $this->exchangeFailure(new FakeHttpClient(FakeHttpClient::json(200, ['access_token' => ''])));
+        $jwt = Jwt::make(['exp' => 2000000000]);
+
+        $tokens = $this->service(new FakeHttpClient(new HttpResponse(200, ['content-type' => 'text/plain'], "
+ $jwt 
+")))->exchange('k-1');
+
+        self::assertSame($jwt, $tokens->accessToken);
+    }
+
+    /** @return array<string, array{string}> */
+    public static function bodiesWithoutAToken(): array
+    {
+        return [
+            'empty' => [''],
+            'json object' => ['{"access_token":"' . Jwt::make(['exp' => 2000000000]) . '"}'],
+            'html page' => ['<html><title>Garmin</title></html>'],
+            'jwt without exp' => [Jwt::make(['sub' => 'x'])],
+        ];
+    }
+
+    #[DataProvider('bodiesWithoutAToken')]
+    public function testBodyThatIsNotAJwtWithExpIsProtocolChanged(string $body): void
+    {
+        $e = $this->exchangeFailure(new FakeHttpClient(new HttpResponse(200, ['content-type' => 'text/plain'], $body)));
 
         self::assertSame(FailureCategory::ProtocolChanged, $e->category);
     }

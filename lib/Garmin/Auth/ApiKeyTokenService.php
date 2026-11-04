@@ -29,6 +29,9 @@ final class ApiKeyTokenService
      */
     private const USER_ID_CLAIMS = ['garmin_guid', 'userProfilePK', 'user_id'];
 
+    /** Header, payload and signature in base64url, nothing around them. */
+    private const JWT_PATTERN = '/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/';
+
     private readonly ResponseFailures $failures;
     private readonly ResponseClassifier $classifier;
 
@@ -62,12 +65,13 @@ final class ApiKeyTokenService
         }
         $this->failures->assertOk($response, self::STEP);
 
-        $access = $response->json()['access_token'] ?? null;
-        if (!is_string($access) || $access === '') {
-            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Response without access_token', $response);
+        // WHY text: the endpoint answers with the bare JWT, not with JSON (as Garmin's own Python client reads it).
+        $tokens = new GarminTokens(trim($response->body), null, self::CLIENT_ID);
+        if (preg_match(self::JWT_PATTERN, $tokens->accessToken) !== 1 || $tokens->expiresAt() === null) {
+            throw $this->failures->create(FailureCategory::ProtocolChanged, self::STEP, 'Response is not a JWT with exp', $response);
         }
 
-        return new GarminTokens($access, null, self::CLIENT_ID);
+        return $tokens;
     }
 
     /** The Garmin user the token belongs to: the first non-empty string or integer among the known claims. */

@@ -60,6 +60,12 @@ final class FakeHttpClient implements HttpClient
         return array_map(static fn (HttpRequest $r): string => $r->step, $this->requests);
     }
 
+    /** Answer of Garmin's personal API token endpoint: the bare JWT as text, as Garmin's own client reads it. */
+    public static function personalApiToken(string $jwt): HttpResponse
+    {
+        return new HttpResponse(200, ['content-type' => 'text/plain;charset=UTF-8'], $jwt);
+    }
+
     public static function json(int $status, array $data, array $headers = []): HttpResponse
     {
         return new HttpResponse($status, $headers + ['content-type' => 'application/json'], json_encode($data, JSON_THROW_ON_ERROR));

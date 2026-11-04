@@ -490,7 +490,7 @@ final class SyncRunnerTest extends TestCase
     {
         $this->connectWithApiKey();
         $this->http->queue(
-            FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => time() + 86_400])]),
+            FakeHttpClient::personalApiToken(Jwt::make(['exp' => time() + 86_400])),
             FakeHttpClient::json(200, [self::activity(101, '2026-10-19 07:00:00')]),
             FakeHttpClient::json(200, []),
         );
@@ -510,7 +510,7 @@ final class SyncRunnerTest extends TestCase
         $this->connectWithApiKey();
         $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
         $this->http->queue(
-            FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => time() + 86_400])]),
+            FakeHttpClient::personalApiToken(Jwt::make(['exp' => time() + 86_400])),
             FakeHttpClient::json(200, []),
             FakeHttpClient::json(200, []),
         );

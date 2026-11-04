@@ -51,8 +51,9 @@ Aus den Garmin-Seiten und Garmins Client, nicht am echten Konto geprüft:
    macht auch alle damit geholten Zugriffstokens ungültig.
 2. Tausch gegen ein Zugriffstoken:
    `POST https://personal.connectapi.garmin.com/personalapitoken-service/personal-api/personal-api-key/token`
-   mit Header `Authorization: ApiKey <Schlüssel>` und `Accept: */*`. Die Antwort enthält
-   `access_token`, ein JWT. Es gilt 24 Stunden (Ablauf im Claim `exp`) oder bis der Schlüssel abläuft.
+   mit Header `Authorization: ApiKey <Schlüssel>` und `Accept: */*`. Die Antwort ist das JWT selbst
+   als Text, kein JSON; so liest es auch Garmins Python-Client (`response.text.strip()`). Am echten
+   Konto geprüft am 2026-11-04. Es gilt 24 Stunden (Ablauf im Claim `exp`) oder bis der Schlüssel abläuft.
    Ein Refresh-Token gibt es nicht. Garmins Client holt ein neues Token, sobald das alte in weniger als
    einer Stunde abläuft.
 3. Aktivitäten:
