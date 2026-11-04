@@ -116,7 +116,7 @@ Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`).
 | `POST /api/login` | Garmin-Zugangsdaten prüfen und speichern (Rate-Limit 10 pro Stunde); bei `MFA_REQUIRED` Antwort „Code nötig“ mit dem Weg statt eines Fehlers |
 | `GET /api/calendars` | Kalender zur Auswahl |
 | `POST /api/calendar` | Kalender wählen oder wechseln, mit oder ohne Umzug der Termine |
-| `POST /api/apikey` | Persönlichen API-Schlüssel (`apiKey`, getrimmt) gegen ein Token tauschen und speichern: Einrichten, Umstellen, neuer Schlüssel nach Ablauf (Rate-Limit 10 pro Stunde). 422 `API_KEY_REJECTED`, wenn Garmin mit 401 oder 403 ablehnt, 400 bei leerem Wert ohne Anfrage an Garmin; bei anderen Garmin-Fehlern wird nichts gespeichert und der bisherige Weg bleibt |
+| `POST /api/apikey` | Persönlichen API-Schlüssel (`apiKey`, getrimmt) gegen ein Token tauschen und speichern: Einrichten, Umstellen, neuer Schlüssel nach Ablauf (Rate-Limit 10 pro Stunde). 422 `API_KEY_REJECTED`, wenn Garmin mit 401, 403 oder 404 `NotFoundException` ablehnt, 400 bei leerem Wert ohne Anfrage an Garmin; bei anderen Garmin-Fehlern wird nichts gespeichert und der bisherige Weg bleibt |
 | `POST /api/mfa/request` | Code anfordern: Login mit dem gespeicherten Passwort, bei `MFA_REQUIRED` startet eine Code-Anfrage (Rate-Limit 10 pro Stunde, dazu höchstens 1 pro Minute und 5 pro Stunde je Person) |
 | `POST /api/mfa/verify` | Code bestätigen (`code`, Rate-Limit 10 pro Stunde); bei Erfolg Tokens speichern, Pause und Benachrichtigung beenden |
 | `POST /api/mfa/cancel` | Laufende Code-Anfrage löschen |
@@ -189,8 +189,8 @@ Der `GarminClient` bekommt sein Token von einem `TokenProvider`, je nach Anmelde
 
 **Mit API-Schlüssel** (`ApiKeyTokenProvider`): `ApiKeyTokenService` tauscht den Schlüssel gegen ein
 Zugriffstoken (`personal.connectapi.garmin.com`). Ein neues Token holt die App, sobald das alte in
-weniger als 3600 Sekunden abläuft. Ein Refresh-Token gibt es nicht. 401 und 403 beim Tausch bedeuten
-`API_KEY_REJECTED`: Pause und sofortige Benachrichtigung. Die Aktivitäten kommen von
+weniger als 3600 Sekunden abläuft. Ein Refresh-Token gibt es nicht. 401, 403 und 404 mit
+`NotFoundException` (gelöschter Schlüssel) beim Tausch bedeuten `API_KEY_REJECTED`: Pause und sofortige Benachrichtigung. Die Aktivitäten kommen von
 `personal.connectapi.garmin.com/activitylist-service`.
 
 **Mit E-Mail und Passwort** (`PasswordTokenProvider`):
