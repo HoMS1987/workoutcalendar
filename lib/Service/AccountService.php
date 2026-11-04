@@ -89,10 +89,11 @@ final class AccountService
      */
     public function completeLogin(string $uid, string $email, Credentials $credentials, GarminTokens $tokens): SetupState
     {
+        // WHY first: the sync prefers a stored key, so an interruption must not leave it next to the password tokens.
+        $this->secrets->deleteApiKey($uid);
         $this->secrets->saveCredentials($uid, $credentials);
         // WHY: Overwrites the access token of the API key as well; both ways share the tokens slot.
         $this->secrets->saveTokens($uid, $tokens);
-        $this->secrets->deleteApiKey($uid);
         // A successful sign-in ends any waiting code request.
         $this->secrets->deletePendingMfa($uid);
 

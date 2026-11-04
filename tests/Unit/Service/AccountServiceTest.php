@@ -951,6 +951,28 @@ final class AccountServiceTest extends TestCase
         self::assertSame(5, $this->users->state(self::UID)->lastSuccessAt);
     }
 
+    public function testInterruptedSwitchToPasswordNeverLeavesTheKeyNextToThePasswordTokens(): void
+    {
+        $garminKey = AccountService::accountKey('garmin-123');
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, $garminKey, null, $this->calendarId, true, identity: 'garmin:' . $garminKey));
+        $this->secrets->saveApiKey(self::UID, new ApiKeyRecord(self::API_KEY, self::NOW - 100));
+        $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make([]), null, 'personal-api'));
+        // The process stops while the new tokens are written.
+        $this->secrets = new SecretStore($this->memoryUserConfig($this->store, static function (string $uid, string $key): void {
+            if ($key === 'tokens') {
+                throw new \RuntimeException('interrupted');
+            }
+        }), $this->fakeCrypto(), $this->logger);
+
+        try {
+            $this->service()->completeLogin(self::UID, 'a@b.de', new Credentials('a@b.de', 'secret'), new GarminTokens(Jwt::make([]), 'r', 'C'));
+            self::fail('RuntimeException expected');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertNull($this->secrets->apiKey(self::UID));
+    }
+
     public function testOtherGarminIdIsAnAccountSwitch(): void
     {
         $garminKey = AccountService::accountKey('garmin-1');

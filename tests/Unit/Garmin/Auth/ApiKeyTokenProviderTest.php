@@ -94,6 +94,21 @@ final class ApiKeyTokenProviderTest extends TestCase
         self::assertSame(['apikey.token'], $this->http->steps());
     }
 
+    public function testExchangesWhenTheStoredTokenBelongsToThePasswordWay(): void
+    {
+        // A DI token left over from an interrupted switch: it is not valid at the personal API.
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW + 86_400]), 'r', 'GARMIN_CONNECT_MOBILE_ANDROID_DI');
+        $fresh = Jwt::make(['exp' => self::NOW + 7200, 'n' => 'fresh']);
+        $this->queueExchange($fresh);
+
+        $tokens = $this->provider()->current();
+
+        self::assertSame($fresh, $tokens->accessToken);
+        self::assertSame(ApiKeyTokenService::CLIENT_ID, $tokens->clientId);
+        self::assertSame(['apikey.token'], $this->http->steps());
+        self::assertSame($fresh, $this->store->tokens?->accessToken);
+    }
+
     public function testRenewAlwaysExchanges(): void
     {
         $stored = self::tokens(self::NOW + 7200);

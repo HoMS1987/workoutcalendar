@@ -30,8 +30,14 @@ final class ApiKeyTokenProvider implements TokenProvider
     {
         $tokens = $this->store->load();
         $expiresAt = $tokens?->expiresAt();
-        // A token without exp gives no hint how long it lasts, so it is exchanged as well.
-        if ($tokens === null || $expiresAt === null || $expiresAt - ($this->now)() < self::MIN_REMAINING_SECONDS) {
+        // A token without exp gives no hint how long it lasts, so it is exchanged as well. WHY the client ID:
+        // a token of the password way left by an interrupted switch is not valid at the personal API.
+        if (
+            $tokens === null
+            || $tokens->clientId !== ApiKeyTokenService::CLIENT_ID
+            || $expiresAt === null
+            || $expiresAt - ($this->now)() < self::MIN_REMAINING_SECONDS
+        ) {
             return $this->exchange();
         }
 
