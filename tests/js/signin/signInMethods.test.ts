@@ -38,6 +38,18 @@ describe('SignInMethods', () => {
 		expect(wrapper.find('ol').exists()).toBe(true)
 	})
 
+	it('passwordButtonSaysSignInAndContinueByDefault', () => {
+		const wrapper = mount(SignInMethods, { props: { ...props, initial: 'password' } })
+
+		expect(wrapper.find('form button[type="submit"]').text()).toBe('Sign in and continue')
+	})
+
+	it('passesThePasswordSubmitLabel', () => {
+		const wrapper = mount(SignInMethods, { props: { ...props, initial: 'password', passwordSubmitLabel: 'Sign in' } })
+
+		expect(wrapper.find('form button[type="submit"]').text()).toBe('Sign in')
+	})
+
 	it('honoursTheInitialTab', () => {
 		const wrapper = mount(SignInMethods, { props: { ...props, initial: 'password' } })
 

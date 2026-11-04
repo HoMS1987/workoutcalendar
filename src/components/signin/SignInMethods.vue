@@ -26,6 +26,7 @@
 		<PasswordSignIn
 			v-else
 			v-model:email="email"
+			:submitLabel="passwordSubmitLabel"
 			:maskedEmail="maskedEmail"
 			:pending="pending"
 			:nextRequestAt="nextRequestAt"
@@ -50,11 +51,13 @@ const props = withDefaults(defineProps<{
 	initial?: 'apiKey' | 'password'
 	/** Text of the button that connects with the API key. */
 	submitLabel: string
+	/** Text of the button that signs in with email and password; PasswordSignIn has its own default. */
+	passwordSubmitLabel?: string
 	maskedEmail?: string | null
 	/** Code request from the setup login that waits for its code. */
 	pending?: PendingMfa | null
 	nextRequestAt?: number | null
-}>(), { initial: 'apiKey', maskedEmail: null, pending: null, nextRequestAt: null })
+}>(), { initial: 'apiKey', passwordSubmitLabel: undefined, maskedEmail: null, pending: null, nextRequestAt: null })
 
 // "back" is a given-up code request, not a sign-in.
 const emit = defineEmits<{ status: [status: Status], back: [status: Status] }>()

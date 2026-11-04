@@ -50,7 +50,7 @@
 		</p>
 
 		<NcButton variant="primary" type="submit" :disabled="busy">
-			{{ t('workoutcalendar', 'Sign in and continue') }}
+			{{ submitLabel ?? t('workoutcalendar', 'Sign in and continue') }}
 		</NcButton>
 	</form>
 </template>
@@ -73,6 +73,8 @@ import { apiErrorText, isLoginFailure, loginError } from '../../messages.ts'
 const email = defineModel<string>('email', { default: '' })
 
 defineProps<{
+	/** Text of the submit button, by default the one of the setup. */
+	submitLabel?: string
 	/** Masked address of the account that was connected before, if any. */
 	maskedEmail?: string | null
 	/** Code request from the setup login that waits for its code. */

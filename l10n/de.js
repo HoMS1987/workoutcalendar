@@ -139,6 +139,7 @@ OC.L10N.register("workoutcalendar", {
     "Garmin email address": "Garmin-E-Mail-Adresse",
     "Garmin password": "Garmin-Passwort",
     "Sign in and continue": "Anmelden und weiter",
+    "Sign in": "Anmelden",
     "API key (recommended)": "API-Schlüssel (empfohlen)",
     "Email and password": "E-Mail und Passwort",
     "Open {link} in the Garmin Connect settings.": "Öffne in den Einstellungen von Garmin Connect {link}.",

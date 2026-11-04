@@ -36,6 +36,7 @@
 				v-model:email="email"
 				initial="apiKey"
 				:submitLabel="t('workoutcalendar', 'Save')"
+				:passwordSubmitLabel="t('workoutcalendar', 'Sign in')"
 				:maskedEmail="status.setup.maskedEmail"
 				:pending="setupPending"
 				:nextRequestAt="status.mfa.nextRequestAt"
@@ -98,11 +99,12 @@ const error = ref('')
 const signedInAgain = ref(false)
 const reloginError = ref('')
 
-const methodsOpen = ref(false)
-const email = ref('')
-
 // A code request of the email and password sign-in started here is answered inside this view.
 const setupPending = computed(() => props.status.mfa.pending?.origin === 'setup' ? props.status.mfa.pending : null)
+
+// WHY: After a page reload a running setup code request would otherwise stay hidden.
+const methodsOpen = ref(setupPending.value !== null)
+const email = ref('')
 
 function openMethods() {
 	signedInAgain.value = false

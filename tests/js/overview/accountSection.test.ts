@@ -196,6 +196,25 @@ describe('AccountSection', () => {
 		wrapper.unmount()
 	})
 
+	it('opensTheViewAfterAReloadWhileASetupCodeRequestRuns', async () => {
+		const wrapper = mountSection(pendingSetup)
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
+		expect(wrapper.find('input[autocomplete="one-time-code"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('passwordTabSaysSignIn', async () => {
+		const wrapper = mountSection()
+		await openMethods(wrapper)
+
+		await wrapper.find('button[data-test="method-password"]').trigger('click')
+
+		expect(wrapper.find('form button[type="submit"]').text()).toBe('Sign in')
+		wrapper.unmount()
+	})
+
 	it('cancelWithAPendingCodeRequestGivesItUp', async () => {
 		const cleared = makeStatus()
 		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
