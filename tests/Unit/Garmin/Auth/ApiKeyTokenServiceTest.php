@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Tests\Unit\Garmin\Auth;
 
+use OCA\WorkoutCalendar\Controller\ApiController;
 use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenProvider;
 use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenService;
 use OCA\WorkoutCalendar\Service\AccountService;
@@ -69,6 +70,27 @@ final class ApiKeyTokenServiceTest extends TestCase
         self::assertSame(FailureCategory::ApiKeyRejected, $e->category);
         self::assertSame('apikey.token', $e->step);
         self::assertSame($status, $e->status);
+    }
+
+    public function testCloudflare403IsBlockedNotARejectedKey(): void
+    {
+        $response = new HttpResponse(403, ['cf-mitigated' => 'challenge', 'server' => 'cloudflare'], '<title>Just a moment...</title>');
+
+        $e = $this->exchangeFailure(new FakeHttpClient($response));
+
+        self::assertSame(FailureCategory::Blocked, $e->category);
+        self::assertSame('apikey.token', $e->step);
+        self::assertSame(403, $e->status);
+    }
+
+    public function testRejectedResponseExcerptIsRedacted(): void
+    {
+        $key = 'secret-key-9f8e7d';
+        $e = $this->exchangeFailure(new FakeHttpClient(new HttpResponse(401, [], "{\"error\":\"unknown key $key\"}")), $key);
+
+        self::assertSame(FailureCategory::ApiKeyRejected, $e->category);
+        self::assertStringNotContainsString($key, $e->excerpt);
+        self::assertStringContainsString('unknown key', $e->excerpt);
     }
 
     /** @return array<string, array{HttpResponse|\Throwable, FailureCategory}> */
@@ -164,6 +186,9 @@ final class ApiKeyTokenServiceTest extends TestCase
         yield 'exchange' => [ApiKeyTokenService::class, 'exchange', 'apiKey'];
         yield 'token provider' => [ApiKeyTokenProvider::class, '__construct', 'apiKey'];
         yield 'record' => [ApiKeyRecord::class, '__construct', 'key'];
+        yield 'controller apiKey' => [ApiController::class, 'apiKey', 'apiKey'];
+        // The password is just as secret as the key.
+        yield 'controller login' => [ApiController::class, 'login', 'password'];
     }
 
     /** @param class-string $class */

@@ -1130,6 +1130,32 @@ final class AccountServiceTest extends TestCase
         self::assertStringNotContainsString(self::API_KEY, $this->logger->dump());
     }
 
+    public function testFailedSavingOfTheKeyKeepsThePasswordWay(): void
+    {
+        $this->connected();
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
+        $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make([]), 'r', 'C'));
+        $this->secrets->saveSsoCookies(self::UID, ['browser']);
+        $this->secrets->savePendingMfa(self::UID, new PendingMfa(new MfaChallenge('email', ['sso']), MfaOrigin::Sync, self::NOW));
+        $this->secrets = new SecretStore($this->memoryUserConfig($this->store, static function (string $uid, string $key): void {
+            if ($key === 'api_key') {
+                throw new \RuntimeException('database gone');
+            }
+        }), $this->fakeCrypto(), $this->logger);
+        $this->queueKeyExchange('garmin-123');
+
+        try {
+            $this->service()->connectApiKey(self::UID, self::API_KEY);
+            self::fail('RuntimeException expected');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertSame('secret', $this->secrets->credentials(self::UID)?->password);
+        self::assertSame('C', $this->secrets->tokens(self::UID)?->clientId);
+        self::assertSame(['browser'], $this->secrets->ssoCookies(self::UID));
+        self::assertNotNull($this->secrets->pendingMfa(self::UID, self::NOW));
+    }
+
     public function testKeyIsTrimmedAndAnEmptyKeyNeverReachesGarmin(): void
     {
         $this->queueKeyExchange('garmin-123');

@@ -75,7 +75,7 @@ final class ApiController extends Controller
     // Every attempt reaches Garmin, and repeated failed sign-ins could lock the Garmin account.
     #[UserRateLimit(limit: 10, period: 3600)]
     #[FrontpageRoute(verb: 'POST', url: '/api/login')]
-    public function login(string $email = '', string $password = ''): JSONResponse
+    public function login(string $email = '', #[\SensitiveParameter] string $password = ''): JSONResponse
     {
         return $this->handle(function (string $uid) use ($email, $password): array {
             if (trim($email) === '' || $password === '') {
@@ -92,7 +92,7 @@ final class ApiController extends Controller
     // Every attempt reaches Garmin.
     #[UserRateLimit(limit: 10, period: 3600)]
     #[FrontpageRoute(verb: 'POST', url: '/api/apikey')]
-    public function apiKey(mixed $apiKey = null): JSONResponse
+    public function apiKey(#[\SensitiveParameter] mixed $apiKey = null): JSONResponse
     {
         return $this->handle(function (string $uid) use ($apiKey): array {
             if (!is_string($apiKey) || trim($apiKey) === '') {

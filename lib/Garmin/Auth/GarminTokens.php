@@ -47,7 +47,7 @@ final class GarminTokens
     {
         $expiresAt = $this->expiresAt();
 
-        // Without exp the token is used until Garmin answers 401; GarminClient then renews it.
+        // Without exp the token is used until Garmin answers 401; the token provider then renews it.
         return $expiresAt !== null && $now >= $expiresAt - self::EXPIRY_LEEWAY_SECONDS;
     }
 

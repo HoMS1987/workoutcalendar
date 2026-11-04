@@ -126,12 +126,13 @@ final class AccountService
             $garminId = ApiKeyTokenService::garminUserId($tokens);
             $garminKey = $garminId !== null ? self::accountKey($garminId) : null;
 
-            // WHY delete first: the tokens slot is shared, so the tokens of the password way go with its credentials.
-            $this->secrets->deleteCredentials($uid);
-            $this->secrets->deleteSsoCookies($uid);
-            $this->secrets->deletePendingMfa($uid);
+            // WHY save first: if saving fails, the password way stays complete. The new tokens replace those
+            // of the password way in the shared slot, so only the credentials remain to be deleted.
             $this->secrets->saveApiKey($uid, new ApiKeyRecord($apiKey, $this->time->getTime()));
             $this->secrets->saveTokens($uid, $tokens);
+            $this->secrets->deleteCredentialsOnly($uid);
+            $this->secrets->deleteSsoCookies($uid);
+            $this->secrets->deletePendingMfa($uid);
 
             return $this->finishSignIn(
                 $uid,

@@ -75,6 +75,12 @@ final class SecretStore
         }
     }
 
+    /** Deletes the credentials alone; the tokens slot may already hold the tokens of another way of signing in. */
+    public function deleteCredentialsOnly(string $uid): void
+    {
+        $this->config->deleteUserConfig($uid, Application::APP_ID, self::CREDENTIALS);
+    }
+
     public function apiKey(string $uid): ?ApiKeyRecord
     {
         $data = $this->read($uid, self::API_KEY);

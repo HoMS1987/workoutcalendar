@@ -229,6 +229,21 @@ final class SecretStoreTest extends TestCase
         self::assertSame(['c'], $store->ssoCookies('anna'));
     }
 
+    public function testDeleteCredentialsOnlyKeepsTokensAndApiKey(): void
+    {
+        $store = $this->store();
+        $store->saveCredentials('anna', new Credentials('anna@example.org', 'pw'));
+        $store->saveTokens('anna', new GarminTokens('a', null, 'personal-api'));
+        $store->saveApiKey('anna', new ApiKeyRecord('k', 1));
+
+        $store->deleteCredentialsOnly('anna');
+
+        self::assertNull($store->credentials('anna'));
+        self::assertArrayNotHasKey('credentials', $this->data['anna']);
+        self::assertSame('personal-api', $store->tokens('anna')?->clientId);
+        self::assertEquals(new ApiKeyRecord('k', 1), $store->apiKey('anna'));
+    }
+
     public function testUnreadableApiKeyIsNull(): void
     {
         $store = $this->store();
