@@ -1,6 +1,6 @@
 import axios from '@nextcloud/axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, cancelMfa, chooseCalendar, chooseHistory, getCalendars, getStatus, login, logout, requestMfaCode, reset, syncNow, updateSettings, verifyMfaCode } from '../../src/api.ts'
+import { ApiError, cancelMfa, chooseCalendar, chooseHistory, connectApiKey, getCalendars, getStatus, login, logout, requestMfaCode, reset, syncNow, updateSettings, verifyMfaCode } from '../../src/api.ts'
 
 vi.mock('@nextcloud/axios', () => ({
 	default: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
@@ -87,6 +87,17 @@ describe('api client', () => {
 		expect(mocked.post).toHaveBeenCalledWith(
 			expect.stringMatching(/\/apps\/workoutcalendar\/api\/login$/),
 			{ email: 'a@b.c', password: 'secret' },
+		)
+	})
+
+	it('posts the API key to apikey', async () => {
+		mocked.post.mockResolvedValue({ data: { setup: {} } })
+
+		await connectApiKey('k-1')
+
+		expect(mocked.post).toHaveBeenCalledWith(
+			expect.stringMatching(/\/apps\/workoutcalendar\/api\/apikey$/),
+			{ apiKey: 'k-1' },
 		)
 	})
 

@@ -3,6 +3,7 @@ import type * as ApiModule from '../../../src/api.ts'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AccountSection from '../../../src/components/overview/AccountSection.vue'
+import { showMfaBox } from '../../../src/viewState.ts'
 import { makeStatus } from '../fixtures.ts'
 
 vi.mock('@nextcloud/l10n', async (importOriginal) => (await import('../wizard/l10nMock.ts')).l10nFactory(importOriginal))
@@ -11,6 +12,8 @@ vi.mock('../../../src/api.ts', async (importOriginal) => ({
 	logout: vi.fn(),
 	reset: vi.fn(),
 	requestMfaCode: vi.fn(),
+	connectApiKey: vi.fn(),
+	cancelMfa: vi.fn(),
 }))
 
 const api = await import('../../../src/api.ts')
@@ -36,11 +39,13 @@ describe('AccountSection', () => {
 		vi.mocked(api.logout).mockReset().mockResolvedValue(loggedOut)
 		vi.mocked(api.reset).mockReset().mockResolvedValue(loggedOut)
 		vi.mocked(api.requestMfaCode).mockReset()
+		vi.mocked(api.connectApiKey).mockReset()
+		vi.mocked(api.cancelMfa).mockReset()
 	})
 
 	async function signInAgain(wrapper: ReturnType<typeof mountSection>) {
 		await wrapper.find('button[data-test="toggle"]').trigger('click')
-		await wrapper.find('button[data-test="relogin"]').trigger('click')
+		await wrapper.find('button[data-test="relogin-password"]').trigger('click')
 		await flushPromises()
 	}
 
@@ -76,20 +81,199 @@ describe('AccountSection', () => {
 		wrapper.unmount()
 	})
 
-	it('hidesSignInAgainWhilePausedForRejectedPassword', async () => {
+	it('hidesTheSavedPasswordButtonWhilePausedForRejectedPassword', async () => {
 		const wrapper = mountSection(makeStatus({ paused: 'INVALID_CREDENTIALS' }))
 		await wrapper.find('button[data-test="toggle"]').trigger('click')
 
-		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(false)
+		expect(wrapper.find('button[data-test="relogin-password"]').exists()).toBe(false)
+		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(true)
 		expect(wrapper.find('button[data-test="logout"]').exists()).toBe(true)
 		wrapper.unmount()
 	})
 
-	it('offersSignInAgainWhilePausedForACode', async () => {
+	it('offersTheSavedPasswordWhilePausedForACode', async () => {
 		const wrapper = mountSection(makeStatus({ paused: 'MFA_REQUIRED' }))
 		await wrapper.find('button[data-test="toggle"]').trigger('click')
 
-		expect(wrapper.find('button[data-test="relogin"]').exists()).toBe(true)
+		expect(wrapper.find('button[data-test="relogin-password"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('savedPasswordButtonOnlyForPasswordAccounts', async () => {
+		const password = mountSection()
+		await password.find('button[data-test="toggle"]').trigger('click')
+		expect(password.find('button[data-test="relogin-password"]').text()).toBe('Sign in with the saved password')
+		password.unmount()
+
+		const apiKey = mountSection(makeStatus({ setup: { authMethod: 'apiKey', maskedEmail: null } }))
+		await apiKey.find('button[data-test="toggle"]').trigger('click')
+		expect(apiKey.find('button[data-test="relogin-password"]').exists()).toBe(false)
+		expect(apiKey.find('button[data-test="relogin"]').exists()).toBe(true)
+		apiKey.unmount()
+	})
+
+	async function openMethods(wrapper: ReturnType<typeof mountSection>) {
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+		await wrapper.find('button[data-test="relogin"]').trigger('click')
+		await flushPromises()
+	}
+
+	it('signInAgainOffersBothMethodsWithApiKeyFirst', async () => {
+		const wrapper = mountSection()
+		await openMethods(wrapper)
+
+		expect(wrapper.find('button[data-test="method-apikey"]').attributes('aria-pressed')).toBe('true')
+		expect(wrapper.find('button[data-test="method-password"]').attributes('aria-pressed')).toBe('false')
+		expect(wrapper.find('form button[type="submit"]').text()).toBe('Save')
+		expect(api.requestMfaCode).not.toHaveBeenCalled()
+		expect(api.connectApiKey).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('cancelChangesNothing', async () => {
+		const wrapper = mountSection()
+		await openMethods(wrapper)
+
+		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
+
+		expect(wrapper.find('button[data-test="method-apikey"]').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toBeUndefined()
+		expect(api.requestMfaCode).not.toHaveBeenCalled()
+		expect(api.connectApiKey).not.toHaveBeenCalled()
+		expect(api.cancelMfa).not.toHaveBeenCalled()
+		wrapper.unmount()
+	})
+
+	it('savingTheKeyClosesTheViewAndConfirms', async () => {
+		const next = makeStatus({ setup: { authMethod: 'apiKey', maskedEmail: null, apiKeyEnteredAt: 1_760_000_000 } })
+		vi.mocked(api.connectApiKey).mockResolvedValue(next)
+		const wrapper = mountSection()
+		await openMethods(wrapper)
+
+		await wrapper.find('form input').setValue('k-1')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+
+		expect(api.connectApiKey).toHaveBeenCalledWith('k-1')
+		expect(wrapper.find('button[data-test="method-apikey"]').exists()).toBe(false)
+		expect(wrapper.text()).toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[next]])
+		wrapper.unmount()
+	})
+
+	it('keepsTheViewOpenForARunningSetupCodeRequest', async () => {
+		const next = makeStatus({ mfa: { account: true, method: 'email', pending: { origin: 'setup', method: 'email', expiresAt: 1_760_001_800 } } })
+		vi.mocked(api.connectApiKey).mockResolvedValue(next)
+		const wrapper = mountSection()
+		await openMethods(wrapper)
+
+		await wrapper.find('form input').setValue('k-1')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+
+		expect(wrapper.find('button[data-test="method-apikey"]').exists()).toBe(true)
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[next]])
+		wrapper.unmount()
+	})
+
+	const pendingSetup = makeStatus({ mfa: { account: true, method: 'email', pending: { origin: 'setup', method: 'email', expiresAt: 1_760_001_800 } } })
+
+	it('backFromAPendingCodeKeepsTheViewOpenWithoutTheSuccessNote', async () => {
+		const cleared = makeStatus()
+		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
+		const wrapper = mountSection(pendingSetup)
+		// A running setup code request opens the section and the sign-in view on mount.
+		await flushPromises()
+
+		await wrapper.findAll('button').find((b) => b.text() === 'Back')!.trigger('click')
+		await flushPromises()
+
+		expect(api.cancelMfa).toHaveBeenCalledTimes(1)
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[cleared]])
+		wrapper.unmount()
+	})
+
+	it('opensTheViewAfterAReloadWhileASetupCodeRequestRuns', async () => {
+		const wrapper = mountSection(pendingSetup)
+		await flushPromises()
+
+		expect(wrapper.find('button[data-test="toggle"]').attributes('aria-expanded')).toBe('true')
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
+		expect(wrapper.find('input[autocomplete="one-time-code"]').exists()).toBe(true)
+		wrapper.unmount()
+	})
+
+	it('passwordTabSaysSignIn', async () => {
+		const wrapper = mountSection()
+		await openMethods(wrapper)
+
+		await wrapper.find('button[data-test="method-password"]').trigger('click')
+
+		expect(wrapper.find('form button[type="submit"]').text()).toBe('Sign in')
+		wrapper.unmount()
+	})
+
+	it('cancelWithAPendingCodeRequestGivesItUp', async () => {
+		const cleared = makeStatus()
+		vi.mocked(api.cancelMfa).mockResolvedValue(cleared)
+		const wrapper = mountSection(pendingSetup)
+		// A running setup code request opens the section and the sign-in view on mount.
+		await flushPromises()
+
+		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
+		await flushPromises()
+
+		expect(api.cancelMfa).toHaveBeenCalledTimes(1)
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(false)
+		expect(wrapper.text()).not.toContain('Signed in to Garmin again.')
+		expect(wrapper.emitted('status')).toEqual([[cleared]])
+		wrapper.unmount()
+	})
+
+	it('cancelKeepsTheViewOpenAndShowsTheErrorWhenGivingUpFails', async () => {
+		vi.mocked(api.cancelMfa).mockRejectedValue(new api.ApiError(409, 'busy'))
+		const wrapper = mountSection(pendingSetup)
+		// A running setup code request opens the section and the sign-in view on mount.
+		await flushPromises()
+
+		await wrapper.find('button[data-test="relogin-cancel"]').trigger('click')
+		await flushPromises()
+
+		expect(wrapper.find('[data-test="relogin-methods"]').exists()).toBe(true)
+		expect(wrapper.text()).toContain('A sync is running right now')
+		expect(wrapper.emitted('status')).toBeUndefined()
+		wrapper.unmount()
+	})
+
+	it('switchToApiKeyHidesTheMfaBox', async () => {
+		const paused = makeStatus({ paused: 'MFA_REQUIRED', mfa: { account: true, method: 'email' } })
+		const next = makeStatus({ setup: { authMethod: 'apiKey', maskedEmail: null, apiKeyEnteredAt: 1_760_000_000 } })
+		vi.mocked(api.connectApiKey).mockResolvedValue(next)
+		expect(showMfaBox(paused)).toBe(true)
+		const wrapper = mountSection(paused)
+		await openMethods(wrapper)
+
+		await wrapper.find('form input').setValue('k-1')
+		await wrapper.find('form').trigger('submit')
+		await flushPromises()
+
+		const emitted = wrapper.emitted('status')![0][0] as typeof next
+		expect(emitted.paused).toBeNull()
+		expect(emitted.mfa.pending).toBeNull()
+		expect(showMfaBox(emitted)).toBe(false)
+		wrapper.unmount()
+	})
+
+	it('showsConnectedWithApiKeyAndTheDate', async () => {
+		const wrapper = mountSection(makeStatus({ setup: { authMethod: 'apiKey', maskedEmail: null, apiKeyEnteredAt: 1_760_000_000 } }))
+		await wrapper.find('button[data-test="toggle"]').trigger('click')
+
+		expect(wrapper.find('[data-test="account-method"]').text()).toContain('Connected with API key')
+		expect(wrapper.find('[data-test="account-method"]').text()).toContain('entered on Oct 9, 2025')
 		wrapper.unmount()
 	})
 

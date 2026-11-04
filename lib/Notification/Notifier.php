@@ -48,6 +48,7 @@ final class Notifier implements INotifier
             ->setParsedMessage(match ($category) {
                 'INVALID_CREDENTIALS' => $l->t('Garmin rejected your email address or password. Workout Calendar is paused until you sign in again.'),
                 'MFA_REQUIRED' => $l->t('Garmin asks for a verification code. Workout Calendar is paused until you enter it in the settings.'),
+                'API_KEY_REJECTED' => $l->t('Your Garmin API key has expired or was deleted. Workout Calendar is paused until you enter a new one in the settings.'),
                 'PROTOCOL_CHANGED' => $l->t('Workout Calendar could not sync for a day because Garmin changed its sign-in. An app update may be needed.'),
                 default => $l->t('Workout Calendar could not reach Garmin for a day. It keeps trying.'),
             })

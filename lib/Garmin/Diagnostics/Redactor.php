@@ -40,7 +40,7 @@ final class Redactor
             // HTML: name="_csrf" value="value"
             '/(name="_csrf"\s+value=")[^"]*(")/i' => '$1' . self::MASK . '$2',
             // Authorization header values
-            '/\b(Bearer|Basic)\s+[A-Za-z0-9._~+\/=-]+/' => '$1 ' . self::MASK,
+            '/\b(Bearer|Basic|ApiKey)\s+[A-Za-z0-9._~+\/=-]+/' => '$1 ' . self::MASK,
             // CAS service tickets
             '/\bST-[A-Za-z0-9._-]+/' => 'ST-' . self::MASK,
             // JWTs, i.e. access and refresh tokens

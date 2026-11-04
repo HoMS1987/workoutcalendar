@@ -86,3 +86,20 @@ describe('OverviewTiles while the page stays open', () => {
 		wrapper.unmount()
 	})
 })
+
+describe('OverviewTiles account', () => {
+	it('showsConnectedWithApiKeyAndTheDate', () => {
+		const wrapper = mount(OverviewTiles, { props: { status: makeStatus({ setup: { authMethod: 'apiKey', maskedEmail: null, apiKeyEnteredAt: 1_760_000_000 } }) } })
+		const tile = wrapper.find('[data-test="tile-connection"]').text()
+
+		expect(tile).toContain('Connected with API key')
+		expect(tile).toContain('entered on Oct 9, 2025')
+	})
+
+	it('showsTheEmailForPasswordAccounts', () => {
+		const wrapper = mount(OverviewTiles, { props: { status: makeStatus() } })
+
+		expect(wrapper.find('[data-test="tile-connection"]').text()).toContain('a***@example.org')
+		expect(wrapper.find('[data-test="tile-connection"]').text()).not.toContain('API key')
+	})
+})

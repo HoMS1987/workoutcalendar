@@ -14,6 +14,7 @@ final class SetupState
      * @param ?string $maintenance 'move', 'remove' or null
      * @param ?string $maintenanceFailed 'move' or 'remove' if the maintenance job gave up, otherwise null
      * @param bool $calendarMissing the target calendar was missing in the last sync run; the setup is back at the calendar choice
+     * @param ?string $identity only for detecting an account change: 'email:<key>', 'garmin:<hash>' or null
      */
     public function __construct(
         public readonly SetupStep $step = SetupStep::Garmin,
@@ -25,6 +26,7 @@ final class SetupState
         public readonly ?string $maintenance = null,
         public readonly ?string $maintenanceFailed = null,
         public readonly bool $calendarMissing = false,
+        public readonly ?string $identity = null,
     ) {
     }
 
@@ -45,6 +47,7 @@ final class SetupState
             $maintenance === 'move' || $maintenance === 'remove' ? $maintenance : null,
             $failed === 'move' || $failed === 'remove' ? $failed : null,
             ($data['calendarMissing'] ?? false) === true,
+            $string('identity'),
         );
     }
 
@@ -61,6 +64,7 @@ final class SetupState
             'maintenance' => $this->maintenance,
             'maintenanceFailed' => $this->maintenanceFailed,
             'calendarMissing' => $this->calendarMissing,
+            'identity' => $this->identity,
         ];
     }
 }

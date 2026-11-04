@@ -33,7 +33,7 @@ Einstellungsseite (Vue)  ──► ApiController
 | Ordner | Inhalt | Stand |
 |---|---|---|
 | `lib/Garmin/Diagnostics` | `LoggingHttpClient`, `ResponseClassifier`, `FailureCategory`, `Redactor` (ADR 0004) | ✅ |
-| `lib/Garmin/Auth` | `MobileLogin` (auch `verifyCode` mit Portal-Ausweichweg), `WidgetLogin`, `Authenticator`, `MfaChallenge`, `DiTokenService`, `GarminTokens`, `TokenStore` | ✅ |
+| `lib/Garmin/Auth` | `MobileLogin` (auch `verifyCode` mit Portal-Ausweichweg), `WidgetLogin`, `Authenticator`, `MfaChallenge`, `DiTokenService`, `GarminTokens`, `TokenStore`, `TokenProvider` mit `PasswordTokenProvider` und `ApiKeyTokenProvider`, `ApiKeyTokenService` (ADR 0009) | ✅ |
 | `lib/Garmin` | `GarminClient`: Aktivitäten abrufen, Tokens erneuern, bei Bedarf neu anmelden | ✅ |
 | `lib/Calendar` | `ActivityEventMapper`, `CalendarEvent` (mit Fingerabdruck), `IcsSerializer`, `IcsReader`, `DeletedMarker` | ✅ |
 | `lib/Sync` | `SyncService`, `SyncSettings`, `SyncState`, `FailureLog` (gedrosseltes Fehler-Log), `CalendarTarget` | ✅ |
@@ -44,7 +44,7 @@ Einstellungsseite (Vue)  ──► ApiController
 | `lib/Controller` | `ApiController`: JSON-API der Einstellungsseite | ✅ |
 | `lib/Notification` | `Notifier`, `FailureNotifications`: Benachrichtigung bei Fehlern, die nur die Person beheben kann | ✅ |
 | `lib/Service` | `SyncRunner`, `AccountService`, `MfaService`, `MfaRequestLimit`, `PendingMfaSaver`, `CalendarSetupService`, `StatusService`, `GarminClientFactory`, `Cleanup` u. a. | ✅ |
-| `lib/Storage` | `UserStore`, `SecretStore`, `UserTokenStore`, `SetupState`, `PendingMfa`, `MfaOrigin`: Einstellungen und verschlüsselte Zugangsdaten in `IUserConfig` | ✅ |
+| `lib/Storage` | `UserStore`, `SecretStore`, `ApiKeyRecord`, `UserTokenStore`, `SetupState`, `PendingMfa`, `MfaOrigin`: Einstellungen und verschlüsselte Zugangsdaten in `IUserConfig` | ✅ |
 | `lib/Settings` | `Personal`, `Section`: Abschnitt „Workout Calendar“ in den persönlichen Einstellungen | ✅ |
 | `src/` | Einstellungsseite (Vue 3, `@nextcloud/vue`): Assistent und Übersicht auf der JSON-API, gebaut nach `js/` und `css/` | ✅ |
 
@@ -112,10 +112,11 @@ Alle Routen gehören der angemeldeten Person (`/apps/workoutcalendar/api/...`).
 
 | Route | Zweck |
 |---|---|
-| `GET /api/status` | Stand von Einrichtung und Sync, dazu der Block `mfa` (`account`, `method`, `pending` mit `origin`, `method`, `expiresAt`, und `nextRequestAt`) |
+| `GET /api/status` | Stand von Einrichtung und Sync, dazu `setup.authMethod` (`apiKey`, `password` oder `null`) und `setup.apiKeyEnteredAt` (nie der Schlüssel selbst) sowie der Block `mfa` (`account`, `method`, `pending` mit `origin`, `method`, `expiresAt`, und `nextRequestAt`) |
 | `POST /api/login` | Garmin-Zugangsdaten prüfen und speichern (Rate-Limit 10 pro Stunde); bei `MFA_REQUIRED` Antwort „Code nötig“ mit dem Weg statt eines Fehlers |
 | `GET /api/calendars` | Kalender zur Auswahl |
 | `POST /api/calendar` | Kalender wählen oder wechseln, mit oder ohne Umzug der Termine |
+| `POST /api/apikey` | Persönlichen API-Schlüssel (`apiKey`, getrimmt) gegen ein Token tauschen und speichern: Einrichten, Umstellen, neuer Schlüssel nach Ablauf (Rate-Limit 10 pro Stunde). 422 `API_KEY_REJECTED`, wenn Garmin mit 401 oder 403 ablehnt, 400 bei leerem Wert ohne Anfrage an Garmin; bei anderen Garmin-Fehlern wird nichts gespeichert und der bisherige Weg bleibt |
 | `POST /api/mfa/request` | Code anfordern: Login mit dem gespeicherten Passwort, bei `MFA_REQUIRED` startet eine Code-Anfrage (Rate-Limit 10 pro Stunde, dazu höchstens 1 pro Minute und 5 pro Stunde je Person) |
 | `POST /api/mfa/verify` | Code bestätigen (`code`, Rate-Limit 10 pro Stunde); bei Erfolg Tokens speichern, Pause und Benachrichtigung beenden |
 | `POST /api/mfa/cancel` | Laufende Code-Anfrage löschen |
@@ -153,6 +154,7 @@ kommen zur jeweiligen Ansicht hinzu.
 | `history` | `true` | gesetzt | – | Auswahl des Historienzeitraums (Assistent) |
 | `done` | `true` | gesetzt | `maintenance: null`, `maintenanceFailed: null` | Übersicht: Sync-Stand, Einstellungen, „Jetzt synchronisieren“, Kalender wechseln, Abmelden, Zurücksetzen |
 | `done` | `true` | gesetzt | `paused: "MFA_REQUIRED"` oder `mfa.pending` gesetzt | Übersicht mit Hinweiskasten ganz oben: ohne `mfa.pending` der Knopf „Code anfordern“, mit `mfa.pending` Codefeld, „Bestätigen“ und „Neuen Code anfordern“; die übrige Übersicht bleibt sichtbar |
+| `done` | `true` | gesetzt | `paused: "API_KEY_REJECTED"` | Übersicht mit Kasten ganz oben (`ApiKeyBox`): Hinweis, Anleitung mit Link, Feld für den neuen Schlüssel und „Speichern“; die übrige Übersicht bleibt sichtbar |
 | `done` | `true` | gesetzt | `maintenance: "move"` oder `"remove"` | Übersicht mit Hinweis, dass Termine verschoben bzw. entfernt werden; Kalenderwechsel und Bereinigung beim Abmelden/Zurücksetzen gesperrt |
 | `done` | `true` | gesetzt | `maintenanceFailed: "move"` oder `"remove"` | Übersicht mit Hinweis, dass das Verschieben bzw. Entfernen aufgegeben hat und Termine im alten Kalender liegen können; verschwindet bei der Wahl eines anderen Kalenders oder einem erfolgreichen Wartungsjob |
 
@@ -174,12 +176,24 @@ verschlüsselt.
 | Schlüssel | Speicher | Inhalt |
 |---|---|---|
 | `credentials`, `tokens` | `SecretStore` | Garmin-Zugangsdaten und Tokens |
+| `api_key` | `SecretStore` | Persönlicher API-Schlüssel und Datum des Eintragens (`ApiKeyRecord`). Höchstens einer von `credentials` und `api_key` ist gesetzt. Gelöscht beim Abmelden, Zurücksetzen und beim Umstellen auf E-Mail und Passwort ([ADR 0009](adrs/0009-persoenlicher-api-schluessel.md)) |
 | `mfa_pending` | `SecretStore` | Laufende Code-Anfrage: SSO-Cookies, Query-Parameter, Weg, Login-Strategie, Herkunft (`MfaOrigin`), Zeitpunkt; bei der Einrichtung auch E-Mail und Passwort. Höchstens 30 Minuten gültig ([ADR 0008](adrs/0008-garmin-sitzung-zwischen-zwei-anfragen.md)) |
 | `sso_cookies` | `SecretStore` | Von Garmin gesetzte Cookies („Browser merken“); gelöscht beim Abmelden, Zurücksetzen und beim Wechsel auf ein anderes Garmin-Konto |
 | `mfa_requests` | `UserStore` | Zeitpunkte der letzten Code-Anforderungen für die Grenze von 1 pro Minute und 5 pro Stunde |
 | `state` | `UserStore` | `SyncState`, darin `mfaAccount` (Konto nutzt Zwei-Faktor-Anmeldung) und `mfaMethod` |
+| `setup` | `UserStore` | `SetupState`, darin `accountKey` (bleibt bei jedem Wechsel des Anmeldewegs) und `identity` (Präfix `email:`, `garmin:` oder `apikey:`, erkennt einen Kontowechsel) |
 
 ## Garmin-Zugriff
+
+Der `GarminClient` bekommt sein Token von einem `TokenProvider`, je nach Anmeldeweg der Person.
+
+**Mit API-Schlüssel** (`ApiKeyTokenProvider`): `ApiKeyTokenService` tauscht den Schlüssel gegen ein
+Zugriffstoken (`personal.connectapi.garmin.com`). Ein neues Token holt die App, sobald das alte in
+weniger als 3600 Sekunden abläuft. Ein Refresh-Token gibt es nicht. 401 und 403 beim Tausch bedeuten
+`API_KEY_REJECTED`: Pause und sofortige Benachrichtigung. Die Aktivitäten kommen von
+`personal.connectapi.garmin.com/activitylist-service`.
+
+**Mit E-Mail und Passwort** (`PasswordTokenProvider`):
 
 1. Gespeicherte Tokens laden. Ist der Access-Token abgelaufen, per Refresh-Token erneuern.
 2. Ohne Tokens oder bei abgelehntem Refresh-Token neu anmelden: erst `MobileLogin`, dann

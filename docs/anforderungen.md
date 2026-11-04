@@ -19,7 +19,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | R-02 | AppAPI und Deploy-Daemon sind nicht aktiv und sollen nicht nötig sein. |
 | R-03 | Das Nextcloud-Konto nutzt Zwei-Faktor-Anmeldung. |
 | R-04 | Das Garmin-Konto des Autors nutzte bis 1.0.x keine Zwei-Faktor-Anmeldung. Ab 1.1.0 sind Konten mit Zwei-Faktor-Anmeldung unterstützt (F-07). |
-| R-05 | Garmin bietet Privatpersonen keine offizielle API. Der Zugriff läuft über inoffizielle Schnittstellen (ADR 0003). |
+| R-05 | Der Zugriff mit E-Mail und Passwort läuft über inoffizielle Schnittstellen (ADR 0003). Ab 1.1.0 gibt es zusätzlich die offizielle Personal API mit Schlüssel (F-08, ADR 0009). |
 | R-06 | Strava kommt als Datenquelle nur in Frage, wenn die API kostenlos ist. |
 | R-07 | Auf dem Entwicklungsrechner laufen keine Dienste und nichts startet automatisch mit dem System. |
 
@@ -36,6 +36,7 @@ in Nextcloud, Outlook bindet ihn über das vorhandene CalDAV-Plugin ein.
 | F-05 | Jede Person der Instanz hinterlegt ihr eigenes Garmin-Konto und hat eigene Einstellungen. | Muss |
 | F-06 | Nach der Installation sind alle Einstellungen mit sinnvollen Standardwerten belegt (siehe Standardwerte). | Muss |
 | F-07 | Garmin-Konten mit Zwei-Faktor-Anmeldung (1.1.0). Antwortet Garmin beim Login mit `MFA_REQUIRED`, ersetzt im Schritt „Garmin“ ein Codefeld das Formular, und die Person gibt den Code beim Einrichten einmal ein. Danach arbeitet der Sync mit dem Refresh-Token weiter (laut python-garminconnect, nicht am echten Konto geprüft; wie lange das Refresh-Token gilt, ist offen). Lehnt Garmin das Refresh-Token ab, meldet sich die App bei einem als Zwei-Faktor-Konto bekannten Konto nicht mehr mit dem Passwort an, sondern pausiert und benachrichtigt über die Glocke. Auf der Übersicht fordert die Person den Code dann selbst an (Hinweiskasten ganz oben), höchstens einmal pro Minute und fünfmal pro Stunde. Der Knopf „Neu anmelden“ stellt auch ein bestehendes Konto um. Ein Code wird nur auf Knopfdruck angefordert, einzige Ausnahme ist der eine Login-Versuch eines noch unbekannten Kontos im Sync. Die Eingabe ist für weitere Wege wie Authenticator-Apps ausgelegt. Eine Code-Anfrage gilt 30 Minuten (ADR 0008). | Muss |
+| F-08 | Anmeldung mit dem persönlichen API-Schlüssel von Garmin (1.1.0, empfohlener Weg, ADR 0009). Der Schritt „Garmin“ bietet zwei Reiter: „API-Schlüssel“ mit Anleitung und Link zu Garmin Connect, und „E-Mail und Passwort“ (F-07). Der Schlüssel wird beim Eintragen sofort gegen ein Zugriffstoken getauscht und verschlüsselt gespeichert. Pro Person ist ein Weg aktiv, ein Wechsel löscht die Daten des anderen. Lehnt Garmin den Schlüssel ab (401, 403), pausiert der Sync, die Glocke meldet sich, und ein Hinweiskasten oben auf der Übersicht nimmt einen neuen Schlüssel an. „Neu anmelden“ stellt ein bestehendes Konto in beide Richtungen um, die Termine bleiben. Ein Schlüssel gilt höchstens ein Jahr. Die Antworten der Personal API sind am echten Konto noch nicht geprüft. | Muss |
 
 ### Synchronisation
 
@@ -115,6 +116,7 @@ belegt. Die Streuung verteilt aber in jedem Fall die Abrufe mehrerer Personen ei
 - Keine Gesundheitsdaten außer den Aktivitäten (Schlaf, Schritte, Gewicht).
 - Kein Import über Strava, solange Garmin direkt funktioniert.
 - Zwei-Faktor-Anmeldung über den zweiten Login-Weg (`WidgetLogin`) und ein Codefeld in der Benachrichtigung selbst (F-07).
+- Weitere Daten der Personal API (Schlaf, Schritte, Herzfrequenz-Verlauf) und eine Warnung vor dem Ablauf des Schlüssels (F-08).
 
 ## Offene Fragen
 

@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace OCA\WorkoutCalendar\Tests\Unit\Garmin;
 
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenProvider;
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
+use OCA\WorkoutCalendar\Garmin\Auth\PasswordTokenProvider;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
@@ -23,6 +28,7 @@ use PHPUnit\Framework\TestCase;
 final class GarminClientTest extends TestCase
 {
     private const NOW = 1_800_000_000;
+    private const API_KEY = 'personal-key-4711';
 
     private FakeHttpClient $http;
     private MemoryTokenStore $store;
@@ -57,16 +63,30 @@ final class GarminClientTest extends TestCase
             }
         };
 
-        return new GarminClient(
-            $this->http,
+        $credentials = new Credentials('a@b.de', 'pw');
+        $tokens = new PasswordTokenProvider(
             new Authenticator([$strategy], $this->logger),
             new DiTokenService($this->http),
             $this->store,
-            new Credentials('a@b.de', 'pw'),
+            $credentials,
             $this->logger,
             static fn (): int => self::NOW,
             $passwordLogin,
         );
+
+        return new GarminClient($this->http, $tokens, $this->logger, GarminConstants::CONNECT_API, [$credentials->password]);
+    }
+
+    private function apiKeyClient(): GarminClient
+    {
+        $tokens = new ApiKeyTokenProvider(
+            new ApiKeyTokenService($this->http, new Redactor([self::API_KEY])),
+            $this->store,
+            self::API_KEY,
+            static fn (): int => self::NOW,
+        );
+
+        return new GarminClient($this->http, $tokens, $this->logger, GarminConstants::PERSONAL_API, [self::API_KEY]);
     }
 
     public static function validExp(): int
@@ -241,6 +261,55 @@ final class GarminClientTest extends TestCase
         self::assertSame('login.skipped', $e->step);
         self::assertSame(0, $this->logins);
         self::assertSame([], $this->http->requests);
+    }
+
+    public function testApiKeyClientFetchesFromThePersonalApi(): void
+    {
+        $exchanged = Jwt::make(['exp' => self::NOW + 7200, 'n' => 'exchanged']);
+        $this->http->queue(FakeHttpClient::json(200, ['access_token' => $exchanged]), FakeHttpClient::json(200, [['activityId' => 3]]));
+
+        $activities = $this->apiKeyClient()->activities(0, 10);
+
+        self::assertSame([['activityId' => 3]], $activities);
+        self::assertSame(['apikey.token', 'api.activities'], $this->http->steps());
+        $request = $this->http->requests[1];
+        self::assertStringStartsWith('https://personal.connectapi.garmin.com/activitylist-service/', $request->url);
+        self::assertSame(
+            'https://personal.connectapi.garmin.com/activitylist-service/activities/search/activities?start=0&limit=10',
+            $request->url,
+        );
+        self::assertSame('Bearer ' . $exchanged, $request->headers['Authorization']);
+        self::assertSame($exchanged, $this->store->tokens?->accessToken);
+    }
+
+    public function testApiKeyClientRetriesOnceWithANewTokenAfter401(): void
+    {
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW + 7200, 'n' => 'stored']), null, ApiKeyTokenService::CLIENT_ID);
+        $renewed = Jwt::make(['exp' => self::NOW + 7200, 'n' => 'renewed']);
+        $this->http->queue(
+            new HttpResponse(401, [], ''),
+            FakeHttpClient::json(200, ['access_token' => $renewed]),
+            FakeHttpClient::json(200, [['activityId' => 9]]),
+        );
+
+        self::assertSame([['activityId' => 9]], $this->apiKeyClient()->activities(0, 10));
+        self::assertSame(['api.activities', 'apikey.token', 'api.activities'], $this->http->steps());
+        self::assertSame('Bearer ' . $renewed, $this->http->requests[2]->headers['Authorization']);
+        self::assertSame($renewed, $this->store->tokens?->accessToken);
+    }
+
+    public function testApiKeyClientMasksTheKeyInNetworkErrors(): void
+    {
+        $this->store->tokens = new GarminTokens(Jwt::make(['exp' => self::NOW + 7200]), null, ApiKeyTokenService::CLIENT_ID);
+        $this->http->queue(new NetworkException('reset after ' . self::API_KEY));
+
+        try {
+            $this->apiKeyClient()->activities(0, 10);
+            self::fail('GarminException expected');
+        } catch (GarminException $e) {
+            self::assertSame(FailureCategory::Network, $e->category);
+            self::assertStringNotContainsString(self::API_KEY, $e->getMessage());
+        }
     }
 
     private function failure(bool $passwordLogin = true): GarminException

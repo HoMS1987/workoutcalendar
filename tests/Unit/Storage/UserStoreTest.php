@@ -116,6 +116,18 @@ final class UserStoreTest extends TestCase
         self::assertTrue($store->setup('anna')->calendarMissing);
     }
 
+    public function testSetupStateKeepsIdentity(): void
+    {
+        $store = $this->store();
+        $setup = new SetupState(SetupStep::Done, true, 'abcd1234abcd1234', null, 7, false, null, null, false, 'garmin:abc');
+
+        $store->saveSetup('anna', $setup);
+
+        self::assertSame('garmin:abc', $store->setup('anna')->identity);
+        self::assertEquals($setup, $store->setup('anna'));
+        self::assertNull((new SetupState())->identity);
+    }
+
     public function testUnknownMaintenanceFailureIsIgnored(): void
     {
         $this->data = ['anna' => ['setup' => '{"maintenanceFailed":"wipe","calendarMissing":"yes"}']];

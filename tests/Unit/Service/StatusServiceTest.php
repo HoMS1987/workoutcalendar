@@ -9,6 +9,7 @@ use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Service\StatusService;
+use OCA\WorkoutCalendar\Storage\ApiKeyRecord;
 use OCA\WorkoutCalendar\Storage\MfaOrigin;
 use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
@@ -164,6 +165,8 @@ final class StatusServiceTest extends TestCase
                 'step' => 'done',
                 'connected' => true,
                 'maskedEmail' => 'a***@example.org',
+                'authMethod' => null,
+                'apiKeyEnteredAt' => null,
                 'calendar' => ['id' => $calendarId, 'name' => 'Training', 'createdByApp' => true],
                 'maintenance' => 'move',
                 'maintenanceFailed' => null,
@@ -291,6 +294,30 @@ final class StatusServiceTest extends TestCase
         $this->users->saveState(self::UID, $state);
 
         self::assertTrue($this->service()->status(self::UID)['mfa']['account']);
+    }
+
+    public function testStatusNamesTheAuthMethodWithoutTheKey(): void
+    {
+        $key = 'personal-key-0123456789';
+        $setup = $this->service()->status(self::UID)['setup'];
+        self::assertNull($setup['authMethod']);
+        self::assertNull($setup['apiKeyEnteredAt']);
+
+        $this->secrets->saveCredentials(self::UID, new Credentials(self::EMAIL, self::PASSWORD));
+        $setup = $this->service()->status(self::UID)['setup'];
+        self::assertSame('password', $setup['authMethod']);
+        self::assertNull($setup['apiKeyEnteredAt']);
+
+        // The key wins if both are stored.
+        $this->secrets->saveApiKey(self::UID, new ApiKeyRecord($key, self::NOW - 500));
+        $setup = $this->service()->status(self::UID)['setup'];
+        self::assertSame('apiKey', $setup['authMethod']);
+        self::assertSame(self::NOW - 500, $setup['apiKeyEnteredAt']);
+
+        $this->secrets->deleteCredentials(self::UID);
+        $status = $this->service()->status(self::UID);
+        self::assertSame('apiKey', $status['setup']['authMethod']);
+        self::assertStringNotContainsString($key, json_encode($status, JSON_THROW_ON_ERROR));
     }
 
     private function service(): StatusService

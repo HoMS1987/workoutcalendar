@@ -46,6 +46,10 @@ export function login(email: string, password: string): Promise<Status> {
 	return request('post', 'login', { email, password })
 }
 
+export function connectApiKey(apiKey: string): Promise<Status> {
+	return request('post', 'apikey', { apiKey })
+}
+
 export function getCalendars(): Promise<{ defaultName: string, calendars: CalendarOption[] }> {
 	return request('get', 'calendars')
 }

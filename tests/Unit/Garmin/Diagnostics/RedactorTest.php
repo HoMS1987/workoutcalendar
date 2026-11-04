@@ -43,6 +43,11 @@ final class RedactorTest extends TestCase
         self::assertSame('{"mfaVerificationCode":"***"}', $result);
     }
 
+    public function testMasksApiKeyHeader(): void
+    {
+        self::assertSame('Authorization: ApiKey ***', (new Redactor())->redact('Authorization: ApiKey abc.def-1'));
+    }
+
     public function testKeepsHarmlessTextIncludingUmlauts(): void
     {
         $text = '{"responseStatus":{"type":"INVALID_USERNAME_PASSWORD"},"message":"Ungültige Anmeldung"}';

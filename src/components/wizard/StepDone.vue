@@ -2,7 +2,14 @@
 	<div class="step">
 		<h3>{{ t('workoutcalendar', 'All set') }}</h3>
 		<ul class="step__summary">
-			<li>{{ t('workoutcalendar', 'Garmin account: {email}', { email: status.setup.maskedEmail ?? '' }, { escape: false }) }}</li>
+			<li v-if="status.setup.authMethod === 'apiKey'">
+				{{ t('workoutcalendar', 'Garmin account: {email}', { email: t('workoutcalendar', 'Connected with API key') }, { escape: false }) }}<template v-if="status.setup.apiKeyEnteredAt !== null">
+					({{ t('workoutcalendar', 'entered on {date}', { date: formatDate(status.setup.apiKeyEnteredAt) }, { escape: false }) }})
+				</template>
+			</li>
+			<li v-else>
+				{{ t('workoutcalendar', 'Garmin account: {email}', { email: status.setup.maskedEmail ?? '' }, { escape: false }) }}
+			</li>
 			<li>{{ t('workoutcalendar', 'Calendar: {name}', { name: calendarName }, { escape: false }) }}</li>
 			<li>{{ historyText }}</li>
 			<li v-if="status.sync.backfill.running">
@@ -23,6 +30,7 @@ import { t } from '@nextcloud/l10n'
 import { computed } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { intervalLabel } from '../../intervalLabel.ts'
+import { formatDate } from '../../messages.ts'
 
 const props = defineProps<{ status: Status }>()
 

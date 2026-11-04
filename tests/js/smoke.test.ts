@@ -22,7 +22,7 @@ describe('settings app', () => {
 		await flushPromises()
 
 		expect(wrapper.text()).toContain('Workout Calendar')
-		expect(wrapper.text()).toContain('Sign in and continue')
+		expect(wrapper.text()).toContain('Connect and continue')
 		wrapper.unmount()
 	})
 
@@ -37,6 +37,6 @@ describe('settings app', () => {
 
 		const container = document.getElementById(id!)!
 		expect(container.textContent).toContain('Workout Calendar')
-		expect(container.textContent).toContain('Sign in and continue')
+		expect(container.textContent).toContain('Connect and continue')
 	})
 })

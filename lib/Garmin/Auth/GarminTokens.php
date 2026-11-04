@@ -47,7 +47,7 @@ final class GarminTokens
     {
         $expiresAt = $this->expiresAt();
 
-        // Without exp the token is used until Garmin answers 401; GarminClient then renews it.
+        // Without exp the token is used until Garmin answers 401; the token provider then renews it.
         return $expiresAt !== null && $now >= $expiresAt - self::EXPIRY_LEEWAY_SECONDS;
     }
 
@@ -59,8 +59,18 @@ final class GarminTokens
     }
 
     /**
-     * Claims of the JWT, decoded without checking the signature: only expiry and client ID of a
-     * token Garmin issued to us are read.
+     * Claims of the access token, decoded without checking the signature.
+     *
+     * @return array<string, mixed>
+     */
+    public function claims(): array
+    {
+        return self::jwtPayload($this->accessToken);
+    }
+
+    /**
+     * Claims of the JWT, decoded without checking the signature: only expiry, client ID and user
+     * identity of a token Garmin issued to us are read.
      *
      * @return array<string, mixed>
      */

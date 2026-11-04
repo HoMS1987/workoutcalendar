@@ -9,6 +9,7 @@ use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
 use OCA\WorkoutCalendar\Storage\MfaOrigin;
+use OCA\WorkoutCalendar\Storage\ApiKeyRecord;
 use OCA\WorkoutCalendar\Storage\PendingMfa;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\UserStore;
@@ -89,6 +90,21 @@ final class StorageRoundTripTest extends TestCase
         $secrets->clear($this->uid);
         self::assertNull($secrets->pendingMfa($this->uid, time()));
         self::assertSame([], $secrets->ssoCookies($this->uid));
+    }
+
+    public function testApiKeySurvivesRealConfigAndCrypto(): void
+    {
+        $secrets = new SecretStore($this->config, Server::get(ICrypto::class), new NullLogger());
+
+        $secrets->saveApiKey($this->uid, new ApiKeyRecord('api-key-xyz', 99));
+
+        self::assertEquals(new ApiKeyRecord('api-key-xyz', 99), $secrets->apiKey($this->uid));
+        $raw = $this->config->getValueString($this->uid, Application::APP_ID, 'api_key', '', true);
+        self::assertNotSame('', $raw);
+        self::assertStringNotContainsString('api-key-xyz', $raw);
+
+        $secrets->clear($this->uid);
+        self::assertNull($secrets->apiKey($this->uid));
     }
 
     public function testSettingsAndStateSurviveRealConfig(): void

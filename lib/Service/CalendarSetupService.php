@@ -143,6 +143,7 @@ final class CalendarSetupService
             // A newly chosen calendar ends the hints about abandoned maintenance and a missing calendar.
             null,
             false,
+            $setup->identity,
         ));
         if ($move) {
             try {

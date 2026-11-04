@@ -19,8 +19,8 @@ The changes per version are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Disclaimer
 
-Use at your own risk. Garmin offers no official API for individuals; the app uses the same
-unofficial interfaces as the Garmin Connect app. Garmin can change or block them at any time, and in
+Use at your own risk. Signing in with email and password uses the same unofficial
+interfaces as the Garmin Connect app; the API key uses Garmin's personal API, which is meant for personal use. Garmin can change or block them at any time, and in
 the worst case restrict the account. The project is not affiliated with Garmin.
 
 ## Support
@@ -37,7 +37,8 @@ the license.
 
 - Nextcloud 33 to 35 with the Calendar app enabled
 - PHP 8.2 or newer with `ext-curl`
-- Garmin Connect account; two-step verification (email or SMS code) is supported from 1.1.0
+- Garmin Connect account. Signing in with Garmin's personal API key is recommended (from 1.1.0);
+  email and password also work, and two-step verification (email or SMS code) is supported
 
 For development, additionally Composer and Node.js 24 with npm 11. Python 3.13 is optional for the
 diagnostic scripts.
@@ -50,6 +51,22 @@ diagnostic scripts.
    5 minutes.
 
 Each person then opens *Personal settings → Workout Calendar* and signs in to Garmin there.
+
+### Connect with an API key
+
+The API key is the recommended way from 1.1.0. It needs no password and no verification code.
+
+1. In the setup step "Garmin" (or under "Sign in again" in the Garmin account section), stay on the
+   tab "API key (recommended)".
+2. Open [Garmin Connect → Settings → Personal API Key](https://connect.garmin.com/app/settings/personalApiToken),
+   choose "Create Key" and accept Garmin's terms.
+3. Choose "1 year" as the duration and copy the key. Garmin shows it only once.
+4. Paste the key into Workout Calendar and choose "Connect and continue". The app exchanges it for
+   a token right away and stores the key encrypted.
+
+When the key expires or is deleted, the sync pauses, a notification appears, and a box at the top
+of the overview takes the new key. "Sign in again" switches an existing account between the API key
+and email and password; the events stay.
 
 ### Installing from source
 
@@ -119,7 +136,9 @@ python -m venv .venv
 
 ## Limitations
 
-- Garmin access runs over unofficial interfaces and can break at any time.
+- Signing in with email and password runs over unofficial interfaces and can break at any time. The API key uses Garmin's official personal API.
+- An API key is valid for one year at most. Workout Calendar does not know the expiry date, only the day you entered the key.
+- The responses of the personal API have not been verified on a real account yet: the activity list, the status for a deleted key, and the claims in the token. Garmin's terms beyond its FAQ ("for personal use") are not verified either.
 - Whether the login works from a server container depends on IP address and TLS fingerprint. It
   works on the author's own instance (Talos cluster); Garmin may decide differently for other
   servers.

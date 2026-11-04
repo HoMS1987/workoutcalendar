@@ -75,13 +75,30 @@ final class ApiController extends Controller
     // Every attempt reaches Garmin, and repeated failed sign-ins could lock the Garmin account.
     #[UserRateLimit(limit: 10, period: 3600)]
     #[FrontpageRoute(verb: 'POST', url: '/api/login')]
-    public function login(string $email = '', string $password = ''): JSONResponse
+    public function login(string $email = '', #[\SensitiveParameter] string $password = ''): JSONResponse
     {
         return $this->handle(function (string $uid) use ($email, $password): array {
             if (trim($email) === '' || $password === '') {
                 throw new \InvalidArgumentException('Email address and password are required');
             }
             $this->accounts->login($uid, $email, $password);
+
+            return $this->status->status($uid);
+        }, logMessage: false);
+    }
+
+    /** Connects with Garmin's personal API key; the key is exchanged for a token before anything is saved. */
+    #[NoAdminRequired]
+    // Every attempt reaches Garmin.
+    #[UserRateLimit(limit: 10, period: 3600)]
+    #[FrontpageRoute(verb: 'POST', url: '/api/apikey')]
+    public function apiKey(#[\SensitiveParameter] mixed $apiKey = null): JSONResponse
+    {
+        return $this->handle(function (string $uid) use ($apiKey): array {
+            if (!is_string($apiKey) || trim($apiKey) === '') {
+                throw new \InvalidArgumentException('API key is required');
+            }
+            $this->accounts->connectApiKey($uid, $apiKey);
 
             return $this->status->status($uid);
         }, logMessage: false);
@@ -206,6 +223,7 @@ final class ApiController extends Controller
                 $setup->maintenance,
                 $setup->maintenanceFailed,
                 $setup->calendarMissing,
+                $setup->identity,
             ));
             // WHY: After a missing calendar the old state would otherwise remain (history done,
             // last success), and the new calendar would get no import. The pause stays: without new

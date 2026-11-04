@@ -34,6 +34,7 @@ async function clickTest(wrapper: ReturnType<typeof mount>, name: string) {
 }
 
 async function submitLogin(wrapper: ReturnType<typeof mount>) {
+	await wrapper.find('button[data-test="method-password"]').trigger('click')
 	await wrapper.find('input[type="email"]').setValue('me@example.org')
 	await wrapper.find('input[type="password"]').setValue('secret')
 	await wrapper.find('form').trigger('submit')
@@ -86,6 +87,7 @@ describe('App wizard flow', () => {
 		await submitLogin(wrapper)
 
 		await clickTest(wrapper, 'back')
+		await clickTest(wrapper, 'method-password')
 
 		expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe('me@example.org')
 		expect((wrapper.find('input[type="password"]').element as HTMLInputElement).value).toBe('')
@@ -95,6 +97,7 @@ describe('App wizard flow', () => {
 	it('keeps the masked address of an earlier account as a hint only', async () => {
 		vi.mocked(api.getStatus).mockResolvedValue(makeStatus({ setup: { connected: false, step: 'garmin', maskedEmail: 'a***@example.org', calendar: null } }))
 		const wrapper = await mountApp()
+		await clickTest(wrapper, 'method-password')
 
 		expect(wrapper.text()).toContain('Last connected as a***@example.org.')
 		expect(wrapper.findComponent(StepGarmin).props('maskedEmail')).toBe('a***@example.org')
@@ -108,6 +111,7 @@ describe('App wizard flow', () => {
 		const wrapper = await mountApp()
 
 		await clickTest(wrapper, 'back')
+		await clickTest(wrapper, 'method-password')
 
 		expect(wrapper.text()).toContain('Sign in to Garmin')
 		expect(wrapper.findComponent(StepGarmin).props('maskedEmail')).toBeNull()

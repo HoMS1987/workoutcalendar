@@ -94,6 +94,14 @@ describe('OverviewPage', () => {
 		wrapper.unmount()
 	})
 
+	it('apiKeyBoxIsTheFirstElement', () => {
+		const wrapper = mountPage(makeStatus({ paused: 'API_KEY_REJECTED' }))
+
+		expect(wrapper.find('.overview').element.firstElementChild?.getAttribute('data-test')).toBe('api-key-box')
+		expect(wrapper.text()).not.toContain('Syncing is paused. Please sign in to Garmin again to continue.')
+		wrapper.unmount()
+	})
+
 	it('shows no box without request and pause', () => {
 		const wrapper = mountPage()
 

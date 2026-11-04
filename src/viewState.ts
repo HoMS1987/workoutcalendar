@@ -59,6 +59,16 @@ export function showMfaBox(status: Status): boolean {
 	return origin === 'relogin' || origin === 'sync' || status.paused === 'MFA_REQUIRED'
 }
 
+/**
+ * Whether the overview asks for a new API key at the top: the sync is paused because Garmin no
+ * longer accepts the saved key.
+ *
+ * @param status Current status
+ */
+export function showApiKeyBox(status: Status): boolean {
+	return status.paused === 'API_KEY_REJECTED'
+}
+
 function viewOf(status: Status, wizardFinished: boolean): View {
 	if (!status.setup.connected) {
 		return 'login'
@@ -85,8 +95,8 @@ function hintsOf(status: Status): Hint[] {
 	const { setup } = status
 	const hints: Hint[] = []
 
-	if (status.paused === 'MFA_REQUIRED') {
-		// The box at the top explains the pause and asks for the code.
+	if (status.paused === 'MFA_REQUIRED' || status.paused === 'API_KEY_REJECTED') {
+		// The box at the top explains the pause and asks for the code or the key.
 	} else if (status.paused !== null) {
 		hints.push('paused')
 	} else if (status.failure !== null) {

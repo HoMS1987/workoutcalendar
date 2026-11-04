@@ -8,6 +8,7 @@ use OCA\WorkoutCalendar\BackgroundJob\MfaCleanupJob;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Http\HttpClient;
+use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Notification\FailureNotifications;
 use OCA\WorkoutCalendar\Service\GarminClientFactory;
 use OCA\WorkoutCalendar\Service\HttpClientProvider;
@@ -15,6 +16,7 @@ use OCA\WorkoutCalendar\Service\PendingMfaSaver;
 use OCA\WorkoutCalendar\Service\PersonLock;
 use OCA\WorkoutCalendar\Service\RunOutcome;
 use OCA\WorkoutCalendar\Service\SyncRunner;
+use OCA\WorkoutCalendar\Storage\ApiKeyRecord;
 use OCA\WorkoutCalendar\Storage\MfaOrigin;
 use OCA\WorkoutCalendar\Storage\SecretStore;
 use OCA\WorkoutCalendar\Storage\SetupState;
@@ -45,6 +47,7 @@ final class SyncRunnerTest extends TestCase
 
     private const UID = 'anna';
     private const ACCOUNT = '0123456789abcdef';
+    private const API_KEY = 'personal-key-0123456789';
     /** md5('anna'), the column oc_file_locks.key holds 64 characters. */
     private const LOCK = 'workoutcalendar/sync/a70f9e38ff015afaa9ab0aacabee2e13';
 
@@ -483,6 +486,64 @@ final class SyncRunnerTest extends TestCase
         self::assertStringNotContainsString('(deleted in Garmin)', $ics);
     }
 
+    public function testApiKeyAccountSyncsWithoutCredentials(): void
+    {
+        $this->connectWithApiKey();
+        $this->http->queue(
+            FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => time() + 86_400])]),
+            FakeHttpClient::json(200, [self::activity(101, '2026-10-19 07:00:00')]),
+            FakeHttpClient::json(200, []),
+        );
+
+        self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now));
+
+        self::assertSame('apikey.token', $this->http->requests[0]->step);
+        self::assertSame('ApiKey ' . self::API_KEY, $this->http->requests[0]->headers['Authorization'] ?? null);
+        self::assertStringStartsWith('https://personal.connectapi.garmin.com/activitylist-service/', $this->http->requests[1]->url);
+        self::assertArrayHasKey('garmin-101.ics', $this->objects->objects[$this->calendarId]);
+        self::assertSame($this->now->getTimestamp(), $this->users->state(self::UID)->lastSuccessAt);
+        self::assertSame('personal-api', $this->secrets->tokens(self::UID)?->clientId);
+    }
+
+    public function testStoredKeyWinsOverStaleCredentials(): void
+    {
+        $this->connectWithApiKey();
+        $this->secrets->saveCredentials(self::UID, new Credentials('a@b.de', 'secret'));
+        $this->http->queue(
+            FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => time() + 86_400])]),
+            FakeHttpClient::json(200, []),
+            FakeHttpClient::json(200, []),
+        );
+
+        self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now));
+
+        self::assertSame('apikey.token', $this->http->requests[0]->step);
+        self::assertCount(1, $this->logger->byLevel('warning'));
+        self::assertSame($this->now->getTimestamp(), $this->users->state(self::UID)->lastSuccessAt);
+        self::assertStringNotContainsString('secret', $this->logger->dump());
+    }
+
+    public function testRejectedApiKeyPausesAndNotifies(): void
+    {
+        $this->connectWithApiKey();
+        $this->http->queue(new HttpResponse(401, [], 'Key ' . self::API_KEY . ' is unknown'));
+
+        self::assertSame(RunOutcome::Done, $this->runner()->run(self::UID, $this->now));
+
+        $state = $this->users->state(self::UID);
+        self::assertSame('API_KEY_REJECTED', $state->pausedFor);
+        self::assertSame('API_KEY_REJECTED', $state->notifiedCategory);
+        self::assertSame(['notify:' . self::UID . ':API_KEY_REJECTED'], array_values(array_filter(
+            $this->notificationCalls,
+            static fn (string $call): bool => str_starts_with($call, 'notify:'),
+        )));
+        self::assertCount(1, $this->http->requests);
+        self::assertSame(RunOutcome::Paused, $this->runner()->run(self::UID, $this->now->modify('+30 minutes')));
+        self::assertCount(1, $this->http->requests);
+        self::assertStringNotContainsString(self::API_KEY, $this->logger->dump());
+        self::assertStringNotContainsString(self::API_KEY, json_encode($state->toArray(), JSON_THROW_ON_ERROR));
+    }
+
     /** Person is in the queue with a due run. */
     private function queued(SyncState $state): void
     {
@@ -498,6 +559,12 @@ final class SyncRunnerTest extends TestCase
             $this->secrets->saveTokens(self::UID, new GarminTokens(Jwt::make(['exp' => time() + 3600]), 'r', 'C'));
         }
         $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, 'a***@b.de', $this->calendarId, true));
+    }
+
+    private function connectWithApiKey(): void
+    {
+        $this->secrets->saveApiKey(self::UID, new ApiKeyRecord(self::API_KEY, $this->now->getTimestamp()));
+        $this->users->saveSetup(self::UID, new SetupState(SetupStep::Done, true, self::ACCOUNT, null, $this->calendarId, true));
     }
 
     private function runner(): SyncRunner

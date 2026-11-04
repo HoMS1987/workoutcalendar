@@ -46,6 +46,13 @@ final class NotificationPolicyTest extends TestCase
         self::assertSame(NotificationAction::Send, $this->policy->decide($state, self::NOW));
     }
 
+    public function testApiKeyRejectedIsImmediate(): void
+    {
+        $state = self::failing(FailureCategory::ApiKeyRejected, self::NOW);
+
+        self::assertSame(NotificationAction::Send, $this->policy->decide($state, self::NOW));
+    }
+
     public function testBlockedNotifiesAfterOneDay(): void
     {
         self::assertSame(

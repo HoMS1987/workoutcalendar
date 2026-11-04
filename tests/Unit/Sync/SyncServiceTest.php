@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace OCA\WorkoutCalendar\Tests\Unit\Sync;
 
 use OCA\WorkoutCalendar\Calendar\ActivityEventMapper;
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenProvider;
+use OCA\WorkoutCalendar\Garmin\Auth\ApiKeyTokenService;
+use OCA\WorkoutCalendar\Garmin\Diagnostics\Redactor;
 use OCA\WorkoutCalendar\Garmin\Auth\Authenticator;
 use OCA\WorkoutCalendar\Garmin\Auth\Credentials;
 use OCA\WorkoutCalendar\Garmin\Auth\DiTokenService;
 use OCA\WorkoutCalendar\Garmin\Auth\LoginStrategy;
 use OCA\WorkoutCalendar\Garmin\Auth\MfaChallenge;
+use OCA\WorkoutCalendar\Garmin\Auth\PasswordTokenProvider;
 use OCA\WorkoutCalendar\Garmin\GarminException;
 use OCA\WorkoutCalendar\Garmin\Auth\GarminTokens;
 use OCA\WorkoutCalendar\Garmin\Diagnostics\FailureCategory;
 use OCA\WorkoutCalendar\Garmin\GarminClient;
+use OCA\WorkoutCalendar\Garmin\GarminConstants;
 use OCA\WorkoutCalendar\Garmin\Http\HttpResponse;
 use OCA\WorkoutCalendar\Garmin\Http\NetworkException;
 use OCA\WorkoutCalendar\Sync\DeletionMode;
@@ -74,15 +79,14 @@ final class SyncServiceTest extends TestCase
                 }
             };
         }
-        $client = new GarminClient(
-            $this->http,
+        $client = self::passwordClient($this->http, new PasswordTokenProvider(
             new Authenticator($strategies, $this->logger),
             new DiTokenService($this->http),
             $tokens,
             new Credentials('a@b.de', 'pw'),
             $this->logger,
             fn (): int => $this->now->getTimestamp(),
-        );
+        ), $this->logger);
 
         return (new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger))->run($settings, $this->state, $this->now);
     }
@@ -453,6 +457,25 @@ final class SyncServiceTest extends TestCase
         self::assertStringNotContainsString('secret-cookie-value', json_encode($this->logger->records ?? [], JSON_THROW_ON_ERROR));
     }
 
+    public function testRejectedApiKeyPausesTheSync(): void
+    {
+        $this->initialized();
+        $this->http->queue(new HttpResponse(403, [], 'Forbidden'));
+        $client = new GarminClient($this->http, new ApiKeyTokenProvider(
+            new ApiKeyTokenService($this->http, new Redactor(['the-key'])),
+            new MemoryTokenStore(),
+            'the-key',
+            fn (): int => $this->now->getTimestamp(),
+        ), $this->logger, GarminConstants::PERSONAL_API, ['the-key']);
+
+        $result = (new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger))->run(new SyncSettings(), $this->state, $this->now);
+
+        self::assertSame(FailureCategory::ApiKeyRejected, $result->failure);
+        self::assertSame('API_KEY_REJECTED', $this->state->pausedFor);
+        self::assertSame('API_KEY_REJECTED', $this->state->failureCategory);
+        self::assertFalse($this->state->mfaAccount);
+    }
+
     public function testNetworkErrorDoesNotPause(): void
     {
         $this->initialized();
@@ -502,17 +525,21 @@ final class SyncServiceTest extends TestCase
 
     private function service(): SyncService
     {
-        $client = new GarminClient(
-            $this->http,
+        $client = self::passwordClient($this->http, new PasswordTokenProvider(
             new Authenticator([], $this->logger),
             new DiTokenService($this->http),
             new MemoryTokenStore(new GarminTokens(Jwt::make(['exp' => $this->now->getTimestamp() + 3600]), 'r', 'C')),
             new Credentials('a@b.de', 'pw'),
             $this->logger,
             fn (): int => $this->now->getTimestamp(),
-        );
+        ), $this->logger);
 
         return new SyncService($client, new ActivityEventMapper(), $this->calendar, $this->logger);
+    }
+
+    private static function passwordClient(FakeHttpClient $http, PasswordTokenProvider $tokens, MemoryLogger $logger): GarminClient
+    {
+        return new GarminClient($http, $tokens, $logger, GarminConstants::CONNECT_API, ['pw']);
     }
 
     private function importedNinetyDays(): void

@@ -15,6 +15,8 @@ export function makeStatus(overrides: StatusOverrides = {}): Status {
 			step: 'done',
 			connected: true,
 			maskedEmail: 'a***@example.org',
+			authMethod: 'password',
+			apiKeyEnteredAt: null,
 			calendar: { id: 7, name: 'Garmin-Aktivitäten', createdByApp: true },
 			maintenance: null,
 			maintenanceFailed: null,

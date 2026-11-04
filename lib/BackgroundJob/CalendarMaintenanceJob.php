@@ -147,6 +147,7 @@ final class CalendarMaintenanceJob extends QueuedJob
                     null,
                     $failed,
                     $setup->calendarMissing,
+                    $setup->identity,
                 ));
             });
         } catch (PersonBusyException) {

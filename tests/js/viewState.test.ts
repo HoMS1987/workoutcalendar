@@ -2,7 +2,7 @@ import type { Status } from '../../src/types.ts'
 import type { View } from '../../src/viewState.ts'
 
 import { describe, expect, it } from 'vitest'
-import { deriveView, hintSeverity, showMfaBox } from '../../src/viewState.ts'
+import { deriveView, hintSeverity, showApiKeyBox, showMfaBox } from '../../src/viewState.ts'
 import { makeStatus } from './fixtures.ts'
 
 const noCalendar = null
@@ -157,5 +157,22 @@ describe('showMfaBox', () => {
 	it('replaces the paused hint', () => {
 		expect(deriveView(makeStatus({ paused: 'MFA_REQUIRED' }), false).hints).toEqual([])
 		expect(deriveView(makeStatus({ paused: 'MFA_REQUIRED', failure: { category: 'MFA_REQUIRED', since: null, count: 1 } }), false).hints).toEqual([])
+	})
+})
+
+describe('showApiKeyBox', () => {
+	it('is shown while the sync is paused for the API key', () => {
+		expect(showApiKeyBox(makeStatus({ paused: 'API_KEY_REJECTED' }))).toBe(true)
+	})
+
+	it('is hidden for other pauses and without a pause', () => {
+		expect(showApiKeyBox(makeStatus())).toBe(false)
+		expect(showApiKeyBox(makeStatus({ paused: 'INVALID_CREDENTIALS' }))).toBe(false)
+		expect(showApiKeyBox(makeStatus({ paused: 'MFA_REQUIRED' }))).toBe(false)
+	})
+
+	it('replaces the paused hint', () => {
+		expect(deriveView(makeStatus({ paused: 'API_KEY_REJECTED' }), false).hints).toEqual([])
+		expect(deriveView(makeStatus({ paused: 'API_KEY_REJECTED', failure: { category: 'API_KEY_REJECTED', since: null, count: 1 } }), false).hints).toEqual([])
 	})
 })
