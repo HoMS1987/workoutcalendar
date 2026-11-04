@@ -133,9 +133,23 @@ final class ApiKeyTokenServiceTest extends TestCase
         self::assertSame('guid-1', ApiKeyTokenService::garminUserId($first));
     }
 
+    public function testGarminUserIdAcceptsANumericUserProfilePk(): void
+    {
+        $tokens = new GarminTokens(Jwt::make(['userProfilePK' => 81234567, 'sub' => 'sub-1']), null, 'personal-api');
+
+        self::assertSame('81234567', ApiKeyTokenService::garminUserId($tokens));
+    }
+
+    public function testGarminUserIdIgnoresSubBecauseItMayChangeWithEveryKey(): void
+    {
+        $tokens = new GarminTokens(Jwt::make(['sub' => 'key-subject-1', 'exp' => 1]), null, 'personal-api');
+
+        self::assertNull(ApiKeyTokenService::garminUserId($tokens));
+    }
+
     public function testGarminUserIdWithoutClaimsIsNull(): void
     {
-        $tokens = new GarminTokens(Jwt::make(['exp' => 1, 'user_id' => 42]), null, 'personal-api');
+        $tokens = new GarminTokens(Jwt::make(['exp' => 1, 'user_id' => ['nested'], 'userProfilePK' => true]), null, 'personal-api');
 
         self::assertNull(ApiKeyTokenService::garminUserId($tokens));
         self::assertNull(ApiKeyTokenService::garminUserId(new GarminTokens('not-a-jwt', null, 'personal-api')));

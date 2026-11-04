@@ -20,8 +20,12 @@ final class ApiKeyTokenService
 
     private const STEP = 'apikey.token';
 
-    /** Claims that may hold the Garmin user, in order of preference. The names are a guess until checked against a real token. */
-    private const USER_ID_CLAIMS = ['garmin_guid', 'userProfilePK', 'user_id', 'sub'];
+    /**
+     * Claims that may hold the Garmin user, in order of preference. The names are a guess until checked
+     * against a real token. WHY no 'sub': it may name the key rather than the user, so a renewed key would
+     * count as another account.
+     */
+    private const USER_ID_CLAIMS = ['garmin_guid', 'userProfilePK', 'user_id'];
 
     private readonly ResponseFailures $failures;
 
@@ -59,12 +63,16 @@ final class ApiKeyTokenService
         return new GarminTokens($access, null, self::CLIENT_ID);
     }
 
-    /** The Garmin user the token belongs to: the first non-empty string among the known claims. */
+    /** The Garmin user the token belongs to: the first non-empty string or integer among the known claims. */
     public static function garminUserId(GarminTokens $tokens): ?string
     {
         $claims = $tokens->claims();
         foreach (self::USER_ID_CLAIMS as $name) {
             $value = $claims[$name] ?? null;
+            // WHY: Garmin's profile IDs are usually numbers.
+            if (is_int($value)) {
+                $value = (string)$value;
+            }
             if (is_string($value) && $value !== '') {
                 return $value;
             }
