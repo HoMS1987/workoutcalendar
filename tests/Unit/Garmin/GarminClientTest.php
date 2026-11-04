@@ -266,7 +266,7 @@ final class GarminClientTest extends TestCase
     public function testApiKeyClientFetchesFromThePersonalApi(): void
     {
         $exchanged = Jwt::make(['exp' => self::NOW + 7200, 'n' => 'exchanged']);
-        $this->http->queue(FakeHttpClient::json(200, ['access_token' => $exchanged]), FakeHttpClient::json(200, [['activityId' => 3]]));
+        $this->http->queue(FakeHttpClient::personalApiToken($exchanged), FakeHttpClient::json(200, [['activityId' => 3]]));
 
         $activities = $this->apiKeyClient()->activities(0, 10);
 
@@ -288,7 +288,7 @@ final class GarminClientTest extends TestCase
         $renewed = Jwt::make(['exp' => self::NOW + 7200, 'n' => 'renewed']);
         $this->http->queue(
             new HttpResponse(401, [], ''),
-            FakeHttpClient::json(200, ['access_token' => $renewed]),
+            FakeHttpClient::personalApiToken($renewed),
             FakeHttpClient::json(200, [['activityId' => 9]]),
         );
 

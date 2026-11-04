@@ -46,7 +46,7 @@ final class ApiKeyTokenProviderTest extends TestCase
 
     private function queueExchange(string $jwt): void
     {
-        $this->http->queue(FakeHttpClient::json(200, ['access_token' => $jwt]));
+        $this->http->queue(FakeHttpClient::personalApiToken($jwt));
     }
 
     public function testUsesAStoredTokenThatLastsMoreThanAnHour(): void

@@ -65,11 +65,19 @@ Eine geänderte `accountKey` würde die vorhandenen Termine aus der Löschbehand
 
 ### Noch ungeprüft
 
-Der Test am echten Konto mit `1.1.0-rc.2` steht aus. Offen sind:
+Am 2026-11-04 mit `php-test/apikey_test.php` an einem echten Konto geprüft:
 
-- Ob die Aktivitätsliste der Personal API so aussieht wie die der inoffiziellen Schnittstelle. Weicht
-  sie ab, wird der Mapper angepasst, ein Rückfall auf die alte Adresse ist nicht vorgesehen.
-- Welchen Status Garmin bei einem gelöschten Schlüssel liefert. Angenommen sind 401 und 403.
-- Welcher Claim im Token die Garmin-Kennung enthält und ob es überhaupt einen stabilen gibt.
+- Der Token-Endpunkt antwortet mit dem JWT als reinem Text, nicht mit JSON. `1.1.0-rc.2` hatte JSON
+  erwartet und jede Anmeldung mit `PROTOCOL_CHANGED` abgelehnt.
+- Das Token enthält `garmin_guid` (eine GUID). Die Kontokennung ist damit `garmin:`.
+- Die Aktivitätsliste der Personal API liefert dieselben Felder wie die inoffizielle Schnittstelle,
+  etwa `startTimeLocal` und `activityType.typeKey`.
+- Ein ungültiger Schlüssel bekommt 401 mit `cf-ray` und `server: cloudflare`, aber ohne
+  `cf-mitigated`. Deshalb zählt nur eine Cloudflare-Challenge als Sperre.
+
+Offen sind:
+
+- Welchen Status Garmin bei einem gelöschten oder abgelaufenen Schlüssel liefert. Angenommen sind 401
+  und 403, wie beim ungültigen Schlüssel.
 - Ob Garmin Rate-Limits setzt. In den Quellen steht dazu nichts.
 - Die Nutzungsbedingungen von Garmin über die FAQ hinaus.

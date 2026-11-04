@@ -576,7 +576,7 @@ final class ApiControllerTest extends TestCase
 
     public function testApiKeyRouteReturnsStatus(): void
     {
-        $this->http->queue(FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => self::NOW + 86_400, 'garmin_guid' => 'g-1'])]));
+        $this->http->queue(FakeHttpClient::personalApiToken(Jwt::make(['exp' => self::NOW + 86_400, 'garmin_guid' => 'g-1'])));
 
         $response = $this->controller()->apiKey(" \t" . self::API_KEY . "\n");
 
@@ -634,7 +634,7 @@ final class ApiControllerTest extends TestCase
         self::assertSame(['exceptionClass' => \RuntimeException::class], $this->logger->records[0]['context']);
 
         // 200: the status names the method, never the key.
-        $this->http->queue(FakeHttpClient::json(200, ['access_token' => Jwt::make(['exp' => self::NOW + 86_400])]));
+        $this->http->queue(FakeHttpClient::personalApiToken(Jwt::make(['exp' => self::NOW + 86_400])));
         $success = $this->controller()->apiKey(self::API_KEY);
         self::assertSame(200, $success->getStatus());
 

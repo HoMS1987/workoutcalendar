@@ -1199,7 +1199,7 @@ final class AccountServiceTest extends TestCase
         if ($garminId !== null) {
             $claims['garmin_guid'] = $garminId;
         }
-        $this->http->queue(FakeHttpClient::json(200, ['access_token' => Jwt::make($claims)]));
+        $this->http->queue(FakeHttpClient::personalApiToken(Jwt::make($claims)));
     }
 
     private function signIn(string $email, string $password): SetupState
